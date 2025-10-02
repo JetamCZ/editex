@@ -1,6 +1,37 @@
 import { useState } from "react";
 import type { Route } from "./+types/editor";
-import { Box, Container, Flex, TextArea } from "@radix-ui/themes";
+import { Box, Flex, ScrollArea, Text, Card, Separator } from "@radix-ui/themes";
+import { FileTreeNode, type FileNode } from "../components/FileTreeNode";
+
+// Mock folder structure
+const mockFileTree: FileNode[] = [
+  {
+    name: "project",
+    type: "folder",
+    path: "/project",
+    children: [
+      { name: "main.tex", type: "file", path: "/project/main.tex" },
+      { name: "chapter1.tex", type: "file", path: "/project/chapter1.tex" },
+      {
+        name: "images",
+        type: "folder",
+        path: "/project/images",
+        children: [
+          { name: "diagram.png", type: "file", path: "/project/images/diagram.png" },
+          { name: "photo.jpg", type: "file", path: "/project/images/photo.jpg" },
+        ],
+      },
+      {
+        name: "styles",
+        type: "folder",
+        path: "/project/styles",
+        children: [
+          { name: "custom.sty", type: "file", path: "/project/styles/custom.sty" },
+        ],
+      },
+    ],
+  },
+];
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -10,21 +41,95 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Editor() {
-  const [content, setContent] = useState("");
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState("");
+
+  const handleFileClick = (path: string) => {
+    setSelectedFile(path);
+    // Mock file content based on path
+    setFileContent(`% Content of ${path}\n\n% This is a placeholder for the actual file content`);
+  };
 
   return (
-    <Container size="4">
-      <Flex direction="column" gap="4" py="4">
-        <Box>
-          <TextArea
-            size="3"
-            placeholder="Enter your LaTeX code here..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            style={{ minHeight: "400px", fontFamily: "monospace" }}
-          />
+    <Flex style={{ height: "100vh" }}>
+      {/* Left Sidebar - File Tree */}
+      <Box
+        style={{
+          width: "250px",
+          borderRight: "1px solid var(--gray-6)",
+          backgroundColor: "var(--gray-2)",
+        }}
+      >
+        <Box p="3">
+          <Text size="3" weight="bold">
+            Project Files
+          </Text>
+        </Box>
+        <Separator size="4" />
+        <ScrollArea style={{ height: "calc(100vh - 60px)" }}>
+          <Box p="2">
+            {mockFileTree.map((node) => (
+              <FileTreeNode
+                key={node.path}
+                node={node}
+                onFileClick={handleFileClick}
+                selectedPath={selectedFile}
+              />
+            ))}
+          </Box>
+        </ScrollArea>
+      </Box>
+
+      {/* Right Panel - Editor and Preview */}
+      <Flex direction="row" style={{ flex: 1 }}>
+        {/* Editor */}
+        <Box style={{ flex: 1, borderRight: "1px solid var(--gray-6)" }}>
+          <Box p="3" style={{ borderBottom: "1px solid var(--gray-6)" }}>
+            <Text size="2" color="gray">
+              {selectedFile || "No file selected"}
+            </Text>
+          </Box>
+          <Box p="3">
+            {selectedFile ? (
+              <Card>
+                <Text
+                  as="pre"
+                  size="2"
+                  style={{
+                    fontFamily: "monospace",
+                    whiteSpace: "pre-wrap",
+                    minHeight: "calc(100vh - 120px)",
+                  }}
+                >
+                  {fileContent}
+                </Text>
+              </Card>
+            ) : (
+              <Text color="gray">Select a file from the tree to view its contents</Text>
+            )}
+          </Box>
+        </Box>
+
+        {/* Preview */}
+        <Box style={{ flex: 1, backgroundColor: "var(--gray-1)" }}>
+          <Box p="3" style={{ borderBottom: "1px solid var(--gray-6)" }}>
+            <Text size="2" weight="bold">
+              Preview
+            </Text>
+          </Box>
+          <Box p="3">
+            {selectedFile ? (
+              <Card>
+                <Text color="gray" align="center" style={{ padding: "40px" }}>
+                  LaTeX preview will appear here
+                </Text>
+              </Card>
+            ) : (
+              <Text color="gray">Preview will appear when a file is opened</Text>
+            )}
+          </Box>
         </Box>
       </Flex>
-    </Container>
+    </Flex>
   );
 }
