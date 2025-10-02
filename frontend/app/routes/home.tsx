@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import {Button, Flex, Text} from "@radix-ui/themes";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -9,5 +9,10 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <Welcome />;
+  return (
+      <Flex direction="column" gap="2">
+        <Text>Hello from Radix Themes :)</Text>
+        <Button>Let's go</Button>
+      </Flex>
+  )
 }
