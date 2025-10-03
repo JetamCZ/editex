@@ -17,8 +17,9 @@ public class Project {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "owner", nullable = false)
-    private String owner;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -57,11 +58,11 @@ public class Project {
         this.name = name;
     }
 
-    public String getOwner() {
+    public User getOwner() {
         return owner;
     }
 
-    public void setOwner(String owner) {
+    public void setOwner(User owner) {
         this.owner = owner;
     }
 

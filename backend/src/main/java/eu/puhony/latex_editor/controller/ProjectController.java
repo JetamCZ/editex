@@ -1,10 +1,17 @@
 package eu.puhony.latex_editor.controller;
 
+import eu.puhony.latex_editor.dto.CreateProjectRequest;
+import eu.puhony.latex_editor.dto.UpdateProjectRequest;
 import eu.puhony.latex_editor.entity.Project;
+import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.ProjectService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,10 +23,8 @@ public class ProjectController {
     @Autowired
     private ProjectService projectService;
 
-    @GetMapping
-    public ResponseEntity<List<Project>> getAllProjects() {
-        return ResponseEntity.ok(projectService.getAllProjects());
-    }
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/{id}")
     public ResponseEntity<Project> getProjectById(@PathVariable String id) {
@@ -34,13 +39,24 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<Project> createProject(@RequestBody Project project) {
+    public ResponseEntity<Project> createProject(@Valid @RequestBody CreateProjectRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        User owner = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Project project = new Project();
+        project.setName(request.getName());
+        project.setOwner(owner);
         Project createdProject = projectService.createProject(project);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Project> updateProject(@PathVariable String id, @RequestBody Project project) {
+    public ResponseEntity<Project> updateProject(@PathVariable String id, @Valid @RequestBody UpdateProjectRequest request) {
+        Project project = new Project();
+        project.setName(request.getName());
         return projectService.updateProject(id, project)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
