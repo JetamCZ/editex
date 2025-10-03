@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Route } from "./+types/editor";
 import { Box, Flex, ScrollArea, Text, Card, Separator } from "@radix-ui/themes";
 import { FileTreeNode, type FileNode } from "../components/FileTreeNode";
+import Editor from "@monaco-editor/react";
 
 // Mock folder structure
 const mockFileTree: FileNode[] = [
@@ -40,14 +41,14 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export default function Editor() {
+export default function EditorPage() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
 
   const handleFileClick = (path: string) => {
     setSelectedFile(path);
     // Mock file content based on path
-    setFileContent(`% Content of ${path}\n\n% This is a placeholder for the actual file content`);
+    setFileContent(`% Content of ${path}\n\n\\documentclass{article}\n\\begin{document}\n\nThis is a placeholder for the actual file content.\n\n\\end{document}`);
   };
 
   return (
@@ -83,29 +84,32 @@ export default function Editor() {
       {/* Right Panel - Editor and Preview */}
       <Flex direction="row" style={{ flex: 1 }}>
         {/* Editor */}
-        <Box style={{ flex: 1, borderRight: "1px solid var(--gray-6)" }}>
+        <Box style={{ flex: 1, borderRight: "1px solid var(--gray-6)", display: "flex", flexDirection: "column" }}>
           <Box p="3" style={{ borderBottom: "1px solid var(--gray-6)" }}>
             <Text size="2" color="gray">
               {selectedFile || "No file selected"}
             </Text>
           </Box>
-          <Box p="3">
+          <Box style={{ flex: 1 }}>
             {selectedFile ? (
-              <Card>
-                <Text
-                  as="pre"
-                  size="2"
-                  style={{
-                    fontFamily: "monospace",
-                    whiteSpace: "pre-wrap",
-                    minHeight: "calc(100vh - 120px)",
-                  }}
-                >
-                  {fileContent}
-                </Text>
-              </Card>
+              <Editor
+                height="100%"
+                defaultLanguage="latex"
+                language="latex"
+                value={fileContent}
+                theme="light"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: "on",
+                  readOnly: false,
+                  wordWrap: "on",
+                }}
+              />
             ) : (
-              <Text color="gray">Select a file from the tree to view its contents</Text>
+              <Box p="3">
+                <Text color="gray">Select a file from the tree to view its contents</Text>
+              </Box>
             )}
           </Box>
         </Box>
