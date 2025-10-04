@@ -17,10 +17,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        eu.puhony.latex_editor.entity.User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        eu.puhony.latex_editor.entity.User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
-        return new User(user.getUsername(), user.getPassword(), new ArrayList<>());
+        return new User(user.getEmail(), user.getPassword(), new ArrayList<>());
     }
 }

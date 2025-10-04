@@ -41,9 +41,9 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<Project> createProject(@Valid @RequestBody CreateProjectRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
+        String email = authentication.getName();
 
-        User owner = userRepository.findByUsername(username)
+        User owner = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Project project = new Project();
