@@ -17,7 +17,7 @@ export async function action({request}: ActionFunctionArgs) {
         const session = await getSession(request);
         session.set("token", response.data?.token);
 
-        return redirect("/profile", {
+        return redirect("/dashboard", {
             headers: {
                 "Set-Cookie": await commitSession(session),
             }

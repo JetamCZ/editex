@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "applications": [
+    {
+      "name": "LaTeX Editor Frontend",
+      "folder": "/home/jetam/projects/latex/frontend"
+    }
+  ]
+}
