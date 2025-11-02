@@ -6,7 +6,7 @@ import type {User} from "../../types/user";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const api = await getApiClient(request)
-  
+
   return {  };
 }
 

@@ -66,12 +66,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Navigation Menu */}
         <nav className="flex-1 overflow-y-auto p-4">
-          {menuStructure.map((category) => (
-            <div key={category.category} className="mb-6">
+          {menuStructure.map((category, index) => (
+            <div key={category.category} className={index > 0 ? "mb-6 pt-3 border-t border-gray-a6" : "mb-6"}>
               <Text size="1" weight="bold" className="text-gray-11 uppercase px-3 mb-2 block">
                 {category.category}
               </Text>
-              <Flex direction="column" gap="1">
+              <Flex direction="column" gap="1" mt="2">
                 {category.items.map((item) => (
                   <Link
                     key={item.href}
