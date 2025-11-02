@@ -1,94 +1,100 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
-import { Button, Card, TextField, Flex, Text, Heading, Callout } from '@radix-ui/themes';
-import api from '../lib/axios';
+import {Link, redirect, useActionData, useNavigation, Form} from 'react-router';
+import type {ActionFunctionArgs} from "react-router";
+import {Button, Card, TextField, Flex, Text, Heading, Callout} from '@radix-ui/themes';
+import api from '../lib/axios.server';
+import delay from "~/lib/delay";
+import {commitSession, getSession} from "~/lib/sessions.server";
 
-export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+export async function action({request}: ActionFunctionArgs) {
+    await delay(1000)
 
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { token } = response.data;
+        const formData = await request.formData();
 
-      if (token) {
-        localStorage.setItem('token', token);
-        navigate('/editor');
-      }
+        const response = await api.post<{ token: string }>('/auth/login', formData);
+
+        const session = await getSession(request);
+        session.set("token", response.data?.token);
+
+        return redirect("/profile", {
+            headers: {
+                "Set-Cookie": await commitSession(session),
+            }
+        });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+        console.error("ERROR", "login-action", err);
+
+        return {
+            error: err.response?.data?.message || 'Login failed. Please try again.',
+        }
     }
-  };
+}
 
-  return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      style={{ minHeight: '100vh', padding: '1rem' }}
-    >
-      <Card size="4" style={{ maxWidth: '400px', width: '100%' }}>
-        <Flex direction="column" gap="4">
-          <Heading size="6" align="center">Login</Heading>
+export default function Login() {
+    const actionData = useActionData<typeof action>()
+    const error = actionData?.error
 
-          {error && (
-            <Callout.Root color="red">
-              <Callout.Text>{error}</Callout.Text>
-            </Callout.Root>
-          )}
+    const navigation = useNavigation();
+    const loading = navigation.state !== "idle"
 
-          <form onSubmit={handleSubmit}>
-            <Flex direction="column" gap="3">
-              <label>
-                <Text as="div" size="2" mb="1" weight="bold">
-                  Email
-                </Text>
-                <TextField.Root
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </label>
+    return (
+        <Flex
+            direction="column"
+            align="center"
+            justify="center"
+            style={{minHeight: '100vh', padding: '1rem'}}
+        >
+            <Card size="4" style={{maxWidth: '400px', width: '100%'}}>
+                <Flex direction="column" gap="4">
+                    <Heading size="6" align="center">Login</Heading>
 
-              <label>
-                <Text as="div" size="2" mb="1" weight="bold">
-                  Password
-                </Text>
-                <TextField.Root
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </label>
+                    {error && (
+                        <Callout.Root color="red">
+                            <Callout.Text>{error}</Callout.Text>
+                        </Callout.Root>
+                    )}
 
-              <Button type="submit" size="3" disabled={loading}>
-                {loading ? 'Logging in...' : 'Login'}
-              </Button>
-            </Flex>
-          </form>
+                    <Form method="post">
+                        <Flex direction="column" gap="3">
+                            <label>
+                                <Text as="div" size="2" mb="1" weight="bold">
+                                    Email
+                                </Text>
+                                <TextField.Root
+                                    type="email"
+                                    name="email"
+                                    placeholder="Enter your email"
+                                    required
+                                />
+                            </label>
 
-          <Text size="2" align="center">
-            Don't have an account?{' '}
-            <Link to="/register" style={{ color: 'var(--accent-9)' }}>
-              Register
-            </Link>
-          </Text>
+                            <label>
+                                <Text as="div" size="2" mb="1" weight="bold">
+                                    Password
+                                </Text>
+                                <TextField.Root
+                                    type="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    required
+                                />
+                            </label>
+
+                            <Button type="submit" size="3" disabled={loading}>
+                                {loading ? 'Logging in...' : 'Login'}
+                            </Button>
+                        </Flex>
+                    </Form>
+
+                    <Text size="2" align="center">
+                        Don't have an account?{' '}
+                        <Link to="/auth/register" style={{color: 'var(--accent-9)'}}>
+                            Register
+                        </Link>
+                    </Text>
+                </Flex>
+            </Card>
         </Flex>
-      </Card>
-    </Flex>
-  );
+    );
 }

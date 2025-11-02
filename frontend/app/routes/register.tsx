@@ -1,47 +1,49 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
+import { Link, type ActionFunctionArgs, redirect, Form, useActionData, useNavigation} from 'react-router';
 import { Button, Card, TextField, Flex, Text, Heading, Callout } from '@radix-ui/themes';
-import api from '../lib/axios';
+import api from '../lib/axios.server';
+import delay from "~/lib/delay";
+import {commitSession, getSession} from "~/lib/sessions.server";
+
+export async function action({request}: ActionFunctionArgs) {
+  await delay(1000)
+
+  try {
+    const formData = await request.formData();
+
+    if(formData.get("password") !== formData.get("confirm_password")) {
+      return {
+        error: 'Passwords do not match!',
+      }
+    }
+
+    const response = await api.post<{ token: string }>('/auth/register', formData);
+
+    const session = await getSession(request);
+    session.set("token", response.data?.token);
+
+    return redirect("/profile", {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      }
+    });
+  } catch (err: any) {
+    console.error("ERROR", "login-action", err.response?.data);
+
+    return {
+      error: err.response?.data?.message || 'Registraion failed. Please try again.',
+      errors: JSON.stringify(err.response?.data),
+    }
+  }
+}
+
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const actionData = useActionData<typeof action>()
+  const error = actionData?.error
+  const errors = actionData?.errors
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await api.post('/auth/register', {
-        name,
-        email,
-        password,
-      });
-
-      const { token } = response.data;
-
-      if (token) {
-        localStorage.setItem('token', token);
-        navigate('/editor');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const navigation = useNavigation();
+  const loading = navigation.state !== "idle"
 
   return (
     <Flex
@@ -54,13 +56,13 @@ export default function Register() {
         <Flex direction="column" gap="4">
           <Heading size="6" align="center">Register</Heading>
 
-          {error && (
+          {(error || errors) && (
             <Callout.Root color="red">
-              <Callout.Text>{error}</Callout.Text>
+              <Callout.Text>{errors ?? error}</Callout.Text>
             </Callout.Root>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <Form method="post">
             <Flex direction="column" gap="3">
               <label>
                 <Text as="div" size="2" mb="1" weight="bold">
@@ -69,9 +71,8 @@ export default function Register() {
                 <TextField.Root
                   type="text"
                   placeholder="Enter your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
                   required
+                  name={"name"}
                 />
               </label>
 
@@ -82,9 +83,8 @@ export default function Register() {
                 <TextField.Root
                   type="email"
                   placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   required
+                  name="email"
                 />
               </label>
 
@@ -94,9 +94,8 @@ export default function Register() {
                 </Text>
                 <TextField.Root
                   type="password"
+                  name="password"
                   placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </label>
@@ -107,9 +106,8 @@ export default function Register() {
                 </Text>
                 <TextField.Root
                   type="password"
+                  name="confirm_password"
                   placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
               </label>
@@ -118,11 +116,11 @@ export default function Register() {
                 {loading ? 'Registering...' : 'Register'}
               </Button>
             </Flex>
-          </form>
+          </Form>
 
           <Text size="2" align="center">
             Already have an account?{' '}
-            <Link to="/login" style={{ color: 'var(--accent-9)' }}>
+            <Link to="/auth/login" style={{ color: 'var(--accent-9)' }}>
               Login
             </Link>
           </Text>
