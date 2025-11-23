@@ -16,6 +16,8 @@ export default [
 
         route("project/:id", "routes/editor/index.tsx"),
 
+        route("project-v2/:id", "routes/editor-v2/index.tsx"),
+
         route("profile", "routes/profile.tsx"),
     ])
 ] satisfies RouteConfig;
