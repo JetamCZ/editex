@@ -1,5 +1,6 @@
 package eu.puhony.latex_editor.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ public class Project {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;

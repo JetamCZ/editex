@@ -1,8 +1,11 @@
 import { useState } from "react";
 import type { Route } from "./+types/editor";
-import { Box, Flex, ScrollArea, Text, Card, Separator } from "@radix-ui/themes";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { Box, Flex, ScrollArea, Text, Card, Separator, Heading } from "@radix-ui/themes";
 import { FileTreeNode, type FileNode } from "../components/FileTreeNode";
 import Editor from "@monaco-editor/react";
+import { getApiClient } from "../lib/axios.server";
+import type { Project } from "../../types/project";
 
 // Mock folder structure
 const mockFileTree: FileNode[] = [
@@ -34,14 +37,28 @@ const mockFileTree: FileNode[] = [
   },
 ];
 
-export function meta({}: Route.MetaArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
+  const api = await getApiClient(request);
+  const { id } = params;
+
+  try {
+    const response = await api.get<Project>(`/projects/${id}`);
+    return { project: response.data };
+  } catch (error) {
+    console.error("Error loading project:", error);
+    throw new Response("Project not found", { status: 404 });
+  }
+}
+
+export function meta({ data }: Route.MetaArgs) {
   return [
-    { title: "Editor" },
+    { title: data?.project?.name || "Editor" },
     { name: "description", content: "LaTeX Editor" },
   ];
 }
 
 export default function EditorPage() {
+  const { project } = useLoaderData<typeof loader>();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");
 
@@ -62,7 +79,10 @@ export default function EditorPage() {
         }}
       >
         <Box p="3">
-          <Text size="3" weight="bold">
+          <Heading size="4" mb="1">
+            {project.name}
+          </Heading>
+          <Text size="2" color="gray">
             Project Files
           </Text>
         </Box>
