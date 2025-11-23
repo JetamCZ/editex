@@ -1,6 +1,6 @@
 import {Link, useRouteLoaderData} from "react-router";
 import { Avatar, DropdownMenu, Flex, Text, TextField } from "@radix-ui/themes";
-import { MagnifyingGlassIcon, GearIcon, ExitIcon, HomeIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
+import { MagnifyingGlassIcon, GearIcon, ExitIcon, HomeIcon, QuestionMarkCircledIcon, EnvelopeClosedIcon } from "@radix-ui/react-icons";
 import getInitials from "~/lib/getInitials";
 import useAuth from "~/hooks/useAuth";
 
@@ -20,6 +20,7 @@ const menuStructure: MenuCategory[] = [
     category: "General",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: <HomeIcon /> },
+      { label: "Invitations", href: "/invitations", icon: <EnvelopeClosedIcon /> },
       { label: "Profile", href: "/profile", icon: <GearIcon /> },
     ],
   },

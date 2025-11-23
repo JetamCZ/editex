@@ -78,6 +78,20 @@ public class InvitationController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/invitations/sent")
+    public ResponseEntity<List<ProjectInvitationResponse>> getMySentInvitations(
+            Authentication authentication) {
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        List<ProjectInvitation> invitations = invitationService.getPendingInvitationsSentByUser(currentUser.getId());
+        List<ProjectInvitationResponse> response = invitations.stream()
+                .map(ProjectInvitationResponse::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/invitations/{invitationId}/accept")
     public ResponseEntity<Void> acceptInvitation(
             @PathVariable String invitationId,

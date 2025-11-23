@@ -2,6 +2,8 @@ import {Avatar, Badge, Box, Flex, HoverCard, Text} from "@radix-ui/themes";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import getInitials from "~/lib/getInitials";
+import InviteMemberModal from "./invite-member-modal";
+import {useRevalidator} from "react-router";
 
 interface ProjectMembersProps {
     project: Project;
@@ -9,6 +11,12 @@ interface ProjectMembersProps {
 }
 
 export default function ProjectMembers({project, members}: ProjectMembersProps) {
+    const revalidator = useRevalidator();
+
+    const handleInviteSuccess = () => {
+        revalidator.revalidate();
+    };
+
     return (
         <Flex
             direction="column"
@@ -25,9 +33,15 @@ export default function ProjectMembers({project, members}: ProjectMembersProps) 
             </Box>
 
             <Box>
-                <Text size="2">
-                    people:
-                </Text>
+                <Flex justify="between" align="center" mb="2">
+                    <Text size="2">
+                        members:
+                    </Text>
+                    <InviteMemberModal
+                        projectId={project.id}
+                        onSuccess={handleInviteSuccess}
+                    />
+                </Flex>
                 <Flex gap="1" align="center">
                     {members.map((member) => (
                         <HoverCard.Root key={member.id}>

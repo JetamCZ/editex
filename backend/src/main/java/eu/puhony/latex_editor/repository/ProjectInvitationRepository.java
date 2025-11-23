@@ -27,4 +27,7 @@ public interface ProjectInvitationRepository extends JpaRepository<ProjectInvita
     @Query("SELECT CASE WHEN COUNT(pi) > 0 THEN true ELSE false END FROM ProjectInvitation pi " +
            "WHERE pi.projectId = :projectId AND pi.invitedUserId = :userId AND pi.status = 'PENDING'")
     boolean hasPendingInvitation(@Param("projectId") String projectId, @Param("userId") Long userId);
+
+    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.invitedBy = :userId AND pi.status = 'PENDING'")
+    List<ProjectInvitation> findPendingInvitationsByInviterId(@Param("userId") Long userId);
 }

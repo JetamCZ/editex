@@ -28,6 +28,10 @@ public class InvitationService {
         return invitationRepository.findPendingInvitationsByProjectId(projectId);
     }
 
+    public List<ProjectInvitation> getPendingInvitationsSentByUser(Long userId) {
+        return invitationRepository.findPendingInvitationsByInviterId(userId);
+    }
+
     @Transactional
     public ProjectInvitation inviteUser(String projectId, String invitedUserEmail, ProjectMember.Role role, Long invitedBy) {
         User invitedUser = userRepository.findByEmail(invitedUserEmail)
