@@ -88,6 +88,7 @@ export default function EditorPage() {
                 onOpenChange={setUploadModalOpen}
                 projectId={project.id}
                 folder="/files"
+                token={bearerToken}
             />
 
             <Flex style={{height: "100vh"}}>
@@ -161,7 +162,7 @@ export default function EditorPage() {
                             </Text>
                         </Box>
                         <Box style={{flex: 1}}>
-                            <Editor selectedFile={selectedFile} projectId={project.id} fileId={selectedFileId}/>
+                            <Editor selectedFile={selectedFile}/>
                         </Box>
                     </Box>
 
