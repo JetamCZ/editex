@@ -4,7 +4,7 @@ import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,16 +14,17 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class FileService {
 
-    @Autowired
-    private ProjectFileRepository fileRepository;
-
-    @Autowired
-    private MinioService minioService;
+    private final ProjectFileRepository fileRepository;
+    private final MinioService minioService;
+    private final ProjectMemberService projectMemberService;
 
     @Transactional
     public ProjectFile uploadFile(MultipartFile file, Project project, String folder, User uploadedBy) throws Exception {
+        projectMemberService.ensureCanEdit(project.getId(), uploadedBy.getId());
+
         String s3Url = minioService.uploadFile(file, project.getId() + folder);
 
         ProjectFile projectFile = new ProjectFile();
@@ -39,22 +40,30 @@ public class FileService {
         return fileRepository.save(projectFile);
     }
 
-    public List<ProjectFile> getProjectFiles(String projectId) {
+    public List<ProjectFile> getProjectFiles(String projectId, Long userId) {
+        projectMemberService.ensureCanRead(projectId, userId);
         return fileRepository.findByProjectIdNonDeleted(projectId);
     }
 
-    public List<ProjectFile> getProjectFilesByFolder(String projectId, String folder) {
+    public List<ProjectFile> getProjectFilesByFolder(String projectId, String folder, Long userId) {
+        projectMemberService.ensureCanRead(projectId, userId);
         return fileRepository.findByProjectIdAndFolderNonDeleted(projectId, folder);
     }
 
-    public Optional<ProjectFile> getFileById(String fileId) {
-        return fileRepository.findByIdNonDeleted(fileId);
+    public Optional<ProjectFile> getFileById(String fileId, Long userId) {
+        Optional<ProjectFile> file = fileRepository.findByIdNonDeleted(fileId);
+        if (file.isPresent()) {
+            projectMemberService.ensureCanRead(file.get().getProject().getId(), userId);
+        }
+        return file;
     }
 
     @Transactional
-    public boolean deleteFile(String fileId) {
+    public boolean deleteFile(String fileId, Long userId) {
         return fileRepository.findByIdNonDeleted(fileId)
                 .map(file -> {
+                    projectMemberService.ensureCanEdit(file.getProject().getId(), userId);
+
                     try {
                         String objectName = minioService.getObjectNameFromUrl(file.getS3Url());
                         if (objectName != null) {

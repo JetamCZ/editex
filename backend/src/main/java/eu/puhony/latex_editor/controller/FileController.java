@@ -36,16 +36,14 @@ public class FileController {
     public ResponseEntity<FileUploadResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("projectId") String projectId,
-            @RequestParam(value = "folder", defaultValue = "/files") String folder) {
+            @RequestParam(value = "folder", defaultValue = "/files") String folder,
+            Authentication authentication) {
 
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            Project project = projectService.getProjectById(projectId)
+            Project project = projectService.getProjectById(projectId, user.getId())
                     .orElseThrow(() -> new RuntimeException("Project not found"));
 
             ProjectFile uploadedFile = fileService.uploadFile(file, project, folder, user);
@@ -58,8 +56,13 @@ public class FileController {
     }
 
     @GetMapping("/project/{projectId}")
-    public ResponseEntity<List<FileUploadResponse>> getProjectFiles(@PathVariable String projectId) {
-        List<ProjectFile> files = fileService.getProjectFiles(projectId);
+    public ResponseEntity<List<FileUploadResponse>> getProjectFiles(
+            @PathVariable String projectId,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<ProjectFile> files = fileService.getProjectFiles(projectId, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -69,8 +72,12 @@ public class FileController {
     @GetMapping("/project/{projectId}/folder")
     public ResponseEntity<List<FileUploadResponse>> getProjectFilesByFolder(
             @PathVariable String projectId,
-            @RequestParam String folder) {
-        List<ProjectFile> files = fileService.getProjectFilesByFolder(projectId, folder);
+            @RequestParam String folder,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<ProjectFile> files = fileService.getProjectFilesByFolder(projectId, folder, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -78,16 +85,26 @@ public class FileController {
     }
 
     @GetMapping("/{fileId}")
-    public ResponseEntity<FileUploadResponse> getFileById(@PathVariable String fileId) {
-        return fileService.getFileById(fileId)
+    public ResponseEntity<FileUploadResponse> getFileById(
+            @PathVariable String fileId,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return fileService.getFileById(fileId, user.getId())
                 .map(this::mapToResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{fileId}")
-    public ResponseEntity<Void> deleteFile(@PathVariable String fileId) {
-        boolean deleted = fileService.deleteFile(fileId);
+    public ResponseEntity<Void> deleteFile(
+            @PathVariable String fileId,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean deleted = fileService.deleteFile(fileId, user.getId());
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
