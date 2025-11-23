@@ -1,8 +1,9 @@
 package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.entity.Project;
+import eu.puhony.latex_editor.entity.ProjectMember;
 import eu.puhony.latex_editor.repository.ProjectRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,17 +12,22 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ProjectService {
 
-    @Autowired
-    private ProjectRepository projectRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberService projectMemberService;
 
     public List<Project> getAllProjects() {
         return projectRepository.findAllNonDeleted();
     }
 
-    public Optional<Project> getProjectById(String id) {
-        return projectRepository.findByIdNonDeleted(id);
+    public Optional<Project> getProjectById(String id, Long userId) {
+        Optional<Project> project = projectRepository.findByIdNonDeleted(id);
+        if (project.isPresent()) {
+            projectMemberService.ensureCanRead(id, userId);
+        }
+        return project;
     }
 
     public List<Project> getProjectsByOwner(Long ownerId) {
@@ -29,22 +35,34 @@ public class ProjectService {
     }
 
     @Transactional
-    public Project createProject(Project project) {
-        return projectRepository.save(project);
+    public Project createProject(Project project, Long ownerId) {
+        Project savedProject = projectRepository.save(project);
+
+        projectMemberService.addMember(
+                savedProject.getId(),
+                ownerId,
+                ProjectMember.Role.OWNER,
+                null
+        );
+
+        return savedProject;
     }
 
     @Transactional
-    public Optional<Project> updateProject(String id, Project updatedProject) {
+    public Optional<Project> updateProject(String id, Project updatedProject, Long userId) {
+        projectMemberService.ensureCanEdit(id, userId);
+
         return projectRepository.findByIdNonDeleted(id)
             .map(project -> {
                 project.setName(updatedProject.getName());
-                project.setOwner(updatedProject.getOwner());
                 return projectRepository.save(project);
             });
     }
 
     @Transactional
-    public boolean deleteProject(String id) {
+    public boolean deleteProject(String id, Long userId) {
+        projectMemberService.ensureCanManage(id, userId);
+
         return projectRepository.findByIdNonDeleted(id)
             .map(project -> {
                 project.setDeletedAt(LocalDateTime.now());

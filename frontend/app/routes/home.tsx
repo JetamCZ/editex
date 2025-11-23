@@ -30,10 +30,7 @@ export default function Home() {
         <Container size="4">
           <Flex align="center" justify="between" className="h-16">
             <Flex align="center" gap="2">
-              <FileText className="w-6 h-6 text-accent-11" />
-              <Text size="6" weight="bold" className="text-accent-11">
-                Editex
-              </Text>
+              <img src="/logo.svg" className="h-12"/>
             </Flex>
 
             <Flex gap="3" align="center">

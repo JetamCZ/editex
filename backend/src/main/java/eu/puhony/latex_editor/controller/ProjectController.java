@@ -2,93 +2,133 @@ package eu.puhony.latex_editor.controller;
 
 import eu.puhony.latex_editor.dto.CreateProjectRequest;
 import eu.puhony.latex_editor.dto.FileUploadResponse;
+import eu.puhony.latex_editor.dto.ProjectWithRoleResponse;
 import eu.puhony.latex_editor.dto.UpdateProjectRequest;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
+import eu.puhony.latex_editor.entity.ProjectMember;
 import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.ProjectRepository;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.FileService;
+import eu.puhony.latex_editor.service.ProjectMemberService;
 import eu.puhony.latex_editor.service.ProjectService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects")
+@RequiredArgsConstructor
 public class ProjectController {
 
-    @Autowired
-    private ProjectService projectService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private FileService fileService;
+    private final ProjectService projectService;
+    private final UserRepository userRepository;
+    private final FileService fileService;
+    private final ProjectMemberService projectMemberService;
+    private final ProjectRepository projectRepository;
 
     @GetMapping("/me")
-    public ResponseEntity<List<Project>> getCurrentUserProjects() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
+    public ResponseEntity<List<ProjectWithRoleResponse>> getCurrentUserProjects(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return ResponseEntity.ok(projectService.getProjectsByOwner(user.getId()));
+        List<Project> projects = projectRepository.findProjectsByMembership(user.getId());
+
+        List<ProjectWithRoleResponse> response = new ArrayList<>();
+        for (Project project : projects) {
+            ProjectMember.Role userRole = projectMemberService.getProjectMember(project.getId(), user.getId())
+                    .map(ProjectMember::getRole)
+                    .orElse(null);
+
+            if (userRole != null) {
+                response.add(ProjectWithRoleResponse.from(project, userRole));
+            }
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Project> getProjectById(@PathVariable String id) {
-        return projectService.getProjectById(id)
-            .map(ResponseEntity::ok)
+    public ResponseEntity<ProjectWithRoleResponse> getProjectById(
+            @PathVariable String id,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return projectService.getProjectById(id, user.getId())
+            .map(project -> {
+                ProjectMember.Role userRole = projectMemberService.getProjectMember(id, user.getId())
+                        .map(ProjectMember::getRole)
+                        .orElse(null);
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(project, userRole));
+            })
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/owner/{ownerId}")
-    public ResponseEntity<List<Project>> getProjectsByOwner(@PathVariable Long ownerId) {
-        return ResponseEntity.ok(projectService.getProjectsByOwner(ownerId));
-    }
-
     @PostMapping
-    public ResponseEntity<Project> createProject(@Valid @RequestBody CreateProjectRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-
-        User owner = userRepository.findByEmail(email)
+    public ResponseEntity<ProjectWithRoleResponse> createProject(
+            @Valid @RequestBody CreateProjectRequest request,
+            Authentication authentication) {
+        User owner = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Project project = new Project();
         project.setName(request.getName());
         project.setOwner(owner);
-        Project createdProject = projectService.createProject(project);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
+        Project createdProject = projectService.createProject(project, owner.getId());
+
+        ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, ProjectMember.Role.OWNER);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Project> updateProject(@PathVariable String id, @Valid @RequestBody UpdateProjectRequest request) {
+    public ResponseEntity<ProjectWithRoleResponse> updateProject(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateProjectRequest request,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         Project project = new Project();
         project.setName(request.getName());
-        return projectService.updateProject(id, project)
-            .map(ResponseEntity::ok)
+
+        return projectService.updateProject(id, project, user.getId())
+            .map(updatedProject -> {
+                ProjectMember.Role userRole = projectMemberService.getProjectMember(id, user.getId())
+                        .map(ProjectMember::getRole)
+                        .orElse(null);
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(updatedProject, userRole));
+            })
             .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProject(@PathVariable String id) {
-        boolean deleted = projectService.deleteProject(id);
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable String id,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean deleted = projectService.deleteProject(id, user.getId());
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/files")
-    public ResponseEntity<List<FileUploadResponse>> getProjectFiles(@PathVariable String id) {
-        List<ProjectFile> files = fileService.getProjectFiles(id);
+    public ResponseEntity<List<FileUploadResponse>> getProjectFiles(
+            @PathVariable String id,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<ProjectFile> files = fileService.getProjectFiles(id, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(file -> new FileUploadResponse(
                         file.getId(),

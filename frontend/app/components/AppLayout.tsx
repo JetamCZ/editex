@@ -1,7 +1,8 @@
 import {Link, useRouteLoaderData} from "react-router";
 import { Avatar, DropdownMenu, Flex, Text, TextField } from "@radix-ui/themes";
-import { MagnifyingGlassIcon, GearIcon, ExitIcon, HomeIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
-import type {User} from "../../types/user";
+import { MagnifyingGlassIcon, GearIcon, ExitIcon, HomeIcon, QuestionMarkCircledIcon, EnvelopeClosedIcon } from "@radix-ui/react-icons";
+import getInitials from "~/lib/getInitials";
+import useAuth from "~/hooks/useAuth";
 
 interface MenuItem {
   label: string;
@@ -19,6 +20,7 @@ const menuStructure: MenuCategory[] = [
     category: "General",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: <HomeIcon /> },
+      { label: "Invitations", href: "/invitations", icon: <EnvelopeClosedIcon /> },
       { label: "Profile", href: "/profile", icon: <GearIcon /> },
     ],
   },
@@ -36,15 +38,8 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const {user} = useRouteLoaderData("auth-user") as {user: User}
-
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : user?.email?.[0]?.toUpperCase() || "U";
+  const {user} = useAuth()
+  const initials = getInitials(user.name)
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-1">
@@ -52,9 +47,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <aside className="w-64 bg-gray-2 border-r border-gray-a6 flex flex-col">
         {/* Logo */}
         <Flex align="center" className="px-6 h-16 border-b border-gray-a6">
-          <Text size="6" weight="bold" className="text-accent-11">
-            LaTeX Editor
-          </Text>
+          <img src="/logo.svg" className="h-10"/>
         </Flex>
 
         {/* Navigation Menu */}

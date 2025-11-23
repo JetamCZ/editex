@@ -14,6 +14,8 @@ export default [
             route("new", "routes/dashboard.new.tsx"),
         ]),
 
+        route("invitations", "routes/invitations.tsx"),
+
         route("project/:id", "routes/editor/index.tsx"),
 
         route("profile", "routes/profile.tsx"),
