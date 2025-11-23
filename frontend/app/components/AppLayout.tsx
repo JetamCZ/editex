@@ -44,7 +44,6 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const {user} = useRouteLoaderData("auth-user") as {user: User}
 
-
   const initials = user?.name
     ? user.name
         .split(" ")

@@ -9,10 +9,20 @@ import {
 
 import "@radix-ui/themes/styles.css";
 import { Theme } from "@radix-ui/themes";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 
 import type {Route} from "./+types/root";
 import "./app.css";
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 1,
+            refetchOnWindowFocus: false,
+        },
+    },
+});
 
 export const links: Route.LinksFunction = () => [
     {rel: "preconnect", href: "https://fonts.googleapis.com"},
@@ -37,11 +47,13 @@ export function Layout({children}: { children: React.ReactNode }) {
             <Links/>
         </head>
         <body>
-        <Theme>
-            {children}
-            <ScrollRestoration/>
-            <Scripts/>
-        </Theme>
+        <QueryClientProvider client={queryClient}>
+            <Theme>
+                {children}
+                <ScrollRestoration/>
+                <Scripts/>
+            </Theme>
+        </QueryClientProvider>
         </body>
         </html>
     );

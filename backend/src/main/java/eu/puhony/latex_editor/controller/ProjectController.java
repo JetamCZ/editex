@@ -1,10 +1,13 @@
 package eu.puhony.latex_editor.controller;
 
 import eu.puhony.latex_editor.dto.CreateProjectRequest;
+import eu.puhony.latex_editor.dto.FileUploadResponse;
 import eu.puhony.latex_editor.dto.UpdateProjectRequest;
 import eu.puhony.latex_editor.entity.Project;
+import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.UserRepository;
+import eu.puhony.latex_editor.service.FileService;
 import eu.puhony.latex_editor.service.ProjectService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -25,6 +29,9 @@ public class ProjectController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FileService fileService;
 
     @GetMapping("/me")
     public ResponseEntity<List<Project>> getCurrentUserProjects() {
@@ -77,5 +84,25 @@ public class ProjectController {
     public ResponseEntity<Void> deleteProject(@PathVariable String id) {
         boolean deleted = projectService.deleteProject(id);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{id}/files")
+    public ResponseEntity<List<FileUploadResponse>> getProjectFiles(@PathVariable String id) {
+        List<ProjectFile> files = fileService.getProjectFiles(id);
+        List<FileUploadResponse> response = files.stream()
+                .map(file -> new FileUploadResponse(
+                        file.getId(),
+                        file.getProject().getId(),
+                        file.getProjectFolder(),
+                        file.getFileName(),
+                        file.getOriginalFileName(),
+                        file.getFileSize(),
+                        file.getFileType(),
+                        file.getS3Url(),
+                        file.getUploadedBy().getId(),
+                        file.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 }

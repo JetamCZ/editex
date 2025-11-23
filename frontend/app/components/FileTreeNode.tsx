@@ -5,18 +5,19 @@ export type FileNode = {
   name: string;
   type: "file" | "folder";
   path: string;
+  fileId?: string;
   children?: FileNode[];
 };
 
 export function FileTreeNode({
   node,
   onFileClick,
-  selectedPath,
+  selectedFileId,
   level = 0,
 }: {
   node: FileNode;
-  onFileClick: (path: string) => void;
-  selectedPath: string | null;
+  onFileClick: (fileId: string) => void;
+  selectedFileId: string | null;
   level?: number;
 }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -27,8 +28,8 @@ export function FileTreeNode({
         onClick={() => {
           if (node.type === "folder") {
             setIsOpen(!isOpen);
-          } else {
-            onFileClick(node.path);
+          } else if (node.fileId) {
+            onFileClick(node.fileId);
           }
         }}
         style={{
@@ -37,7 +38,7 @@ export function FileTreeNode({
           paddingBottom: "4px",
           paddingRight: "8px",
           cursor: "pointer",
-          backgroundColor: selectedPath === node.path ? "var(--accent-3)" : "transparent",
+          backgroundColor: selectedFileId === node.fileId ? "var(--accent-3)" : "transparent",
           borderRadius: "4px",
         }}
       >
@@ -53,7 +54,7 @@ export function FileTreeNode({
               key={child.path}
               node={child}
               onFileClick={onFileClick}
-              selectedPath={selectedPath}
+              selectedFileId={selectedFileId}
               level={level + 1}
             />
           ))}
