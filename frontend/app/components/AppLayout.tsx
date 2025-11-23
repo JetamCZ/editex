@@ -23,12 +23,6 @@ const menuStructure: MenuCategory[] = [
     ],
   },
   {
-    category: "Tools",
-    items: [
-      { label: "Editor", href: "/editor", icon: <HomeIcon /> },
-    ],
-  },
-  {
     category: "Support",
     items: [
       { label: "Help", href: "/help", icon: <QuestionMarkCircledIcon /> },
