@@ -24,8 +24,8 @@ public class ProjectService {
         return projectRepository.findByIdNonDeleted(id);
     }
 
-    public List<Project> getProjectsByOwner(String owner) {
-        return projectRepository.findByOwnerNonDeleted(owner);
+    public List<Project> getProjectsByOwner(Long ownerId) {
+        return projectRepository.findByOwnerNonDeleted(ownerId);
     }
 
     @Transactional

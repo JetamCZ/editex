@@ -9,7 +9,10 @@ export default [
 
     // Auth layout wraps all protected routes
     layout("routes/api/auth-user.tsx", {id: "auth-user"}, [
-        route("dashboard", "routes/dashboard.tsx"),
+        route("dashboard", "routes/dashboard.tsx", {id: "dashboard"}, [
+            index("routes/dashboard.index.tsx"),
+            route("new", "routes/dashboard.new.tsx"),
+        ]),
         route("editor", "routes/editor.tsx"),
         route("profile", "routes/profile.tsx"),
     ])

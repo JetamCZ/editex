@@ -26,6 +26,17 @@ public class ProjectController {
     @Autowired
     private UserRepository userRepository;
 
+    @GetMapping("/me")
+    public ResponseEntity<List<Project>> getCurrentUserProjects() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(projectService.getProjectsByOwner(user.getId()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Project> getProjectById(@PathVariable String id) {
         return projectService.getProjectById(id)
@@ -33,9 +44,9 @@ public class ProjectController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/owner/{owner}")
-    public ResponseEntity<List<Project>> getProjectsByOwner(@PathVariable String owner) {
-        return ResponseEntity.ok(projectService.getProjectsByOwner(owner));
+    @GetMapping("/owner/{ownerId}")
+    public ResponseEntity<List<Project>> getProjectsByOwner(@PathVariable Long ownerId) {
+        return ResponseEntity.ok(projectService.getProjectsByOwner(ownerId));
     }
 
     @PostMapping

@@ -18,6 +18,6 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
     @Query("SELECT p FROM Project p WHERE p.id = :id AND p.deletedAt IS NULL")
     Optional<Project> findByIdNonDeleted(@Param("id") String id);
 
-    @Query("SELECT p FROM Project p WHERE p.owner = :owner AND p.deletedAt IS NULL")
-    List<Project> findByOwnerNonDeleted(@Param("owner") String owner);
+    @Query("SELECT p FROM Project p WHERE p.owner.id = :ownerId AND p.deletedAt IS NULL")
+    List<Project> findByOwnerNonDeleted(@Param("ownerId") Long ownerId);
 }
