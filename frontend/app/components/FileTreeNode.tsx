@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Box, Text } from "@radix-ui/themes";
+import { ChevronRight, Folder, FolderOpen, FileText } from "lucide-react";
+import styles from "./FileTreeNode.module.css";
 
 export type FileNode = {
   name: string;
@@ -21,34 +22,47 @@ export function FileTreeNode({
   level?: number;
 }) {
   const [isOpen, setIsOpen] = useState(true);
+  const isSelected = selectedFileId === node.fileId;
+  const isFolder = node.type === "folder";
+
+  const handleClick = () => {
+    if (isFolder) {
+      setIsOpen(!isOpen);
+    } else if (node.fileId) {
+      onFileClick(node.fileId);
+    }
+  };
+
+  const renderIcon = () => {
+    if (isFolder) {
+      return isOpen ? (
+        <FolderOpen className={styles.treeItemIcon} />
+      ) : (
+        <Folder className={styles.treeItemIcon} />
+      );
+    }
+    return <FileText className={styles.treeItemIcon} />;
+  };
 
   return (
-    <Box>
-      <Box
-        onClick={() => {
-          if (node.type === "folder") {
-            setIsOpen(!isOpen);
-          } else if (node.fileId) {
-            onFileClick(node.fileId);
-          }
-        }}
-        style={{
-          paddingLeft: `${level * 20 + 8}px`,
-          paddingTop: "4px",
-          paddingBottom: "4px",
-          paddingRight: "8px",
-          cursor: "pointer",
-          backgroundColor: selectedFileId === node.fileId ? "var(--accent-3)" : "transparent",
-          borderRadius: "4px",
-        }}
+    <div className={styles.treeNode}>
+      <div
+        className={`${styles.treeItem} ${isSelected ? styles.selected : ""}`}
+        onClick={handleClick}
+        style={{ paddingLeft: `${level * 1 + 0.5}rem` }}
       >
-        <Text size="2">
-          {node.type === "folder" ? (isOpen ? "📁 " : "📂 ") : "📄 "}
-          {node.name}
-        </Text>
-      </Box>
-      {node.type === "folder" && isOpen && node.children && (
-        <Box>
+        {isFolder && (
+          <ChevronRight
+            className={`${styles.treeItemChevron} ${isOpen ? styles.open : ""}`}
+          />
+        )}
+        <div className={styles.treeItemContent}>
+          {renderIcon()}
+          <span className={styles.treeItemLabel}>{node.name}</span>
+        </div>
+      </div>
+      {isFolder && node.children && (
+        <div className={`${styles.treeChildren} ${!isOpen ? styles.collapsed : ""}`}>
           {node.children.map((child) => (
             <FileTreeNode
               key={child.path}
@@ -58,8 +72,8 @@ export function FileTreeNode({
               level={level + 1}
             />
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

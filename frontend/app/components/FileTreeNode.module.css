@@ -1,0 +1,87 @@
+.treeNode {
+  display: flex;
+  flex-direction: column;
+}
+
+.treeItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  color: var(--gray-12);
+}
+
+.treeItem:hover {
+  background-color: var(--gray-3);
+}
+
+.treeItem:active {
+  background-color: var(--gray-4);
+}
+
+.treeItem.selected {
+  background-color: var(--accent-3);
+  color: var(--accent-11);
+}
+
+.treeItem.selected:hover {
+  background-color: var(--accent-4);
+}
+
+.treeItem.selected:active {
+  background-color: var(--accent-5);
+}
+
+.treeItemContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.treeItemIcon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--gray-11);
+}
+
+.treeItem.selected .treeItemIcon {
+  color: var(--accent-11);
+}
+
+.treeItemLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treeItemChevron {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--gray-11);
+  transition: transform 0.15s ease;
+}
+
+.treeItemChevron.open {
+  transform: rotate(90deg);
+}
+
+.treeChildren {
+  display: flex;
+  flex-direction: column;
+  padding-left: 1rem;
+}
+
+.treeChildren.collapsed {
+  display: none;
+}
