@@ -47,7 +47,7 @@ export default function Login() {
         >
             <Card size="4" style={{maxWidth: '400px', width: '100%'}}>
                 <Flex direction="column" gap="4">
-                    <Heading size="6" align="center">Login</Heading>
+                    <img src="/logo.svg" style={{maxHeight: '80px', marginBottom: '1rem'}}/>
 
                     {error && (
                         <Callout.Root color="red">
