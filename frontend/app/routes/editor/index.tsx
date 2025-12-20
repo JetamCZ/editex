@@ -3,12 +3,13 @@ import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import {useState} from "react";
-import {Box} from "@radix-ui/themes";
+import {Box, Text} from "@radix-ui/themes";
 import ProjectMembers from "./members";
-import buildFileTree from "~/lib/buildFileTree";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
-import Editor from "./editor";
+import CollaborativeEditor from "~/components/CollaborativeEditor";
 import ProjectFiles from "./ProjectFiles";
+import useAuth from "~/hooks/useAuth";
+import {ContentType, typeMapping} from "~/const/ContentType";
 
 export async function loader({request, params}: LoaderFunctionArgs) {
     const api = await getApiClient(request);
@@ -17,7 +18,6 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     try {
         const {data: project} = await api.get<Project>(`/projects/${id}`);
         const {data: members} = await api.get<ProjectMember[]>(`/projects/${id}/members`);
-
 
         return {project, members};
     } catch (error) {
@@ -35,19 +35,22 @@ export function meta({data}: Route.MetaArgs) {
 
 const EditorPage = () => {
     const {project, members} = useLoaderData<typeof loader>();
+    const {user, bearerToken} = useAuth();
     const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
         projectId: project.id
     });
-    const fileTree = buildFileTree(uploadedFiles);
 
     const handleFileClick = async (fileId: string) => {
         setSelectedFileId(fileId);
     }
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
+
+    // Check if selected file is a text file that supports collaboration
+    const isTextFile = selectedFile &&
+        (typeMapping[selectedFile.fileType] === ContentType.TEXT || !typeMapping[selectedFile.fileType]);
 
     return (
         <div className="grid" style={{height: "100vh", gridTemplateColumns: "16rem auto"}}>
@@ -69,8 +72,23 @@ const EditorPage = () => {
 
                 <ProjectFiles projectId={project.id} handleFileClick={handleFileClick} selectedFileId={selectedFileId}/>
             </Box>
-            <Box className="w-full">
-                <Editor selectedFile={selectedFile}/>
+            <Box className="w-full" style={{height: "100vh"}}>
+                {!selectedFile ? (
+                    <Box p="3">
+                        <Text color="gray">Select a file from the tree to start editing</Text>
+                    </Box>
+                ) : isTextFile ? (
+                    <CollaborativeEditor
+                        selectedFile={selectedFile}
+                        bearerToken={bearerToken}
+                        currentUserName={user.name}
+                        onError={(error) => console.error("Collaboration error:", error)}
+                    />
+                ) : (
+                    <Box p="3">
+                        <img src={selectedFile.s3Url} alt={selectedFile.originalFileName} />
+                    </Box>
+                )}
             </Box>
         </div>
     )
