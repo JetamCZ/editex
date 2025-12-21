@@ -155,7 +155,7 @@ class WebSocketService {
   /**
    * Leave document session
    */
-  leaveDocument(fileId: string, presence: UserPresenceMessage): void {
+  leaveDocument(fileId: string): void {
     if (!this.client || !this.client.connected) {
       console.error("WebSocket not connected");
       return;
@@ -163,7 +163,7 @@ class WebSocketService {
 
     this.client.publish({
       destination: `/app/document/${fileId}/leave`,
-      body: JSON.stringify(presence),
+      body: JSON.stringify({fileId}),
     });
 
     // Unsubscribe from topics

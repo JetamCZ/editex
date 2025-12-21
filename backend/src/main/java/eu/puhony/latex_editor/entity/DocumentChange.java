@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "document_changes", indexes = {
@@ -19,8 +20,9 @@ import java.time.LocalDateTime;
 public class DocumentChange {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    private UUID id;
 
     @Column(name = "file_id", nullable = false)
     private String fileId;

@@ -66,7 +66,7 @@ export interface ActiveSession {
 }
 
 export interface DocumentChangeHistory {
-  id: number;
+  id: string;
   fileId: string;
   userId: number;
   userName: string;
@@ -75,4 +75,13 @@ export interface DocumentChangeHistory {
   oldContent: string | null;
   newContent: string | null;
   createdAt: string;
+}
+
+
+export interface DocumentContent {
+  fileId: string;
+  fileName: string;
+  fileType: string;
+  content: string;
+  lastChangeId: string | null;
 }

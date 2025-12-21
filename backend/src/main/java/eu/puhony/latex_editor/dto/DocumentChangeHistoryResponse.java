@@ -5,12 +5,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentChangeHistoryResponse {
-    private Long id;
+    private UUID id;
     private String fileId;
     private Long userId;
     private String userName;

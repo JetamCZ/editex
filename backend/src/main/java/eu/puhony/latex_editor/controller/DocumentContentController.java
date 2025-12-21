@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -53,13 +54,14 @@ public class DocumentContentController {
             String originalContent = loadContentFromS3(file.getS3Url());
 
             // Apply all document changes
-            String currentContent = documentSyncService.applyAllChanges(fileId, originalContent);
+            DocumentSyncService.AppliedChangesResult result = documentSyncService.applyAllChanges(fileId, originalContent);
 
             DocumentContentResponse response = new DocumentContentResponse(
                 fileId,
                 file.getOriginalFileName(),
                 file.getFileType(),
-                currentContent
+                result.getContent(),
+                result.getLastChangeId()
             );
 
             return ResponseEntity.ok(response);
@@ -88,12 +90,14 @@ public class DocumentContentController {
         private String fileName;
         private String fileType;
         private String content;
+        private UUID lastChangeId;
 
-        public DocumentContentResponse(String fileId, String fileName, String fileType, String content) {
+        public DocumentContentResponse(String fileId, String fileName, String fileType, String content, UUID lastChangeId) {
             this.fileId = fileId;
             this.fileName = fileName;
             this.fileType = fileType;
             this.content = content;
+            this.lastChangeId = lastChangeId;
         }
 
         // Getters
@@ -111,6 +115,10 @@ public class DocumentContentController {
 
         public String getContent() {
             return content;
+        }
+
+        public UUID getLastChangeId() {
+            return lastChangeId;
         }
     }
 }

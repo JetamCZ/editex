@@ -1,8 +1,8 @@
-import {Link, type LoaderFunctionArgs, useLoaderData} from "react-router";
+import {Link, type LoaderFunctionArgs, useLoaderData, useNavigate, useParams} from "react-router";
 import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import {Box, Text} from "@radix-ui/themes";
 import ProjectMembers from "./members";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
@@ -36,14 +36,22 @@ export function meta({data}: Route.MetaArgs) {
 const EditorPage = () => {
     const {project, members} = useLoaderData<typeof loader>();
     const {user, bearerToken} = useAuth();
-    const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    const {fileId} = useParams();
+    const [selectedFileId, setSelectedFileId] = useState<string | null>(fileId || null);
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
         projectId: project.id
     });
 
+    // Sync selectedFileId with URL param
+    useEffect(() => {
+        setSelectedFileId(fileId || null);
+    }, [fileId]);
+
     const handleFileClick = async (fileId: string) => {
-        setSelectedFileId(fileId);
+        navigate(`/project/${project.id}/file/${fileId}`);
     }
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
@@ -81,8 +89,6 @@ const EditorPage = () => {
                     <CollaborativeEditor
                         selectedFile={selectedFile}
                         bearerToken={bearerToken}
-                        currentUserName={user.name}
-                        onError={(error) => console.error("Collaboration error:", error)}
                     />
                 ) : (
                     <Box p="3">

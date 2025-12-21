@@ -201,13 +201,13 @@ public class DocumentSyncService {
 
     /**
      * Apply all document changes to the original content
-     * Returns the current state of the document
+     * Returns the current state of the document and the ID of the last applied change
      */
-    public String applyAllChanges(String fileId, String originalContent) {
+    public AppliedChangesResult applyAllChanges(String fileId, String originalContent) {
         List<DocumentChange> changes = changeRepository.findByFileIdOrderByCreatedAtAsc(fileId);
 
         if (changes.isEmpty()) {
-            return originalContent;
+            return new AppliedChangesResult(originalContent, null);
         }
 
         String[] lines = originalContent.split("\n", -1);
@@ -215,6 +215,7 @@ public class DocumentSyncService {
 
         log.info("Applying {} changes to file {}", changes.size(), fileId);
 
+        DocumentChange lastChange = null;
         for (DocumentChange change : changes) {
             try {
                 int lineNumber = change.getLineNumber();
@@ -254,13 +255,38 @@ public class DocumentSyncService {
                         }
                         break;
                 }
+                lastChange = change;
             } catch (Exception e) {
                 log.error("Error applying change {}: {}", change.getId(), e.getMessage());
                 // Continue with other changes even if one fails
             }
         }
 
-        return String.join("\n", linesList);
+        return new AppliedChangesResult(
+            String.join("\n", linesList),
+            lastChange != null ? lastChange.getId() : null
+        );
+    }
+
+    /**
+     * Result of applying changes to a document
+     */
+    public static class AppliedChangesResult {
+        private final String content;
+        private final java.util.UUID lastChangeId;
+
+        public AppliedChangesResult(String content, java.util.UUID lastChangeId) {
+            this.content = content;
+            this.lastChangeId = lastChangeId;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        public java.util.UUID getLastChangeId() {
+            return lastChangeId;
+        }
     }
 
     private DocumentChange.ChangeType mapDeltaType(DocumentEditMessage.DeltaType deltaType) {
