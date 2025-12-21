@@ -1,8 +1,8 @@
-import {Link, type LoaderFunctionArgs, useLoaderData} from "react-router";
+import {Link, type LoaderFunctionArgs, useLoaderData, useNavigate, useParams} from "react-router";
 import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import {Box} from "@radix-ui/themes";
 import ProjectMembers from "./members";
 import buildFileTree from "~/lib/buildFileTree";
@@ -35,16 +35,25 @@ export function meta({data}: Route.MetaArgs) {
 
 const EditorPage = () => {
     const {project, members} = useLoaderData<typeof loader>();
-    const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-
+    const params = useParams();
+    const navigate = useNavigate();
+    const [selectedFileId, setSelectedFileId] = useState<string | null>(params.fileId || null);
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
         projectId: project.id
     });
     const fileTree = buildFileTree(uploadedFiles);
 
+    // Update selectedFileId when URL params change
+    useEffect(() => {
+        if (params.fileId) {
+            setSelectedFileId(params.fileId);
+        }
+    }, [params.fileId]);
+
     const handleFileClick = async (fileId: string) => {
         setSelectedFileId(fileId);
+        navigate(`/project/${project.id}/file/${fileId}`);
     }
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
