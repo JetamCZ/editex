@@ -11,6 +11,16 @@ interface Props {
 
 
 const Editor = ({selectedFile}: Props) => {
+    const isTextFile = selectedFile &&
+        (typeMapping[selectedFile.fileType] === ContentType.TEXT || !typeMapping[selectedFile.fileType]);
+
+
+    
+
+
+
+    /*
+
     const fileContent = useFileContent(selectedFile)
 
     if (!selectedFile) {
@@ -53,6 +63,8 @@ const Editor = ({selectedFile}: Props) => {
             }}
         />
     )
+
+     */
 }
 
 

@@ -3,12 +3,12 @@ import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import {useState, useEffect} from "react";
-import {Box} from "@radix-ui/themes";
+import {Box, Text} from "@radix-ui/themes";
 import ProjectMembers from "./members";
-import buildFileTree from "~/lib/buildFileTree";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
-import Editor from "./editor";
 import ProjectFiles from "./ProjectFiles";
+import {ContentType, typeMapping} from "~/const/ContentType";
+import CollaborativeEditor from "~/components/CollaborationEditor";
 
 export async function loader({request, params}: LoaderFunctionArgs) {
     const api = await getApiClient(request);
@@ -42,7 +42,6 @@ const EditorPage = () => {
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
         projectId: project.id
     });
-    const fileTree = buildFileTree(uploadedFiles);
 
     // Update selectedFileId when URL params change
     useEffect(() => {
@@ -57,6 +56,10 @@ const EditorPage = () => {
     }
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
+
+    const isTextFile = selectedFile &&
+        (typeMapping[selectedFile.fileType] === ContentType.TEXT || !typeMapping[selectedFile.fileType]);
+
 
     return (
         <div className="grid" style={{height: "100vh", gridTemplateColumns: "16rem auto"}}>
@@ -79,7 +82,18 @@ const EditorPage = () => {
                 <ProjectFiles projectId={project.id} handleFileClick={handleFileClick} selectedFileId={selectedFileId}/>
             </Box>
             <Box className="w-full">
-                <Editor selectedFile={selectedFile}/>
+                {!selectedFile ? (
+                    <Box p="3">
+                        <Text color="gray">Select a file from the tree to start editing</Text>
+                    </Box>
+                ) : isTextFile ? (
+                    <CollaborativeEditor selectedFile={selectedFile}
+                    />
+                ) : (
+                    <Box p="3">
+                        <img src={selectedFile.s3Url} alt={selectedFile.originalFileName} />
+                    </Box>
+                )}
             </Box>
         </div>
     )
