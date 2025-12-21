@@ -10,8 +10,14 @@ export type ChangeOperation = {
 export const useChangeTracking = () => {
     const [changeHistory, setChangeHistory] = useState<ChangeOperation[]>([]);
     const previousLinesRef = useRef<string[]>([]);
+    const isApplyingRemoteChanges = useRef(false);
 
     const detectChanges = useCallback((e: editor.IModelContentChangedEvent, model: editor.ITextModel) => {
+        // Skip detection if we're applying remote changes
+        if (isApplyingRemoteChanges.current) {
+            return;
+        }
+
         const newOperations: ChangeOperation[] = [];
         const previousLines = previousLinesRef.current;
 
@@ -154,11 +160,21 @@ export const useChangeTracking = () => {
         setChangeHistory([]);
     }, []);
 
+    const updatePreviousLines = useCallback((lines: string[]) => {
+        previousLinesRef.current = lines;
+    }, []);
+
+    const setIsApplyingRemoteChanges = useCallback((value: boolean) => {
+        isApplyingRemoteChanges.current = value;
+    }, []);
+
     return {
         changeHistory,
         setChangeHistory,
         detectChanges,
         resetTracking,
-        previousLinesRef
+        updatePreviousLines,
+        previousLinesRef,
+        setIsApplyingRemoteChanges
     };
 };

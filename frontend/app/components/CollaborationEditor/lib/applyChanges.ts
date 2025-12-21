@@ -7,26 +7,30 @@ import type {ChangeOperation} from "~/components/CollaborationEditor/hooks/useCh
  * @param lines - Array of text lines to apply changes to
  * @param changes - Array of change operations to apply
  */
-export const applyChanges = (lines: string[], changes: ChangeOperation[]): void => {
+export const applyChanges = (lines: string[], changes: ChangeOperation[]): string[] => {
+    const copy = [...lines]
+
     for (const change of changes) {
         switch (change.operation) {
             case 'MODIFY':
-                if (change.line > 0 && change.line <= lines.length && change.content !== undefined) {
-                    lines[change.line - 1] = change.content;
+                if (change.line > 0 && change.line <= copy.length && change.content !== undefined) {
+                    copy[change.line - 1] = change.content;
                 }
                 break;
 
             case 'INSERT_AFTER':
-                if (change.line >= 0 && change.line <= lines.length && change.content !== undefined) {
-                    lines.splice(change.line, 0, change.content);
+                if (change.line >= 0 && change.line <= copy.length && change.content !== undefined) {
+                    copy.splice(change.line, 0, change.content);
                 }
                 break;
 
             case 'DELETE':
-                if (change.line > 0 && change.line <= lines.length) {
-                    lines.splice(change.line - 1, 1);
+                if (change.line > 0 && change.line <= copy.length) {
+                    copy.splice(change.line - 1, 1);
                 }
                 break;
         }
     }
+
+    return copy
 };

@@ -8,7 +8,8 @@ import {transformHistory} from "~/components/CollaborationEditor/lib/transformHi
 const useContentProcessor = (
     contentValue: { content: string, lastChangeId: string },
     changeHistory: ChangeOperation[],
-    setChangeHistory: (changes: ChangeOperation[]) => void
+    setChangeHistory: (changes: ChangeOperation[]) => void,
+    updatePreviousLines: (lines: string[]) => void
 ) => {
     const [content, setContent] = useState(contentValue?.content);
     const [lastChangeId, setLastChangeId] = useState(contentValue?.lastChangeId);
@@ -17,8 +18,11 @@ const useContentProcessor = (
     const changeHistoryRef = useToRef(changeHistory)
 
     useEffect(() => {
+        console.log("RESET")
         setContent(contentValue?.content)
         setLastChangeId(contentValue?.lastChangeId)
+        setChangeHistory([])
+        updatePreviousLines([])
     }, [contentValue]);
 
     const handleChanges = useCallback((changes: ChangeOperation[]) => {
@@ -29,19 +33,23 @@ const useContentProcessor = (
         // Step 1: Apply incoming remote changes to content
         applyChanges(lines, changes);
 
-        // Step 2: Transform local change history based on remote changes
+        // Step 2: Update previousRef to the content with remote changes applied (new baseline)
+        updatePreviousLines(lines);
+        setChangeHistory([])
+
+        // Step 3: Transform local change history based on remote changes
         const transformedHistory = transformHistory(changeHistoryRef.current, changes);
 
         console.log("transformedHistory", changeHistoryRef.current, transformedHistory)
 
-        // Step 3: Apply transformed local changes on top
+        // Step 4: Apply transformed local changes on top
         applyChanges(lines, transformedHistory);
 
-        // Step 4: Update history and return new content
+        // Step 5: Update history with transformed version and set new content
         setChangeHistory(transformedHistory);
         setContent(lines.join('\n'))
 
-    }, [setChangeHistory]);
+    }, [setChangeHistory, updatePreviousLines]);
 
     const contentObject = useMemo(() => ({
         content,

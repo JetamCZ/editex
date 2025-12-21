@@ -8,6 +8,7 @@ import {useRef, useEffect, useCallback} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Badge} from "@radix-ui/themes";
 import useContentProcessor from "~/components/CollaborationEditor/hooks/useContentProcessor";
+import useContent from "~/components/CollaborationEditor/hooks/useContent";
 
 interface Props {
     selectedFile: ProjectFile
@@ -16,10 +17,49 @@ interface Props {
 const CollaborativeEditor = (props: Props) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-    const {refetch, ...fileContent} = useFileContent(props.selectedFile)
-    const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef} = useChangeTracking();
+    //const {refetch, ...fileContent} = useFileContent(props.selectedFile)
+    const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges} = useChangeTracking();
 
-    const {content, handleChanges: onChangesReceived} = useContentProcessor(fileContent.content!, changeHistory, setChangeHistory)
+    //const {content, handleChanges: onChangesReceived} = useContentProcessor(fileContent.content!, changeHistory, setChangeHistory, updatePreviousLines)
+
+
+    const setEditorContent = useCallback((newContent: string) => {
+        if (editorRef.current) {
+            const model = editorRef.current.getModel();
+
+            if (model) {
+                // Save cursor position before updating content
+                const position = editorRef.current.getPosition();
+                const scrollTop = editorRef.current.getScrollTop();
+
+                // Set the new content
+                editorRef.current.setValue(newContent);
+
+                // Update the language mode
+                const language = getLanguage(props.selectedFile.originalFileName);
+                const monaco = (window as any).monaco;
+                if (monaco) {
+                    monaco.editor.setModelLanguage(model, language);
+                }
+
+                // Restore cursor position if it was saved
+                if (position) {
+                    editorRef.current.setPosition(position);
+                    editorRef.current.setScrollTop(scrollTop);
+                }
+            }
+        }
+    }, [props.selectedFile.originalFileName])
+
+
+    const {content, refetch, lastChangeId, handleChanges: onChangesReceived} = useContent(
+        props.selectedFile.id,
+        changeHistory,
+        setChangeHistory,
+        updatePreviousLines,
+        setEditorContent,
+        setIsApplyingRemoteChanges
+    )
 
     const {isConnected, sessionId, sendChanges} = useWebSocket({
         fileId: props.selectedFile.id,
@@ -50,7 +90,7 @@ const CollaborativeEditor = (props: Props) => {
 
     const handleSendChanges = () => {
         if (changeHistory.length > 0) {
-            sendChanges(changeHistory, content?.lastChangeId!);
+            sendChanges(changeHistory, lastChangeId!);
             console.log(`Sent ${changeHistory.length} changes to server`);
 
             // Clear the local changes history after successfully sending
@@ -67,37 +107,6 @@ const CollaborativeEditor = (props: Props) => {
         console.log('Reloading file from server...');
         await refetch();
     };
-
-    // Update editor content when file changes
-    useEffect(() => {
-        if (editorRef.current) {
-            const model = editorRef.current.getModel();
-            if (model) {
-                // Save cursor position before updating content
-                const position = editorRef.current.getPosition();
-                const scrollTop = editorRef.current.getScrollTop();
-
-                // Set the new content
-                editorRef.current.setValue(content?.content!);
-
-                // Update the language mode
-                const language = getLanguage(props.selectedFile.originalFileName);
-                const monaco = (window as any).monaco;
-                if (monaco) {
-                    monaco.editor.setModelLanguage(model, language);
-                }
-
-                // Restore cursor position if it was saved
-                if (position) {
-                    editorRef.current.setPosition(position);
-                    editorRef.current.setScrollTop(scrollTop);
-                }
-
-                resetTracking(model.getLinesContent());
-            }
-        }
-    }, [content, props.selectedFile]);
-
 
     return <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -129,7 +138,7 @@ const CollaborativeEditor = (props: Props) => {
             <Editor
                 height="100%"
                 defaultLanguage={getLanguage(props.selectedFile.originalFileName)}
-                defaultValue={content?.content || ''}
+                defaultValue={content || ''}
                 theme="vs-light"
                 onMount={handleEditorDidMount}
                 options={{
