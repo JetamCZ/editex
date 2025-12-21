@@ -1,26 +1,37 @@
 import type {ProjectFile} from "../../../../types/file";
-import {ContentType} from "~/const/ContentType";
 import {useQuery} from "@tanstack/react-query";
+import useAuth from "~/hooks/useAuth";
+import axios from "axios";
 
 const useFileContent = (file?: ProjectFile) => {
-    const {data: content} = useQuery({
+    const {bearerToken} = useAuth();
+
+    const {data: content, refetch} = useQuery({
         queryKey: ['fileContent', file?.id],
         queryFn: async () => {
-            if (!file) return null;
+            if (!file || !bearerToken) return null;
 
-            const response = await fetch(file.s3Url);
-            const content = await response.text();
+            try {
+                const {data} = await axios.get<{content: string, lastChangeId: string}>(`/api/files/${file.id}/content`, {
+                    headers: {
+                        'Authorization': `Bearer ${bearerToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+                });
 
-            return {
-                type: ContentType.TEXT,
-                url: file.s3Url,
-                content
-            };
+                return data;
+            } catch (error) {
+                console.error('Error loading file content:', error);
+                throw error;
+            }
         },
-        enabled: !!file,
+        enabled: !!file && !!bearerToken,
+        staleTime: 0, // Always fetch fresh content
+        refetchOnMount: true,
     });
 
-    return content;
+    return {content, refetch};
 }
 
 
