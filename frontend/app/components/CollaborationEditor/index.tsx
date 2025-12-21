@@ -4,7 +4,7 @@ import {useChangeTracking, type ChangeOperation} from "~/components/Collaboratio
 import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
-import {useRef, useEffect, useState, useCallback} from "react";
+import {useRef, useEffect, useCallback} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Badge} from "@radix-ui/themes";
 
@@ -13,11 +13,10 @@ interface Props {
 }
 
 const CollaborativeEditor = (props: Props) => {
-    const content = useFileContent(props.selectedFile)
 
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-    const [baseChangeId, setBaseChangeId] = useState<string | null>(null);
 
+    const {content, refetch} = useFileContent(props.selectedFile)
     const {changeHistory, detectChanges, resetTracking, previousLinesRef} = useChangeTracking();
 
     const handleIncomingChanges = useCallback((
@@ -60,24 +59,35 @@ const CollaborativeEditor = (props: Props) => {
 
     const handleSendChanges = () => {
         if (changeHistory.length > 0) {
-            sendChanges(changeHistory, baseChangeId);
+            sendChanges(changeHistory, content?.lastChangeId!);
             console.log(`Sent ${changeHistory.length} changes to server`);
+
+            // Clear the local changes history after successfully sending
+            const model = editorRef.current?.getModel();
+            if (model) {
+                resetTracking(model.getLinesContent());
+            }
         } else {
             console.log('No changes to send');
         }
     };
 
-    const handleEditorChange = (value: string | undefined) => {
-        // Changes are now handled by onDidChangeModelContent
+    const handleReloadFile = async () => {
+        console.log('Reloading file from server...');
+        await refetch();
     };
 
     // Update editor content when file changes
     useEffect(() => {
-        if (editorRef.current && content?.content !== undefined) {
+        if (editorRef.current) {
             const model = editorRef.current.getModel();
             if (model) {
+                // Save cursor position before updating content
+                const position = editorRef.current.getPosition();
+                const scrollTop = editorRef.current.getScrollTop();
+
                 // Set the new content
-                editorRef.current.setValue(content.content);
+                editorRef.current.setValue(content?.content!);
 
                 // Update the language mode
                 const language = getLanguage(props.selectedFile.originalFileName);
@@ -86,21 +96,24 @@ const CollaborativeEditor = (props: Props) => {
                     monaco.editor.setModelLanguage(model, language);
                 }
 
-                // Reset change tracking for new file
-                resetTracking(model.getLinesContent());
+                // Restore cursor position if it was saved
+                if (position) {
+                    editorRef.current.setPosition(position);
+                    editorRef.current.setScrollTop(scrollTop);
+                }
 
-                // Set base change ID from content (loaded from backend)
-                setBaseChangeId(content.lastChangeId || null);
-                console.log('Loaded file with base change ID:', content.lastChangeId);
+                resetTracking(model.getLinesContent());
             }
         }
-    }, [content?.content, content?.lastChangeId, props.selectedFile.id, props.selectedFile.originalFileName, resetTracking]);
-
+    }, [content, props.selectedFile]);
 
 
     return <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Button onClick={handleReloadFile} size="2" variant="soft">
+                    Reload from Server
+                </Button>
                 <Button onClick={handleShowChanges} size="2" variant="soft">
                     Show Changes
                 </Button>
@@ -120,6 +133,7 @@ const CollaborativeEditor = (props: Props) => {
                 </span>
             </div>
         </div>
+
         <div style={{ flex: 1 }}>
             <Editor
                 height="100%"
@@ -127,7 +141,6 @@ const CollaborativeEditor = (props: Props) => {
                 defaultValue={content?.content || ''}
                 theme="vs-light"
                 onMount={handleEditorDidMount}
-                onChange={handleEditorChange}
                 options={{
                     minimap: { enabled: true },
                     fontSize: 14,
