@@ -12,12 +12,12 @@ const useFileContent = (file?: ProjectFile) => {
             if (!file || !bearerToken) return null;
 
             try {
-                const {data} = await axios.get<{content: string, lastChangeId: string}>(`/files/${file.id}/content`, {
+                const {data} = await axios.get<{content: string, lastChangeId: string}>(`/api/files/${file.id}/content`, {
                     headers: {
                         'Authorization': `Bearer ${bearerToken}`,
                         'Content-Type': 'application/json',
                     },
-                    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api'
+                    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
                 });
 
                 return data;
