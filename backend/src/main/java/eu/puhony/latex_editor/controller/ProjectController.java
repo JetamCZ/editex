@@ -10,6 +10,7 @@ import eu.puhony.latex_editor.entity.ProjectMember;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.ProjectRepository;
 import eu.puhony.latex_editor.repository.UserRepository;
+import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
 import eu.puhony.latex_editor.service.ProjectMemberService;
 import eu.puhony.latex_editor.service.ProjectService;
@@ -34,6 +35,7 @@ public class ProjectController {
     private final FileService fileService;
     private final ProjectMemberService projectMemberService;
     private final ProjectRepository projectRepository;
+    private final DocumentChangeService documentChangeService;
 
     @GetMapping("/me")
     public ResponseEntity<List<ProjectWithRoleResponse>> getCurrentUserProjects(Authentication authentication) {
@@ -130,18 +132,25 @@ public class ProjectController {
 
         List<ProjectFile> files = fileService.getProjectFiles(id, user.getId());
         List<FileUploadResponse> response = files.stream()
-                .map(file -> new FileUploadResponse(
-                        file.getId(),
-                        file.getProject().getId(),
-                        file.getProjectFolder(),
-                        file.getFileName(),
-                        file.getOriginalFileName(),
-                        file.getFileSize(),
-                        file.getFileType(),
-                        file.getS3Url(),
-                        file.getUploadedBy().getId(),
-                        file.getCreatedAt()
-                ))
+                .map(file -> {
+                    String lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
+                            .map(eu.puhony.latex_editor.entity.DocumentChange::getId)
+                            .orElse(null);
+
+                    return new FileUploadResponse(
+                            file.getId(),
+                            file.getProject().getId(),
+                            file.getProjectFolder(),
+                            file.getFileName(),
+                            file.getOriginalFileName(),
+                            file.getFileSize(),
+                            file.getFileType(),
+                            file.getS3Url(),
+                            file.getUploadedBy().getId(),
+                            file.getCreatedAt(),
+                            lastChangeId
+                    );
+                })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }

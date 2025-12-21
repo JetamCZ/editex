@@ -9,4 +9,5 @@ export interface ProjectFile {
     s3Url: string;
     uploadedBy: number;
     createdAt: string;
+    lastChangeId?: string | null;
 }

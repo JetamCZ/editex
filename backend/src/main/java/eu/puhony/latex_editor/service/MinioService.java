@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -69,6 +70,17 @@ public class MinioService {
                         .object(objectName)
                         .build()
         );
+    }
+
+    public String getFileContent(String url) throws Exception {
+        String objectName = getObjectNameFromUrl(url);
+        if (objectName == null) {
+            throw new IllegalArgumentException("Invalid URL: " + url);
+        }
+
+        try (InputStream inputStream = downloadFile(objectName)) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     private String generateFileName(String originalFilename) {

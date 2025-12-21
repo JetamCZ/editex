@@ -1,11 +1,12 @@
 import type {ProjectFile} from "../../../types/file";
 import useFileContent from "~/components/CollaborationEditor/hooks/useFileContent";
-import {useChangeTracking} from "~/components/CollaborationEditor/hooks/useChangeTracking";
+import {useChangeTracking, type ChangeOperation} from "~/components/CollaborationEditor/hooks/useChangeTracking";
+import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
-import {useRef, useEffect} from "react";
+import {useRef, useEffect, useState, useCallback} from "react";
 import type {editor} from "monaco-editor";
-import {Button} from "@radix-ui/themes";
+import {Button, Badge} from "@radix-ui/themes";
 
 interface Props {
     selectedFile: ProjectFile
@@ -13,9 +14,27 @@ interface Props {
 
 const CollaborativeEditor = (props: Props) => {
     const content = useFileContent(props.selectedFile)
+
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const [baseChangeId, setBaseChangeId] = useState<string | null>(null);
 
     const {changeHistory, detectChanges, resetTracking, previousLinesRef} = useChangeTracking();
+
+    const handleIncomingChanges = useCallback((
+        changes: ChangeOperation[],
+        sessionId: string,
+        userId: number,
+        userName: string
+    ) => {
+        console.log(`Received changes from ${userName} (session: ${sessionId}):`, changes);
+        // TODO: Apply incoming changes to the editor
+        // This would involve implementing operational transform or CRDT logic
+    }, []);
+
+    const {isConnected, sessionId, sendChanges} = useWebSocket({
+        fileId: props.selectedFile.id,
+        onChangesReceived: handleIncomingChanges
+    });
 
     const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
         editorRef.current = editor;
@@ -39,6 +58,15 @@ const CollaborativeEditor = (props: Props) => {
         console.log('Change History:', changeHistory);
     };
 
+    const handleSendChanges = () => {
+        if (changeHistory.length > 0) {
+            sendChanges(changeHistory, baseChangeId);
+            console.log(`Sent ${changeHistory.length} changes to server`);
+        } else {
+            console.log('No changes to send');
+        }
+    };
+
     const handleEditorChange = (value: string | undefined) => {
         // Changes are now handled by onDidChangeModelContent
     };
@@ -60,20 +88,37 @@ const CollaborativeEditor = (props: Props) => {
 
                 // Reset change tracking for new file
                 resetTracking(model.getLinesContent());
+
+                // Set base change ID from content (loaded from backend)
+                setBaseChangeId(content.lastChangeId || null);
+                console.log('Loaded file with base change ID:', content.lastChangeId);
             }
         }
-    }, [content?.content, props.selectedFile.id, props.selectedFile.originalFileName, resetTracking]);
+    }, [content?.content, content?.lastChangeId, props.selectedFile.id, props.selectedFile.originalFileName, resetTracking]);
 
 
 
     return <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '8px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <Button onClick={handleShowChanges} size="2">
-                Show Change History
-            </Button>
-            <span style={{ fontSize: '14px', color: '#666' }}>
-                {changeHistory.length} change{changeHistory.length !== 1 ? 's' : ''} tracked
-            </span>
+        <div style={{ padding: '8px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Button onClick={handleShowChanges} size="2" variant="soft">
+                    Show Changes
+                </Button>
+                <Button onClick={handleSendChanges} size="2" disabled={changeHistory.length === 0 || !isConnected}>
+                    Send Changes
+                </Button>
+                <span style={{ fontSize: '14px', color: '#666' }}>
+                    {changeHistory.length} change{changeHistory.length !== 1 ? 's' : ''} tracked
+                </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Badge color={isConnected ? 'green' : 'gray'} variant="soft">
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                </Badge>
+                <span style={{ fontSize: '12px', color: '#999' }}>
+                    Session: {sessionId.substring(0, 8)}...
+                </span>
+            </div>
         </div>
         <div style={{ flex: 1 }}>
             <Editor
