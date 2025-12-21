@@ -7,32 +7,23 @@ import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
 import {useRef, useEffect, useCallback} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Badge} from "@radix-ui/themes";
+import useContentProcessor from "~/components/CollaborationEditor/hooks/useContentProcessor";
 
 interface Props {
     selectedFile: ProjectFile
 }
 
 const CollaborativeEditor = (props: Props) => {
-
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-    const {content, refetch} = useFileContent(props.selectedFile)
-    const {changeHistory, detectChanges, resetTracking, previousLinesRef} = useChangeTracking();
+    const {refetch, ...fileContent} = useFileContent(props.selectedFile)
+    const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef} = useChangeTracking();
 
-    const handleIncomingChanges = useCallback((
-        changes: ChangeOperation[],
-        sessionId: string,
-        userId: number,
-        userName: string
-    ) => {
-        console.log(`Received changes from ${userName} (session: ${sessionId}):`, changes);
-        // TODO: Apply incoming changes to the editor
-        // This would involve implementing operational transform or CRDT logic
-    }, []);
+    const {content, handleChanges: onChangesReceived} = useContentProcessor(fileContent.content!, changeHistory, setChangeHistory)
 
     const {isConnected, sessionId, sendChanges} = useWebSocket({
         fileId: props.selectedFile.id,
-        onChangesReceived: handleIncomingChanges
+        onChangesReceived
     });
 
     const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {

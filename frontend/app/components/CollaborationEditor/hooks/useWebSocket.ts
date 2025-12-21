@@ -7,7 +7,7 @@ import useAuth from "~/hooks/useAuth";
 
 interface WebSocketConfig {
     fileId: string;
-    onChangesReceived: (changes: ChangeOperation[], sessionId: string, userId: number, userName: string) => void;
+    onChangesReceived: (changes: ChangeOperation[]) => void;
 }
 
 export const useWebSocket = ({fileId, onChangesReceived}: WebSocketConfig) => {
@@ -20,15 +20,10 @@ export const useWebSocket = ({fileId, onChangesReceived}: WebSocketConfig) => {
     const connect = useCallback(() => {
         if (!bearerToken || clientRef.current?.connected) return;
 
-        console.log("TOKEN", bearerToken)
-
         const client = new Client({
             webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
             connectHeaders: {
                 'Authorization': `Bearer ${bearerToken}`
-            },
-            debug: (str) => {
-                console.log('[STOMP Debug]:', str);
             },
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
@@ -40,16 +35,7 @@ export const useWebSocket = ({fileId, onChangesReceived}: WebSocketConfig) => {
                 // Subscribe to document changes
                 client.subscribe(`/topic/document/${fileId}`, (message: IMessage) => {
                     const response = JSON.parse(message.body);
-
-                    // Don't process our own changes
-                    if (response.sessionId !== sessionIdRef.current) {
-                        onChangesReceived(
-                            response.changes,
-                            response.sessionId,
-                            response.userId,
-                            response.userName
-                        );
-                    }
+                    onChangesReceived(response.changes);
                 });
             },
             onDisconnect: () => {

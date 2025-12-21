@@ -156,6 +156,7 @@ export const useChangeTracking = () => {
 
     return {
         changeHistory,
+        setChangeHistory,
         detectChanges,
         resetTracking,
         previousLinesRef
