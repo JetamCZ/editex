@@ -2,7 +2,7 @@ import {Avatar, Badge, Box, Flex, HoverCard, Text} from "@radix-ui/themes";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import getInitials from "~/lib/getInitials";
-import InviteMemberModal from "./invite-member-modal";
+import ManageMembersModal from "./manage-members-modal";
 import {useRevalidator} from "react-router";
 
 interface ProjectMembersProps {
@@ -37,7 +37,7 @@ export default function ProjectMembers({project, members}: ProjectMembersProps) 
                     <Text size="2">
                         members:
                     </Text>
-                    <InviteMemberModal
+                    <ManageMembersModal
                         projectId={project.id}
                         onSuccess={handleInviteSuccess}
                     />
