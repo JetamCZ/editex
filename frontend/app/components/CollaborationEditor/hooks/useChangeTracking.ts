@@ -57,7 +57,51 @@ export const useChangeTracking = () => {
                     }
                 }
             }
-            // Case 2: Line insertion (Enter key pressed, new lines added)
+            // Case 2: Complex paste/replacement (lines deleted AND lines added)
+            else if (linesDeleted > 0 && linesAdded > 0) {
+                const currentLineCount = model.getLineCount();
+                const previousLineCount = previousLines.length;
+
+                // Determine the range of lines affected
+                const affectedStartLine = startLine;
+                const affectedEndLine = Math.max(startLine + linesAdded, endLine);
+
+                // Process all lines from the start of the change
+                for (let i = affectedStartLine; i <= currentLineCount; i++) {
+                    const currentLine = model.getLineContent(i);
+                    const previousLine = previousLines[i - 1];
+
+                    if (previousLine !== undefined) {
+                        // Line existed before - use MODIFY if content changed
+                        if (currentLine !== previousLine) {
+                            newOperations.push({
+                                operation: "MODIFY",
+                                line: i,
+                                content: currentLine
+                            });
+                        }
+                    } else {
+                        // New line added beyond previous content - use INSERT_AFTER
+                        newOperations.push({
+                            operation: "INSERT_AFTER",
+                            line: i - 1,
+                            content: currentLine
+                        });
+                    }
+                }
+
+                // Handle deleted lines (lines that existed before but don't exist now)
+                if (currentLineCount < previousLineCount) {
+                    const deletedCount = previousLineCount - currentLineCount;
+                    for (let i = 0; i < deletedCount; i++) {
+                        newOperations.push({
+                            operation: "DELETE",
+                            line: currentLineCount + 1
+                        });
+                    }
+                }
+            }
+            // Case 3: Line insertion (Enter key pressed, new lines added, no deletions)
             else if (linesAdded > 0) {
                 // When Enter is pressed, new lines are created
                 const newLines = newText.split('\n');
@@ -102,41 +146,51 @@ export const useChangeTracking = () => {
             }
             // Case 4: Complex change (e.g., paste multiple lines, replace selection spanning lines)
             else {
-                // Handle deletion of lines if any
-                if (linesDeleted > 0) {
-                    for (let i = 0; i < linesDeleted; i++) {
+                const currentLineCount = model.getLineCount();
+                const previousLineCount = previousLines.length;
+
+                // For complex changes, compare current state with previous state line by line
+                // This handles all paste scenarios correctly
+
+                // First, determine which lines were affected by the change
+                const affectedStartLine = startLine;
+                const affectedEndLine = Math.max(currentLineCount, previousLineCount);
+
+                // Process lines that exist in the current model
+                for (let i = affectedStartLine; i <= currentLineCount; i++) {
+                    const currentLine = model.getLineContent(i);
+                    const previousLine = previousLines[i - 1];
+
+                    if (previousLine !== undefined) {
+                        // Line existed before - use MODIFY if content changed
+                        if (currentLine !== previousLine) {
+                            newOperations.push({
+                                operation: "MODIFY",
+                                line: i,
+                                content: currentLine
+                            });
+                        }
+                    } else {
+                        // New line added beyond previous content - use INSERT_AFTER
                         newOperations.push({
-                            operation: "DELETE",
-                            line: startLine
+                            operation: "INSERT_AFTER",
+                            line: i - 1,
+                            content: currentLine
                         });
                     }
                 }
 
-                // Handle insertion of lines if any
-                if (linesAdded > 0) {
-                    for (let i = 0; i < linesAdded; i++) {
-                        const lineNum = startLine + i;
-                        if (lineNum <= model.getLineCount()) {
-                            newOperations.push({
-                                operation: "INSERT_AFTER",
-                                line: lineNum - 1,
-                                content: model.getLineContent(lineNum)
-                            });
-                        }
-                    }
-                }
-
-                // The affected line might also be modified
-                if (startLine <= model.getLineCount()) {
-                    const currentLineContent = model.getLineContent(startLine);
-                    const previousLineContent = previousLines[startLine - 1] || '';
-
-                    // Only record if content actually changed
-                    if (currentLineContent !== previousLineContent) {
+                // Handle deleted lines (lines that existed before but don't exist now)
+                if (currentLineCount < previousLineCount) {
+                    // Only delete lines that were in the affected range
+                    const linesToDelete = Math.min(
+                        previousLineCount - currentLineCount,
+                        endLine - currentLineCount
+                    );
+                    for (let i = 0; i < linesToDelete; i++) {
                         newOperations.push({
-                            operation: "MODIFY",
-                            line: startLine,
-                            content: currentLineContent
+                            operation: "DELETE",
+                            line: currentLineCount + 1
                         });
                     }
                 }
@@ -144,6 +198,7 @@ export const useChangeTracking = () => {
         }
 
         if (newOperations.length > 0) {
+            console.log('[Change Detection] Generated operations:', newOperations);
             setChangeHistory(prev => {
                 const updatedHistory = [...prev];
 
