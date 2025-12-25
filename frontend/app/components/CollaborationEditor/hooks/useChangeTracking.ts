@@ -2,6 +2,7 @@ import {useRef, useState, useCallback} from "react";
 import type {editor} from "monaco-editor";
 
 export type ChangeOperation = {
+    id?: string
     operation: "MODIFY" | "INSERT_AFTER" | "DELETE";
     line: number;
     content?: string;
@@ -37,8 +38,23 @@ export const useChangeTracking = () => {
                 for (let i = 0; i < linesDeleted; i++) {
                     newOperations.push({
                         operation: "DELETE",
-                        line: startLine + i
+                        line: startLine
                     });
+                }
+
+                // After deletion, check if the line at startLine was modified
+                if (startLine <= model.getLineCount()) {
+                    const currentLineContent = model.getLineContent(startLine);
+                    const previousLineContent = previousLines[startLine - 1] || '';
+
+                    // Only record if content actually changed
+                    if (currentLineContent !== previousLineContent) {
+                        newOperations.push({
+                            operation: "MODIFY",
+                            line: startLine,
+                            content: currentLineContent
+                        });
+                    }
                 }
             }
             // Case 2: Line insertion (Enter key pressed, new lines added)

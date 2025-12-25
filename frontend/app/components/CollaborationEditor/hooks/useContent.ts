@@ -65,6 +65,7 @@ const useContent = (
 
         // Step 4: Update state
         setContent(newServerContent.join('\n'));
+        setLastChangeId(changes.at(-1)?.id!)
         updatePreviousLines(newServerContent);
         setChangeHistory(transformedHistory);
 

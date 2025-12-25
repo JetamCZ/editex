@@ -1,13 +1,11 @@
 import type {ProjectFile} from "../../../types/file";
-import useFileContent from "~/components/CollaborationEditor/hooks/useFileContent";
 import {useChangeTracking, type ChangeOperation} from "~/components/CollaborationEditor/hooks/useChangeTracking";
 import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
-import {useRef, useEffect, useCallback} from "react";
+import {useRef, useCallback} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Badge} from "@radix-ui/themes";
-import useContentProcessor from "~/components/CollaborationEditor/hooks/useContentProcessor";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
 
 interface Props {
@@ -17,10 +15,7 @@ interface Props {
 const CollaborativeEditor = (props: Props) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-    //const {refetch, ...fileContent} = useFileContent(props.selectedFile)
     const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges} = useChangeTracking();
-
-    //const {content, handleChanges: onChangesReceived} = useContentProcessor(fileContent.content!, changeHistory, setChangeHistory, updatePreviousLines)
 
 
     const setEditorContent = useCallback((newContent: string) => {
