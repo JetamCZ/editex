@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -77,5 +78,25 @@ public class FileService {
                     }
                 })
                 .orElse(false);
+    }
+
+    @Transactional
+    public ProjectFile saveGeneratedPdf(File pdfFile, Project project,
+                                        String sourceFileId, User user) throws Exception {
+        String s3Url = minioService.uploadFile(pdfFile,
+                project.getId() + "/compiled",
+                "application/pdf");
+
+        ProjectFile projectFile = new ProjectFile();
+        projectFile.setProject(project);
+        projectFile.setProjectFolder("/compiled");
+        projectFile.setFileName(pdfFile.getName());
+        projectFile.setOriginalFileName(pdfFile.getName());
+        projectFile.setFileSize(pdfFile.length());
+        projectFile.setFileType("application/pdf");
+        projectFile.setS3Url(s3Url);
+        projectFile.setUploadedBy(user);
+
+        return fileRepository.save(projectFile);
     }
 }

@@ -24,4 +24,13 @@ public class GlobalExceptionHandler {
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
+
+    @ExceptionHandler(LatexCompilationException.class)
+    public ResponseEntity<Map<String, String>> handleLatexCompilationException(
+            LatexCompilationException ex) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", ex.getMessage());
+        response.put("compilationLog", ex.getCompilationLog());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 }
