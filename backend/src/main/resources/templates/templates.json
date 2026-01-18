@@ -1,0 +1,32 @@
+{
+  "templates": [
+    {
+      "id": "empty",
+      "name": "Empty Project",
+      "description": "Start from scratch with no files",
+      "files": []
+    },
+    {
+      "id": "default",
+      "name": "Default Template",
+      "description": "A complete LaTeX document with sections demonstrating basic features",
+      "files": [
+        {
+          "path": "/files",
+          "filename": "main.tex",
+          "templateFile": "default/main.tex"
+        },
+        {
+          "path": "/files/sections",
+          "filename": "01-introduction.tex",
+          "templateFile": "default/sections/01-introduction.tex"
+        },
+        {
+          "path": "/files/sections",
+          "filename": "02-examples.tex",
+          "templateFile": "default/sections/02-examples.tex"
+        }
+      ]
+    }
+  ]
+}

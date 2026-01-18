@@ -3,19 +3,26 @@ import {useChangeTracking, type ChangeOperation} from "~/components/Collaboratio
 import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
-import {useRef, useCallback} from "react";
+import {useRef, useCallback, useState} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Badge} from "@radix-ui/themes";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
+import {useLatexCompilation, type CompilationResult} from "~/hooks/useLatexCompilation";
+import CompilationLogDialog from "~/components/CompilationLogDialog";
 
 interface Props {
-    selectedFile: ProjectFile
+    selectedFile: ProjectFile;
+    onCompilationSuccess?: (result: CompilationResult) => void;
 }
 
 const CollaborativeEditor = (props: Props) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
     const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges} = useChangeTracking();
+
+    const { mutate: compileLatex, isPending: isCompiling } = useLatexCompilation();
+    const [compilationResult, setCompilationResult] = useState<CompilationResult | null>(null);
+    const [showLogDialog, setShowLogDialog] = useState(false);
 
 
     const setEditorContent = useCallback((newContent: string) => {
@@ -103,6 +110,46 @@ const CollaborativeEditor = (props: Props) => {
         await refetch();
     };
 
+    const handleCompile = () => {
+        if (!props.selectedFile.originalFileName.endsWith('.tex')) {
+            alert('Please select a .tex file to compile');
+            return;
+        }
+
+        compileLatex(
+            { fileId: props.selectedFile.id },
+            {
+                onSuccess: (result) => {
+                    setCompilationResult(result);
+                    if (result.success) {
+                        console.log('Compilation successful!', result);
+                        if (props.onCompilationSuccess) {
+                            props.onCompilationSuccess(result);
+                        }
+                    } else {
+                        console.error('Compilation failed:', result.compilationLog);
+                        setShowLogDialog(true);
+                    }
+                },
+                onError: (error: any) => {
+                    console.error('Compilation error:', error);
+                    const errorMessage = error.response?.data?.error || error.message;
+                    const errorLog = error.response?.data?.compilationLog || 'No log available';
+                    alert('Compilation failed: ' + errorMessage);
+                    setCompilationResult({
+                        success: false,
+                        pdfFileId: null,
+                        pdfUrl: null,
+                        compilationLog: errorLog,
+                        errorMessage: errorMessage,
+                        compilationTimeMs: 0
+                    });
+                    setShowLogDialog(true);
+                }
+            }
+        );
+    };
+
     return <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '8px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -115,6 +162,24 @@ const CollaborativeEditor = (props: Props) => {
                 <Button onClick={handleSendChanges} size="2" disabled={changeHistory.length === 0 || !isConnected}>
                     Send Changes
                 </Button>
+                <Button
+                    onClick={handleCompile}
+                    size="2"
+                    disabled={isCompiling || !isConnected}
+                    variant="solid"
+                >
+                    {isCompiling ? 'Compiling...' : 'Compile PDF'}
+                </Button>
+                {compilationResult && (
+                    <Button
+                        onClick={() => setShowLogDialog(true)}
+                        size="2"
+                        variant="soft"
+                        color={compilationResult.success ? 'green' : 'red'}
+                    >
+                        {compilationResult.success ? 'Show Log' : 'Show Errors'}
+                    </Button>
+                )}
                 <span style={{ fontSize: '14px', color: '#666' }}>
                     {changeHistory.length} change{changeHistory.length !== 1 ? 's' : ''} tracked
                 </span>
@@ -144,6 +209,15 @@ const CollaborativeEditor = (props: Props) => {
                 }}
             />
         </div>
+
+        {compilationResult && (
+            <CompilationLogDialog
+                log={compilationResult.compilationLog}
+                isError={!compilationResult.success}
+                open={showLogDialog}
+                onOpenChange={setShowLogDialog}
+            />
+        )}
     </div>
 }
 

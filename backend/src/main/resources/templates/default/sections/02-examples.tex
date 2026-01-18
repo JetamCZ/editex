@@ -1,0 +1,54 @@
+\section{LaTeX Features Examples}
+
+This section demonstrates various LaTeX features you can use in your documents.
+
+\subsection{Mathematical Equations}
+
+Inline math: The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+
+Display math with equation numbering:
+\begin{equation}
+    E = mc^2
+\end{equation}
+
+Multiple aligned equations:
+\begin{align}
+    f(x) &= x^2 + 2x + 1 \\
+    f'(x) &= 2x + 2 \\
+    f''(x) &= 2
+\end{align}
+
+\subsection{Tables}
+
+\begin{table}[H]
+    \centering
+    \caption{Example Table}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Name} & \textbf{Value} & \textbf{Unit} \\
+        \midrule
+        Speed of light & $3 \times 10^8$ & m/s \\
+        Planck constant & $6.63 \times 10^{-34}$ & J$\cdot$s \\
+        Gravitational constant & $6.67 \times 10^{-11}$ & N$\cdot$m$^2$/kg$^2$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Code Listings}
+
+\begin{lstlisting}[language=Python, caption=Hello World in Python]
+def hello():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    hello()
+\end{lstlisting}
+
+\subsection{Cross-References}
+
+You can reference sections like Section~\ref{sec:conclusion} or equations, tables, and figures throughout your document.
+
+\subsection{Conclusion}
+\label{sec:conclusion}
+
+This template provides a starting point for your LaTeX documents. Feel free to modify and expand it according to your needs!

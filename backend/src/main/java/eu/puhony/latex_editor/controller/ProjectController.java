@@ -14,6 +14,7 @@ import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
 import eu.puhony.latex_editor.service.ProjectMemberService;
 import eu.puhony.latex_editor.service.ProjectService;
+import eu.puhony.latex_editor.service.TemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,12 @@ public class ProjectController {
     private final ProjectMemberService projectMemberService;
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
+    private final TemplateService templateService;
+
+    @GetMapping("/templates")
+    public ResponseEntity<List<TemplateService.TemplateInfo>> getTemplates() {
+        return ResponseEntity.ok(templateService.getAvailableTemplates());
+    }
 
     @GetMapping("/me")
     public ResponseEntity<List<ProjectWithRoleResponse>> getCurrentUserProjects(Authentication authentication) {
@@ -86,6 +93,8 @@ public class ProjectController {
         project.setName(request.getName());
         project.setOwner(owner);
         Project createdProject = projectService.createProject(project, owner.getId());
+
+        templateService.initializeProjectFromTemplate(createdProject, request.getTemplateId(), owner);
 
         ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, ProjectMember.Role.OWNER);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

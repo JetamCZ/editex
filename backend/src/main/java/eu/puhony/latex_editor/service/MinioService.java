@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -97,5 +100,47 @@ public class MinioService {
                     .split("\\?")[0];
         }
         return null;
+    }
+
+    public String uploadFile(File file, String folder, String contentType) throws Exception {
+        String fileName = generateFileName(file.getName());
+        String objectName = folder + "/" + fileName;
+
+        try (InputStream inputStream = new FileInputStream(file)) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(inputStream, file.length(), -1)
+                            .contentType(contentType)
+                            .build()
+            );
+        }
+
+        return getFileUrl(objectName);
+    }
+
+    public String uploadFileWithName(File file, String folder, String fileName, String contentType) throws Exception {
+        String objectName = folder + "/" + fileName;
+
+        try (InputStream inputStream = new FileInputStream(file)) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(inputStream, file.length(), -1)
+                            .contentType(contentType)
+                            .build()
+            );
+        }
+
+        return getFileUrl(objectName);
+    }
+
+    public void downloadFileToPath(String objectName, File destination) throws Exception {
+        try (InputStream inputStream = downloadFile(objectName);
+             FileOutputStream outputStream = new FileOutputStream(destination)) {
+            inputStream.transferTo(outputStream);
+        }
     }
 }
