@@ -66,18 +66,6 @@ const EditorPage = () => {
     const isTextFile = selectedFile &&
         (typeMapping[selectedFile.fileType] === ContentType.TEXT || !typeMapping[selectedFile.fileType]);
 
-    // Find compiled PDF for current file
-    const compiledPdf = uploadedFiles.find(f =>
-        f.fileType === 'application/pdf' &&
-        f.projectFolder === '/compiled'
-    );
-
-    useEffect(() => {
-        if (compiledPdf) {
-            setCurrentPdfUrl(compiledPdf.s3Url);
-        }
-    }, [compiledPdf]);
-
     const handleCompilationSuccess = (result: CompilationResult) => {
         console.log("=== COMPILATION SUCCESS ===");
         console.log("Result:", result);

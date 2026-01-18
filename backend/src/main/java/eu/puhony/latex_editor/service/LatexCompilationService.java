@@ -67,20 +67,26 @@ public class LatexCompilationService {
             // 5. Execute pdflatex
             CompilationResult result = executePdfLatex(workDir, mainTexFile);
 
-            // 6. If successful, upload PDF to S3
+            // 6. If successful, upload PDF to S3 (without creating ProjectFile)
             if (result.isSuccess()) {
-                String pdfFileName = mainTexFile.replace(".tex", ".pdf");
-                File pdfFile = new File(workDir, pdfFileName);
+                String localPdfFileName = mainTexFile.replace(".tex", ".pdf");
+                File pdfFile = new File(workDir, localPdfFileName);
 
                 if (pdfFile.exists()) {
-                    ProjectFile savedPdf = fileService.saveGeneratedPdf(
-                        pdfFile,
-                        sourceFile.getProject(),
-                        sourceFile.getId(),
-                        user
-                    );
-                    result.setPdfFileId(savedPdf.getId());
-                    result.setPdfUrl(savedPdf.getS3Url());
+                    // Upload PDF with consistent name (overwrites previous version)
+                    String s3Folder = sourceFile.getProject().getId() + "/compiled";
+                    String s3PdfFileName = sanitizeFilename(sourceFile.getOriginalFileName().replace(".tex", ".pdf"));
+
+                    System.out.println("Uploading PDF to S3:");
+                    System.out.println("  Folder: " + s3Folder);
+                    System.out.println("  Filename: " + s3PdfFileName);
+
+                    String pdfUrl = minioService.uploadFileWithName(pdfFile, s3Folder, s3PdfFileName, "application/pdf");
+
+                    result.setPdfFileId(null); // No ProjectFile created
+                    result.setPdfUrl(pdfUrl);
+
+                    System.out.println("  PDF URL: " + pdfUrl);
                 } else {
                     result.setSuccess(false);
                     result.setErrorMessage("PDF file was not generated");
@@ -130,12 +136,6 @@ public class LatexCompilationService {
             System.out.println("Processing file: " + file.getOriginalFileName() +
                              " (type: " + file.getFileType() +
                              ", folder: " + file.getProjectFolder() + ")");
-
-            // Skip compiled PDFs
-            if ("/compiled".equals(file.getProjectFolder())) {
-                System.out.println("  -> Skipping (compiled PDF)");
-                continue;
-            }
 
             // Sanitize filename and download
             String sanitizedFileName = sanitizeFilename(file.getOriginalFileName());

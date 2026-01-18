@@ -120,6 +120,23 @@ public class MinioService {
         return getFileUrl(objectName);
     }
 
+    public String uploadFileWithName(File file, String folder, String fileName, String contentType) throws Exception {
+        String objectName = folder + "/" + fileName;
+
+        try (InputStream inputStream = new FileInputStream(file)) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(inputStream, file.length(), -1)
+                            .contentType(contentType)
+                            .build()
+            );
+        }
+
+        return getFileUrl(objectName);
+    }
+
     public void downloadFileToPath(String objectName, File destination) throws Exception {
         try (InputStream inputStream = downloadFile(objectName);
              FileOutputStream outputStream = new FileOutputStream(destination)) {
