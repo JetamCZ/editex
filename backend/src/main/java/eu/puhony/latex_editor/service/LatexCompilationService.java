@@ -137,9 +137,9 @@ public class LatexCompilationService {
                              " (type: " + file.getFileType() +
                              ", folder: " + file.getProjectFolder() + ")");
 
-            // Sanitize filename and download
+            // Sanitize filename and create proper folder structure
             String sanitizedFileName = sanitizeFilename(file.getOriginalFileName());
-            File destFile = new File(workDir, sanitizedFileName);
+            File destFile = resolveDestinationFile(workDir, file.getProjectFolder(), sanitizedFileName);
 
             // For .tex files, get content with changes applied
             if (sanitizedFileName.endsWith(".tex")) {
@@ -176,17 +176,24 @@ public class LatexCompilationService {
             }
         }
 
-        // List all files in work directory after download
+        // List all files in work directory after download (recursively)
         System.out.println("\n=== FILES IN WORK DIRECTORY ===");
-        File[] downloadedFiles = workDir.listFiles();
-        if (downloadedFiles != null) {
-            for (File f : downloadedFiles) {
-                System.out.println("  " + f.getName() + " (" + f.length() + " bytes)");
-            }
-        } else {
-            System.out.println("  No files found!");
-        }
+        listFilesRecursively(workDir, "");
         System.out.println("=================================\n");
+    }
+
+    private void listFilesRecursively(File dir, String indent) {
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                if (f.isDirectory()) {
+                    System.out.println(indent + "[DIR] " + f.getName() + "/");
+                    listFilesRecursively(f, indent + "  ");
+                } else {
+                    System.out.println(indent + f.getName() + " (" + f.length() + " bytes)");
+                }
+            }
+        }
     }
 
     private String findMainTexFile(File workDir, String requestedFileName) throws IOException {
@@ -318,5 +325,40 @@ public class LatexCompilationService {
         }
         // Remove any directory traversal attempts and keep only safe characters
         return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private File resolveDestinationFile(File workDir, String projectFolder, String filename) throws IOException {
+        // Convert project folder path to relative path within workDir
+        // e.g., "/files" -> "", "/files/sections" -> "sections"
+        String relativePath = "";
+        if (projectFolder != null && !projectFolder.isEmpty()) {
+            // Remove leading "/files" prefix if present
+            relativePath = projectFolder.replaceFirst("^/files/?", "");
+        }
+
+        File destDir;
+        if (relativePath.isEmpty()) {
+            destDir = workDir;
+        } else {
+            // Sanitize folder path segments
+            String[] segments = relativePath.split("/");
+            StringBuilder sanitizedPath = new StringBuilder();
+            for (String segment : segments) {
+                if (!segment.isEmpty()) {
+                    if (sanitizedPath.length() > 0) {
+                        sanitizedPath.append(File.separator);
+                    }
+                    sanitizedPath.append(sanitizeFilename(segment));
+                }
+            }
+            destDir = new File(workDir, sanitizedPath.toString());
+        }
+
+        // Create directories if they don't exist
+        if (!destDir.exists() && !destDir.mkdirs()) {
+            throw new IOException("Failed to create directory: " + destDir.getAbsolutePath());
+        }
+
+        return new File(destDir, filename);
     }
 }
