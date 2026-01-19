@@ -27,6 +27,28 @@
           "templateFile": "default/sections/02-examples.tex"
         }
       ]
+    },
+    {
+      "id": "overleaf",
+      "name": "Overleaf Template",
+      "description": "A template with an example document and image",
+      "files": [
+        {
+          "path": "/files",
+          "filename": "main.tex",
+          "templateFile": "overleaf/main.tex"
+        },
+        {
+          "path": "/files",
+          "filename": "frog.jpg",
+          "templateFile": "overleaf/frog.jpg"
+        },
+        {
+          "path": "/files",
+          "filename": "sample.bib",
+          "templateFile": "overleaf/sample.bib"
+        }
+      ]
     }
   ]
 }

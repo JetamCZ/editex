@@ -99,14 +99,14 @@ public class TemplateService {
             String filename, String templateFile, User user) {
         try {
             ClassPathResource templateResource = new ClassPathResource("templates/" + templateFile);
-            String content;
+            byte[] content;
             try (InputStream is = templateResource.getInputStream()) {
-                content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                content = is.readAllBytes();
             }
 
             File tempFile = File.createTempFile("template-", "-" + filename);
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                fos.write(content.getBytes(StandardCharsets.UTF_8));
+                fos.write(content);
             }
 
             String s3Url = minioService.uploadFile(tempFile,
@@ -120,7 +120,7 @@ public class TemplateService {
             projectFile.setProjectFolder(folder);
             projectFile.setFileName(filename);
             projectFile.setOriginalFileName(filename);
-            projectFile.setFileSize((long) content.getBytes(StandardCharsets.UTF_8).length);
+            projectFile.setFileSize((long) content.length);
             projectFile.setFileType(getContentType(filename));
             projectFile.setS3Url(s3Url);
             projectFile.setUploadedBy(user);
@@ -139,6 +139,14 @@ public class TemplateService {
             return "application/x-bibtex";
         } else if (filename.endsWith(".sty")) {
             return "text/x-tex";
+        } else if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (filename.endsWith(".png")) {
+            return "image/png";
+        } else if (filename.endsWith(".gif")) {
+            return "image/gif";
+        } else if (filename.endsWith(".pdf")) {
+            return "application/pdf";
         }
         return "text/plain";
     }
