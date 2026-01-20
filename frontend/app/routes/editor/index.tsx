@@ -6,7 +6,7 @@ import {createPortal} from "react-dom";
 import {Box, Text, Button} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import ProjectFiles from "./ProjectFiles";
-import {ContentType, typeMapping} from "~/const/ContentType";
+import {ContentType, getFileContentType} from "~/const/ContentType";
 import CollaborativeEditor, {type CollaborativeEditorRef} from "~/components/CollaborationEditor";
 import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
@@ -25,7 +25,6 @@ const EditorPage = () => {
     const params = useParams();
     const navigate = useNavigate();
     const [selectedFileId, setSelectedFileId] = useState<string | null>(params.fileId || null);
-    const [showPdfPreview, setShowPdfPreview] = useState(false);
     const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
@@ -64,12 +63,21 @@ const EditorPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Update selectedFileId when URL params change
+    // Update selectedFileId when URL params change or auto-select main.tex
     useEffect(() => {
         if (params.fileId) {
             setSelectedFileId(params.fileId);
+        } else if (!selectedFileId && uploadedFiles.length > 0) {
+            // Auto-select main.tex if no file is selected
+            const mainTexFile = uploadedFiles.find(f =>
+                f.originalFileName.toLowerCase() === 'main.tex'
+            );
+            if (mainTexFile) {
+                setSelectedFileId(mainTexFile.id);
+                navigate(`/project/${project.id}/file/${mainTexFile.id}`, {replace: true});
+            }
         }
-    }, [params.fileId]);
+    }, [params.fileId, uploadedFiles, selectedFileId, project.id, navigate]);
 
     const handleFileClick = async (fileId: string) => {
         setSelectedFileId(fileId);
@@ -78,13 +86,16 @@ const EditorPage = () => {
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
 
-    const isTextFile = selectedFile &&
-        (typeMapping[selectedFile.fileType as keyof typeof typeMapping] === ContentType.TEXT || !typeMapping[selectedFile.fileType as keyof typeof typeMapping]);
+    const fileContentType = selectedFile
+        ? getFileContentType(selectedFile.fileType, selectedFile.originalFileName)
+        : null;
+    const isTextFile = fileContentType === ContentType.TEXT;
+    const isImageFile = fileContentType === ContentType.IMAGE;
+    const isPdfFile = fileContentType === ContentType.PDF;
 
     const handleCompilationSuccess = (result: CompilationResult) => {
         if (result.success && result.pdfUrl) {
             setCurrentPdfUrl(result.pdfUrl);
-            setShowPdfPreview(true);
         }
     };
 
@@ -206,9 +217,78 @@ const EditorPage = () => {
                             ref={editorRef}
                             selectedFile={selectedFile}
                         />
+                    ) : isImageFile ? (
+                        <Box
+                            p="4"
+                            style={{
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'var(--gray-2)',
+                                overflow: 'auto',
+                                gap: '16px'
+                            }}
+                        >
+                            <img
+                                src={selectedFile.s3Url}
+                                alt={selectedFile.originalFileName}
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: 'calc(100% - 40px)',
+                                    objectFit: 'contain',
+                                    borderRadius: '4px',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                }}
+                            />
+                            <a
+                                href={selectedFile.s3Url}
+                                download={selectedFile.originalFileName}
+                                style={{
+                                    color: 'var(--blue-11)',
+                                    textDecoration: 'none',
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                            >
+                                Download {selectedFile.originalFileName}
+                            </a>
+                        </Box>
+                    ) : isPdfFile ? (
+                        <Box
+                            style={{
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}
+                        >
+                            <iframe
+                                src={selectedFile.s3Url}
+                                style={{
+                                    flex: 1,
+                                    width: '100%',
+                                    border: 'none'
+                                }}
+                                title={selectedFile.originalFileName}
+                            />
+                        </Box>
                     ) : (
-                        <Box p="3">
-                            <img src={selectedFile.s3Url} alt={selectedFile.originalFileName} />
+                        <Box
+                            p="4"
+                            style={{
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'var(--gray-2)'
+                            }}
+                        >
+                            <Text color="gray">
+                                Cannot preview this file type. <a href={selectedFile.s3Url} download>Download file</a>
+                            </Text>
                         </Box>
                     )}
                 </Box>
@@ -264,14 +344,20 @@ const EditorPage = () => {
             </div>
 
             {/* PDF Preview Panel */}
-            {showPdfPreview && currentPdfUrl && (
-                <Box style={{borderLeft: '1px solid var(--gray-6)', minWidth: 0, overflow: 'hidden', flex: 1}}>
+            <Box style={{borderLeft: '1px solid var(--gray-6)', minWidth: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column'}}>
+                {currentPdfUrl ? (
                     <PdfViewer
                         pdfUrl={currentPdfUrl}
                         fileName={selectedFile?.originalFileName.replace('.tex', '.pdf') || 'output.pdf'}
                     />
-                </Box>
-            )}
+                ) : (
+                    <Box p="4" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--gray-2)'}}>
+                        <Text color="gray" size="2" align="center">
+                            Click "Compile" to generate PDF preview
+                        </Text>
+                    </Box>
+                )}
+            </Box>
 
             {/* File Upload Modal */}
             <FileUploadModal

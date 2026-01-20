@@ -3,6 +3,7 @@ import {useChangeTracking, type ChangeOperation} from "~/components/Collaboratio
 import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
+import {registerLatexLanguage} from "~/components/CollaborationEditor/lib/latexLanguage";
 import {useRef, useCallback, forwardRef, useImperativeHandle} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Tooltip, Separator} from "@radix-ui/themes";
@@ -198,6 +199,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         editorRef.current = editor;
         monacoRef.current = monaco;
 
+        // Register LaTeX language support
+        registerLatexLanguage(monaco);
+
         // Initialize previous lines with the current content
         const model = editor.getModel();
         if (model) {
@@ -361,7 +365,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
                 height="100%"
                 defaultLanguage={getLanguage(props.selectedFile.originalFileName)}
                 defaultValue={content || ''}
-                theme="vs-light"
+                theme={isTexFile ? "latex-light" : "vs-light"}
                 onMount={handleEditorDidMount}
                 options={{
                     minimap: { enabled: true },
