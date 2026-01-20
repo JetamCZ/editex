@@ -1,0 +1,91 @@
+import {useNavigate, useOutletContext} from "react-router";
+import type {Project} from "../../../types/project";
+import type {ProjectMember} from "../../../types/member";
+import {Role} from "../../../types/member";
+import {useEffect, useState} from "react";
+import {createPortal} from "react-dom";
+import {
+    Box,
+    Text,
+    Button,
+    Flex,
+    Heading,
+} from "@radix-ui/themes";
+import useAuth from "~/hooks/useAuth";
+import {ProjectInfoCard, TeamMembersCard, DangerZoneCard} from "./settings/index";
+
+interface OutletContextType {
+    project: Project;
+    members: ProjectMember[];
+}
+
+const ProjectSettingsPage = () => {
+    const {project, members} = useOutletContext<OutletContextType>();
+    const navigate = useNavigate();
+    const {bearerToken} = useAuth();
+    const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
+
+    const isOwner = project.userRole === Role.OWNER;
+
+    // Get header actions container
+    useEffect(() => {
+        const container = document.getElementById('header-actions');
+        setHeaderActionsContainer(container);
+    }, []);
+
+    // Header actions rendered via portal
+    const headerActions = headerActionsContainer && createPortal(
+        <Button
+            size="2"
+            variant="soft"
+            onClick={() => navigate(`/project/${project.id}`)}
+        >
+            Back to Editor
+        </Button>,
+        headerActionsContainer
+    );
+
+    return (
+        <>
+            {headerActions}
+
+            {/* Settings Content */}
+            <Box className="flex-1 bg-gray-1 overflow-auto">
+                <Flex
+                    direction="column"
+                    align="center"
+                    className="py-8 px-4"
+                >
+                    <Box className="w-full max-w-2xl mb-6">
+                        <Heading size="8" mb="2">Project Settings</Heading>
+                        <Text size="3" className="text-gray-11">
+                            Manage your project settings and team members
+                        </Text>
+                    </Box>
+
+                    <ProjectInfoCard
+                        project={project}
+                        bearerToken={bearerToken}
+                        isOwner={isOwner}
+                    />
+
+                    <TeamMembersCard
+                        projectId={project.id}
+                        initialMembers={members}
+                        bearerToken={bearerToken}
+                        isOwner={isOwner}
+                    />
+
+                    {isOwner && (
+                        <DangerZoneCard
+                            project={project}
+                            bearerToken={bearerToken}
+                        />
+                    )}
+                </Flex>
+            </Box>
+        </>
+    );
+};
+
+export default ProjectSettingsPage;

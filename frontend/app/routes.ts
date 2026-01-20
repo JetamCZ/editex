@@ -16,8 +16,11 @@ export default [
 
         route("invitations", "routes/invitations.tsx"),
 
-        route("project/:id", "routes/editor/index.tsx", {id: "project"}),
-        route("project/:id/file/:fileId", "routes/editor/index.tsx", {id: "project-file"}),
+        route("project/:id", "routes/editor/layout.tsx", {id: "project-layout"}, [
+            index("routes/editor/index.tsx"),
+            route("file/:fileId", "routes/editor/index.tsx", {id: "project-file"}),
+            route("settings", "routes/editor/settings.tsx", {id: "project-settings"}),
+        ]),
 
         route("profile", "routes/profile.tsx"),
     ])
