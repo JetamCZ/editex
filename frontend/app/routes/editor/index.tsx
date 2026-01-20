@@ -2,20 +2,19 @@ import {Link, type LoaderFunctionArgs, useLoaderData, useNavigate, useParams} fr
 import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
-import {useState, useEffect} from "react";
-import {Box, Text, Button, TextField, Avatar, DropdownMenu, Tooltip} from "@radix-ui/themes";
-import ProjectMembers from "./members";
+import {useState, useEffect, useRef} from "react";
+import {Box, Text, Button, Avatar, DropdownMenu, Tooltip} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import ProjectFiles from "./ProjectFiles";
 import {ContentType, typeMapping} from "~/const/ContentType";
-import CollaborativeEditor from "~/components/CollaborationEditor";
+import CollaborativeEditor, {type CollaborativeEditorRef} from "~/components/CollaborationEditor";
 import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
-import type {CompilationResult} from "~/hooks/useLatexCompilation";
+import {type CompilationResult, useLatexCompilation} from "~/hooks/useLatexCompilation";
+import EditorToolbar from "~/components/EditorToolbar";
 import {
     FileTextIcon,
     CounterClockwiseClockIcon,
-    MagnifyingGlassIcon,
     GearIcon,
     QuestionMarkCircledIcon,
     ExitIcon,
@@ -77,10 +76,34 @@ const EditorPage = () => {
     const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
     const [activePanel, setActivePanel] = useState<string>('files');
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [editorState, setEditorState] = useState<{
+        changeHistory: any[];
+        isConnected: boolean;
+        sessionId: string;
+    }>({ changeHistory: [], isConnected: false, sessionId: '' });
+
+    const editorRef = useRef<CollaborativeEditorRef>(null);
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
         projectId: project.id
     });
+
+    const compilationMutation = useLatexCompilation();
+
+    // Poll editor state for toolbar
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (editorRef.current) {
+                setEditorState({
+                    changeHistory: editorRef.current.changeHistory,
+                    isConnected: editorRef.current.isConnected,
+                    sessionId: editorRef.current.sessionId,
+                });
+            }
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Update selectedFileId when URL params change
     useEffect(() => {
@@ -95,8 +118,6 @@ const EditorPage = () => {
     }
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
-
-    console.log("selectedFile", selectedFile);
 
     const isTextFile = selectedFile &&
         (typeMapping[selectedFile.fileType] === ContentType.TEXT || !typeMapping[selectedFile.fileType]);
@@ -114,6 +135,32 @@ const EditorPage = () => {
         } else {
             console.warn("Compilation result missing success or pdfUrl");
         }
+    };
+
+    const handleCompile = () => {
+        compilationMutation.mutate(
+            { projectId: project.id },
+            {
+                onSuccess: (result) => {
+                    handleCompilationSuccess(result);
+                },
+                onError: (error) => {
+                    console.error("Compilation failed:", error);
+                }
+            }
+        );
+    };
+
+    const handleReload = () => {
+        editorRef.current?.handleReloadFile();
+    };
+
+    const handleShowChanges = () => {
+        editorRef.current?.handleShowChanges();
+    };
+
+    const handleSendChanges = () => {
+        editorRef.current?.handleSendChanges();
     };
 
     return (
@@ -150,19 +197,25 @@ const EditorPage = () => {
                 {/* Spacer */}
                 <div style={{ flex: 1 }} />
 
-                {/* Search */}
-                <TextField.Root
-                    placeholder="Search commands..."
-                    size="2"
-                    style={{ width: "240px" }}
-                >
-                    <TextField.Slot>
-                        <MagnifyingGlassIcon height="16" width="16" />
-                    </TextField.Slot>
-                </TextField.Root>
+                {/* Editor Toolbar */}
+                {selectedFile && isTextFile && (
+                    <EditorToolbar
+                        changeHistory={editorState.changeHistory}
+                        isConnected={editorState.isConnected}
+                        onReload={handleReload}
+                        onShowChanges={handleShowChanges}
+                        onSendChanges={handleSendChanges}
+                    />
+                )}
 
                 {/* Compile Button */}
-                <Button size="2" style={{ backgroundColor: "var(--blue-9)" }}>
+                <Button
+                    size="2"
+                    style={{ backgroundColor: "var(--blue-9)" }}
+                    onClick={handleCompile}
+                    disabled={!selectedFileId || compilationMutation.isPending}
+                    loading={compilationMutation.isPending}
+                >
                     <PlayIcon /> Compile
                 </Button>
 
@@ -321,8 +374,8 @@ const EditorPage = () => {
                             </Box>
                         ) : isTextFile ? (
                             <CollaborativeEditor
+                                ref={editorRef}
                                 selectedFile={selectedFile}
-                                onCompilationSuccess={handleCompilationSuccess}
                             />
                         ) : (
                             <Box p="3">
@@ -364,8 +417,31 @@ const EditorPage = () => {
                     <span style={{ color: "var(--gray-11)" }}>— Characters</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <span style={{ color: "var(--blue-11)" }}>Cloud Sync</span>
-                    <span style={{ color: "var(--gray-11)" }}>V8 Runtime</span>
+                    {selectedFile && isTextFile ? (
+                        <>
+                            <span style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                color: editorState.isConnected ? "var(--green-11)" : "var(--gray-11)"
+                            }}>
+                                <span style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    backgroundColor: editorState.isConnected ? "var(--green-9)" : "var(--gray-9)"
+                                }} />
+                                {editorState.isConnected ? 'Connected' : 'Disconnected'}
+                            </span>
+                            {editorState.sessionId && (
+                                <span style={{ color: "var(--gray-11)" }}>
+                                    Session: {editorState.sessionId.substring(0, 8)}
+                                </span>
+                            )}
+                        </>
+                    ) : (
+                        <span style={{ color: "var(--gray-11)" }}>Ready</span>
+                    )}
                 </div>
             </footer>
 

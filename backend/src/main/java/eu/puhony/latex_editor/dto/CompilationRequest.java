@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CompilationRequest {
-    private String fileId;  // The .tex file to compile
+    private String projectId;  // The project to compile (always compiles main.tex)
 }

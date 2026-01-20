@@ -29,7 +29,7 @@ public class LatexCompilationController {
 
         try {
             CompilationResult result = compilationService.compileLatex(
-                request.getFileId(),
+                request.getProjectId(),
                 user.getId()
             );
             return ResponseEntity.ok(result);

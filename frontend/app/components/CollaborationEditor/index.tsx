@@ -3,17 +3,23 @@ import {useChangeTracking, type ChangeOperation} from "~/components/Collaboratio
 import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
-import {useRef, useCallback, useState} from "react";
+import {useRef, useCallback, forwardRef, useImperativeHandle} from "react";
 import type {editor} from "monaco-editor";
-import {Button, Badge, Tooltip, Separator} from "@radix-ui/themes";
+import {Button, Tooltip, Separator} from "@radix-ui/themes";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
-import {useLatexCompilation, type CompilationResult} from "~/hooks/useLatexCompilation";
-import CompilationLogDialog from "~/components/CompilationLogDialog";
 import type * as Monaco from "monaco-editor";
 
 interface Props {
     selectedFile: ProjectFile;
-    onCompilationSuccess?: (result: CompilationResult) => void;
+}
+
+export interface CollaborativeEditorRef {
+    changeHistory: any[];
+    isConnected: boolean;
+    sessionId: string;
+    handleReloadFile: () => Promise<void>;
+    handleShowChanges: () => void;
+    handleSendChanges: () => void;
 }
 
 // LaTeX formatting commands
@@ -31,15 +37,11 @@ const LATEX_LISTS = {
     enumerate: { env: 'enumerate', label: '1.', tooltip: 'Numbered List (Ctrl+Shift+O)' },
 } as const;
 
-const CollaborativeEditor = (props: Props) => {
+const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, ref) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<typeof Monaco | null>(null);
 
     const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges} = useChangeTracking();
-
-    const { mutate: compileLatex, isPending: isCompiling } = useLatexCompilation();
-    const [compilationResult, setCompilationResult] = useState<CompilationResult | null>(null);
-    const [showLogDialog, setShowLogDialog] = useState(false);
 
     // Wrap selected text with LaTeX command
     const wrapWithLatexCommand = useCallback((command: string) => {
@@ -158,6 +160,40 @@ const CollaborativeEditor = (props: Props) => {
         onChangesReceived
     });
 
+    const handleShowChanges = () => {
+        console.log('Change History:', changeHistory);
+    };
+
+    const handleSendChanges = () => {
+        if (changeHistory.length > 0) {
+            sendChanges(changeHistory, lastChangeId!);
+            console.log(`Sent ${changeHistory.length} changes to server`);
+
+            // Clear the local changes history after successfully sending
+            const model = editorRef.current?.getModel();
+            if (model) {
+                resetTracking(model.getLinesContent());
+            }
+        } else {
+            console.log('No changes to send');
+        }
+    };
+
+    const handleReloadFile = async () => {
+        console.log('Reloading file from server...');
+        await refetch();
+    };
+
+    // Expose methods and state to parent via ref
+    useImperativeHandle(ref, () => ({
+        changeHistory,
+        isConnected,
+        sessionId,
+        handleReloadFile,
+        handleShowChanges,
+        handleSendChanges,
+    }));
+
     const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
@@ -211,70 +247,6 @@ const CollaborativeEditor = (props: Props) => {
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyO],
             run: () => insertListEnvironment('enumerate')
         });
-    };
-
-    const handleShowChanges = () => {
-        console.log('Change History:', changeHistory);
-    };
-
-    const handleSendChanges = () => {
-        if (changeHistory.length > 0) {
-            sendChanges(changeHistory, lastChangeId!);
-            console.log(`Sent ${changeHistory.length} changes to server`);
-
-            // Clear the local changes history after successfully sending
-            const model = editorRef.current?.getModel();
-            if (model) {
-                resetTracking(model.getLinesContent());
-            }
-        } else {
-            console.log('No changes to send');
-        }
-    };
-
-    const handleReloadFile = async () => {
-        console.log('Reloading file from server...');
-        await refetch();
-    };
-
-    const handleCompile = () => {
-        if (!props.selectedFile.originalFileName.endsWith('.tex')) {
-            alert('Please select a .tex file to compile');
-            return;
-        }
-
-        compileLatex(
-            { fileId: props.selectedFile.id },
-            {
-                onSuccess: (result) => {
-                    setCompilationResult(result);
-                    if (result.success) {
-                        console.log('Compilation successful!', result);
-                        if (props.onCompilationSuccess) {
-                            props.onCompilationSuccess(result);
-                        }
-                    } else {
-                        console.error('Compilation failed:', result.compilationLog);
-                        setShowLogDialog(true);
-                    }
-                },
-                onError: (error: any) => {
-                    console.error('Compilation error:', error);
-                    const errorMessage = error.response?.data?.error || error.message;
-                    const errorLog = error.response?.data?.compilationLog || 'No log available';
-                    alert('Compilation failed: ' + errorMessage);
-                    setCompilationResult({
-                        success: false,
-                        pdfFileId: null,
-                        pdfUrl: null,
-                        compilationLog: errorLog,
-                        errorMessage: errorMessage,
-                        compilationTimeMs: 0
-                    });
-                    setShowLogDialog(true);
-                }
-            }
-        );
     };
 
     const isTexFile = props.selectedFile.originalFileName.endsWith('.tex');
@@ -384,50 +356,6 @@ const CollaborativeEditor = (props: Props) => {
             </div>
         )}
 
-        {/* Main toolbar */}
-        <div style={{ padding: '8px', borderBottom: '1px solid #e0e0e0', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <Button onClick={handleReloadFile} size="2" variant="soft">
-                    Reload from Server
-                </Button>
-                <Button onClick={handleShowChanges} size="2" variant="soft">
-                    Show Changes
-                </Button>
-                <Button onClick={handleSendChanges} size="2" disabled={changeHistory.length === 0 || !isConnected}>
-                    Send Changes
-                </Button>
-                <Button
-                    onClick={handleCompile}
-                    size="2"
-                    disabled={isCompiling || !isConnected}
-                    variant="solid"
-                >
-                    {isCompiling ? 'Compiling...' : 'Compile PDF'}
-                </Button>
-                {compilationResult && (
-                    <Button
-                        onClick={() => setShowLogDialog(true)}
-                        size="2"
-                        variant="soft"
-                        color={compilationResult.success ? 'green' : 'red'}
-                    >
-                        {compilationResult.success ? 'Show Log' : 'Show Errors'}
-                    </Button>
-                )}
-                <span style={{ fontSize: '14px', color: '#666' }}>
-                    {changeHistory.length} change{changeHistory.length !== 1 ? 's' : ''} tracked
-                </span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <Badge color={isConnected ? 'green' : 'gray'} variant="soft">
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                </Badge>
-                <span style={{ fontSize: '12px', color: '#999' }}>
-                    Session: {sessionId.substring(0, 8)}...
-                </span>
-            </div>
-        </div>
-
         <div style={{ flex: 1 }}>
             <Editor
                 height="100%"
@@ -443,16 +371,9 @@ const CollaborativeEditor = (props: Props) => {
                 }}
             />
         </div>
-
-        {compilationResult && (
-            <CompilationLogDialog
-                log={compilationResult.compilationLog}
-                isError={!compilationResult.success}
-                open={showLogDialog}
-                onOpenChange={setShowLogDialog}
-            />
-        )}
     </div>
-}
+});
+
+CollaborativeEditor.displayName = 'CollaborativeEditor';
 
 export default CollaborativeEditor

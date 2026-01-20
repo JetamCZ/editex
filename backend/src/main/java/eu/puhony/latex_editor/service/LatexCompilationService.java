@@ -2,12 +2,8 @@ package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.dto.CompilationResult;
 import eu.puhony.latex_editor.entity.DocumentChange;
-import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
-import eu.puhony.latex_editor.entity.User;
-import eu.puhony.latex_editor.exception.LatexCompilationException;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
-import eu.puhony.latex_editor.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,10 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class LatexCompilationService {
 
     private final MinioService minioService;
-    private final FileService fileService;
     private final ProjectMemberService projectMemberService;
     private final ProjectFileRepository projectFileRepository;
-    private final UserRepository userRepository;
     private final DocumentChangeService documentChangeService;
 
     @Value("${latex.temp.directory:/tmp/latex-compilations}")
@@ -41,41 +35,35 @@ public class LatexCompilationService {
     @Value("${latex.compiler.path:pdflatex}")
     private String compilerPath;
 
-    public CompilationResult compileLatex(String fileId, Long userId) throws Exception {
+    public CompilationResult compileLatex(String projectId, Long userId) throws Exception {
         long startTime = System.currentTimeMillis();
         File workDir = null;
 
         try {
-            // 1. Validate permissions and get file
-            ProjectFile sourceFile = projectFileRepository.findByIdNonDeleted(fileId)
-                    .orElseThrow(() -> new RuntimeException("File not found"));
-
-            projectMemberService.ensureCanRead(sourceFile.getProject().getId(), userId);
-
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            // 1. Validate permissions
+            projectMemberService.ensureCanRead(projectId, userId);
 
             // 2. Create temp directory
             workDir = createCompilationDirectory();
 
             // 3. Download all project files (with changes applied for .tex files)
-            downloadProjectDependencies(sourceFile.getProject().getId(), workDir, userId);
+            downloadProjectDependencies(projectId, workDir, userId);
 
-            // 4. Find main .tex file
-            String mainTexFile = findMainTexFile(workDir, sourceFile.getOriginalFileName());
+            // 4. Always compile main.tex
+            String mainTexFile = "main.tex";
 
             // 5. Execute pdflatex
             CompilationResult result = executePdfLatex(workDir, mainTexFile);
 
             // 6. If successful, upload PDF to S3 (without creating ProjectFile)
             if (result.isSuccess()) {
-                String localPdfFileName = mainTexFile.replace(".tex", ".pdf");
+                String localPdfFileName = "main.pdf";
                 File pdfFile = new File(workDir, localPdfFileName);
 
                 if (pdfFile.exists()) {
                     // Upload PDF with consistent name (overwrites previous version)
-                    String s3Folder = sourceFile.getProject().getId() + "/compiled";
-                    String s3PdfFileName = sanitizeFilename(sourceFile.getOriginalFileName().replace(".tex", ".pdf"));
+                    String s3Folder = projectId + "/compiled";
+                    String s3PdfFileName = "main.pdf";
 
                     System.out.println("Uploading PDF to S3:");
                     System.out.println("  Folder: " + s3Folder);
@@ -194,59 +182,6 @@ public class LatexCompilationService {
                 }
             }
         }
-    }
-
-    private String findMainTexFile(File workDir, String requestedFileName) throws IOException {
-        System.out.println("=== FINDING MAIN TEX FILE ===");
-        System.out.println("Requested filename: " + requestedFileName);
-
-        File[] files = workDir.listFiles((dir, name) -> name.endsWith(".tex"));
-
-        if (files == null || files.length == 0) {
-            System.out.println("ERROR: No .tex files found!");
-            throw new LatexCompilationException(
-                "No .tex files found in project",
-                "No .tex files available for compilation"
-            );
-        }
-
-        System.out.println("Found " + files.length + " .tex file(s):");
-        for (File f : files) {
-            System.out.println("  - " + f.getName());
-        }
-
-        // If requested file exists and is .tex, use it
-        String sanitizedRequested = sanitizeFilename(requestedFileName);
-        System.out.println("Sanitized requested: " + sanitizedRequested);
-
-        if (sanitizedRequested.endsWith(".tex")) {
-            File requestedFile = new File(workDir, sanitizedRequested);
-            if (requestedFile.exists()) {
-                System.out.println("Using requested file: " + sanitizedRequested);
-                return sanitizedRequested;
-            } else {
-                System.out.println("Requested file does not exist: " + sanitizedRequested);
-            }
-        }
-
-        // Search for file with \documentclass
-        System.out.println("Searching for file with \\documentclass...");
-        for (File file : files) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim();
-                    if (line.startsWith("\\documentclass")) {
-                        System.out.println("Found \\documentclass in: " + file.getName());
-                        return file.getName();
-                    }
-                }
-            }
-        }
-
-        // Fallback: use first .tex file
-        System.out.println("No \\documentclass found, using first file: " + files[0].getName());
-        return files[0].getName();
     }
 
     private CompilationResult executePdfLatex(File workDir, String mainTexFile) throws Exception {
