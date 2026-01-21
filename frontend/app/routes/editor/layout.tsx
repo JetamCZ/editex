@@ -37,7 +37,7 @@ const iconSidebarItems = [
 ];
 
 const iconSidebarBottomItems = [
-    {id: 'help', icon: <QuestionMarkCircledIcon width="20" height="20" />, tooltip: 'Help', path: ''},
+    {id: 'help', icon: <QuestionMarkCircledIcon width="20" height="20" />, tooltip: 'Help', path: '/help'},
     {id: 'settings', icon: <GearIcon width="20" height="20" />, tooltip: 'Settings', path: '/settings'},
 ];
 
@@ -53,6 +53,7 @@ export default function ProjectLayout() {
     const initials = getInitials(user?.name || user?.email || "U");
 
     const isSettingsPage = location.pathname.endsWith('/settings');
+    const isHelpPage = location.pathname.endsWith('/help');
 
     const handleIconClick = (itemId: string, path: string) => {
         if (path) {
@@ -64,6 +65,7 @@ export default function ProjectLayout() {
 
     const getActiveItem = () => {
         if (isSettingsPage) return 'settings';
+        if (isHelpPage) return 'help';
         return 'files';
     };
 
