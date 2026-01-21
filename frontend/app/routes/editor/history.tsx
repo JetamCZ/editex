@@ -7,6 +7,7 @@ import { useBranches } from "~/hooks/useBranches";
 import { useState, useMemo } from "react";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
 import { GitBranch, Plus, GitCommit } from "lucide-react";
+import VersionTree from "~/components/VersionTree";
 
 interface OutletContextType {
     project: Project;
@@ -260,7 +261,7 @@ const HistoryPage = () => {
                 </Card>
 
                 {/* Commits Placeholder Section */}
-                <Card>
+                <Card style={{ marginBottom: "24px" }}>
                     <div style={{ padding: "20px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
                             <GitCommit size={20} />
@@ -321,6 +322,10 @@ const HistoryPage = () => {
                             ))}
                         </div>
                     </div>
+                </Card>
+
+                <Card>
+                    <VersionTree/>
                 </Card>
             </Box>
 
