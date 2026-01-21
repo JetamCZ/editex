@@ -4,10 +4,12 @@ import type { ProjectMember } from "../../../types/member";
 import type { Branch } from "../../../types/branch";
 import { Box, Text, Button, Badge, Card, Heading, Separator } from "@radix-ui/themes";
 import { useBranches } from "~/hooks/useBranches";
+import { useCommits } from "~/hooks/useCommits";
 import { useState, useMemo } from "react";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
+import CreateCommitDialog from "~/components/CreateCommitDialog";
 import MergeBranchDialog from "~/components/MergeBranchDialog";
-import { GitBranch, Plus, GitCommit, GitMerge } from "lucide-react";
+import { GitBranch, Plus, GitMerge, Tag } from "lucide-react";
 import VersionTree from "~/components/VersionTree";
 
 interface OutletContextType {
@@ -29,8 +31,13 @@ const HistoryPage = () => {
     const [selectedBranchForNew, setSelectedBranchForNew] = useState<string>(project.branch);
     const [mergeBranchDialogOpen, setMergeBranchDialogOpen] = useState(false);
     const [selectedBranchForMerge, setSelectedBranchForMerge] = useState<Branch | null>(null);
+    const [createCommitDialogOpen, setCreateCommitDialogOpen] = useState(false);
 
-    const { data: branches = [], isLoading } = useBranches({
+    const { data: branches = [], isLoading: branchesLoading } = useBranches({
+        baseProject: project.baseProject
+    });
+
+    const { data: commits = [], isLoading: commitsLoading, refetch: refetchCommits } = useCommits({
         baseProject: project.baseProject
     });
 
@@ -76,6 +83,7 @@ const HistoryPage = () => {
     };
 
     const handleBranchCreated = (branchName: string) => {
+        refetchCommits();
         navigate(`/project/${project.baseProject}/${branchName}/history`);
     };
 
@@ -85,8 +93,12 @@ const HistoryPage = () => {
     };
 
     const handleMergeComplete = (targetBranch: string) => {
-        // Navigate to the target branch since the source branch was deleted/merged
+        refetchCommits();
         navigate(`/project/${project.baseProject}/${targetBranch}/history`);
+    };
+
+    const handleCommitCreated = () => {
+        refetchCommits();
     };
 
     // Render branch node in the tree
@@ -253,7 +265,7 @@ const HistoryPage = () => {
                 <div style={{ marginBottom: "32px" }}>
                     <Heading size="6" mb="2">Version History</Heading>
                     <Text color="gray" size="2">
-                        View and manage branches for {project.name}
+                        View and manage branches and versions for {project.name}
                     </Text>
                 </div>
 
@@ -277,7 +289,7 @@ const HistoryPage = () => {
                             </Button>
                         </div>
 
-                        {isLoading ? (
+                        {branchesLoading ? (
                             <Text color="gray">Loading branches...</Text>
                         ) : branchTree ? (
                             <div style={{ paddingLeft: "8px" }}>
@@ -289,72 +301,31 @@ const HistoryPage = () => {
                     </div>
                 </Card>
 
-                {/* Commits Placeholder Section */}
-                <Card style={{ marginBottom: "24px" }}>
+                {/* Version History Section */}
+                <Card>
                     <div style={{ padding: "20px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
-                            <GitCommit size={20} />
-                            <Text size="4" weight="bold">Commits</Text>
-                            <Badge size="1" color="gray">Coming soon</Badge>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <Tag size={20} />
+                                <Text size="4" weight="bold">Version History</Text>
+                                <Badge size="1" color="gray">{commits.length} commits</Badge>
+                            </div>
+                            <Button
+                                size="2"
+                                color="green"
+                                onClick={() => setCreateCommitDialogOpen(true)}
+                            >
+                                <Tag size={16} /> Create Version
+                            </Button>
                         </div>
 
                         <Separator size="4" style={{ marginBottom: "20px" }} />
 
-                        <div style={{
-                            padding: "40px",
-                            textAlign: "center",
-                            backgroundColor: "var(--gray-2)",
-                            borderRadius: "8px",
-                            border: "2px dashed var(--gray-6)"
-                        }}>
-                            <GitCommit size={48} color="var(--gray-8)" style={{ marginBottom: "16px" }} />
-                            <Text size="3" weight="medium" style={{ display: "block", marginBottom: "8px" }}>
-                                Commit History Coming Soon
-                            </Text>
-                            <Text size="2" color="gray">
-                                Track changes with commit messages and view the complete history of your document changes.
-                            </Text>
-                        </div>
-
-                        {/* Placeholder commit entries */}
-                        <div style={{ marginTop: "20px", opacity: 0.5 }}>
-                            {[1, 2, 3].map((i) => (
-                                <div
-                                    key={i}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "12px",
-                                        padding: "12px",
-                                        borderBottom: "1px solid var(--gray-4)"
-                                    }}
-                                >
-                                    <div style={{
-                                        width: "8px",
-                                        height: "8px",
-                                        borderRadius: "50%",
-                                        backgroundColor: "var(--gray-6)"
-                                    }} />
-                                    <div style={{
-                                        flex: 1,
-                                        height: "12px",
-                                        backgroundColor: "var(--gray-4)",
-                                        borderRadius: "4px"
-                                    }} />
-                                    <div style={{
-                                        width: "80px",
-                                        height: "12px",
-                                        backgroundColor: "var(--gray-4)",
-                                        borderRadius: "4px"
-                                    }} />
-                                </div>
-                            ))}
-                        </div>
+                        <VersionTree
+                            commits={commits}
+                            isLoading={commitsLoading}
+                        />
                     </div>
-                </Card>
-
-                <Card>
-                    <VersionTree/>
                 </Card>
             </Box>
 
@@ -365,6 +336,15 @@ const HistoryPage = () => {
                 baseProject={project.baseProject}
                 currentBranch={selectedBranchForNew}
                 onBranchCreated={handleBranchCreated}
+            />
+
+            {/* Create Commit Dialog */}
+            <CreateCommitDialog
+                open={createCommitDialogOpen}
+                onOpenChange={setCreateCommitDialogOpen}
+                baseProject={project.baseProject}
+                currentBranch={project.branch}
+                onCommitCreated={handleCommitCreated}
             />
 
             {/* Merge Branch Dialog */}

@@ -1,0 +1,63 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { useRouteLoaderData } from 'react-router';
+import type { Commit, CreateCommitRequest } from '../../types/commit';
+import type { User } from '../../types/user';
+
+interface UseCommitsOptions {
+    baseProject: string;
+    branch?: string;
+    enabled?: boolean;
+}
+
+export function useCommits({ baseProject, branch, enabled = true }: UseCommitsOptions) {
+    const { bearerToken } = useRouteLoaderData("auth-user") as { user: User, bearerToken: string };
+
+    return useQuery({
+        queryKey: ['commits', baseProject, branch],
+        queryFn: async () => {
+            const url = branch
+                ? `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/commits?branch=${encodeURIComponent(branch)}`
+                : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/commits`;
+
+            const response = await axios.get<Commit[]>(url, {
+                headers: {
+                    'Authorization': `Bearer ${bearerToken}`
+                }
+            });
+            return response.data;
+        },
+        enabled: enabled && !!baseProject && !!bearerToken,
+        staleTime: 1000 * 60 * 5,
+    });
+}
+
+interface CreateCommitParams {
+    baseProject: string;
+    message: string;
+    branch: string;
+}
+
+export function useCreateCommit() {
+    const { bearerToken } = useRouteLoaderData("auth-user") as { user: User, bearerToken: string };
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ baseProject, message, branch }: CreateCommitParams) => {
+            const response = await axios.post<Commit>(
+                `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/commits`,
+                { message, branch } as CreateCommitRequest,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${bearerToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            return response.data;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['commits', variables.baseProject] });
+        }
+    });
+}

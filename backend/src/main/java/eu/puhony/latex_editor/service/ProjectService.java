@@ -1,10 +1,12 @@
 package eu.puhony.latex_editor.service;
 
+import eu.puhony.latex_editor.entity.Commit;
 import eu.puhony.latex_editor.entity.DocumentChange;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.ProjectMember;
 import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.CommitRepository;
 import eu.puhony.latex_editor.repository.DocumentChangeRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
 import eu.puhony.latex_editor.repository.ProjectRepository;
@@ -23,6 +25,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectFileRepository projectFileRepository;
     private final DocumentChangeRepository documentChangeRepository;
+    private final CommitRepository commitRepository;
     private final ProjectMemberService projectMemberService;
     private final MinioService minioService;
     private final DocumentChangeService documentChangeService;
@@ -49,16 +52,25 @@ public class ProjectService {
     }
 
     @Transactional
-    public Project createProject(Project project, Long ownerId) {
+    public Project createProject(Project project, User owner) {
         project.setBranch("main");
         Project savedProject = projectRepository.save(project);
 
         projectMemberService.addMember(
                 savedProject.getBaseProject(),
-                ownerId,
+                owner.getId(),
                 ProjectMember.Role.OWNER,
                 null
         );
+
+        // Create initial commit for the project
+        Commit initCommit = new Commit();
+        initCommit.setBaseProject(savedProject.getBaseProject());
+        initCommit.setBranch("main");
+        initCommit.setType(Commit.Type.COMMIT);
+        initCommit.setMessage("Initial project setup");
+        initCommit.setCreatedBy(owner);
+        commitRepository.save(initCommit);
 
         return savedProject;
     }
@@ -157,6 +169,16 @@ public class ProjectService {
                 throw new RuntimeException("Failed to copy file: " + sourceFile.getOriginalFileName(), e);
             }
         }
+
+        // Create SPLIT commit to record branch creation
+        Commit splitCommit = new Commit();
+        splitCommit.setBaseProject(baseProject);
+        splitCommit.setBranch(newBranchName);
+        splitCommit.setType(Commit.Type.SPLIT);
+        splitCommit.setSourceBranch(sourceBranch);
+        splitCommit.setMessage("Branch '" + newBranchName + "' created from '" + sourceBranch + "'");
+        splitCommit.setCreatedBy(user);
+        commitRepository.save(splitCommit);
 
         return savedBranch;
     }

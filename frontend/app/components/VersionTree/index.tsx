@@ -1,159 +1,31 @@
 import { useMemo, type ReactElement } from "react";
 import { Text, Badge } from "@radix-ui/themes";
-import { GitBranch, GitMerge } from "lucide-react";
+import { GitBranch, GitMerge, Tag } from "lucide-react";
+import type { Commit as ApiCommit } from "../../../types/commit";
 
-// Types
-interface Commit {
-    hash: string;
-    shortHash: string;
+// Internal representation for rendering
+interface TreeCommit {
+    id: string;
+    shortId: string;
     message: string;
     author: string;
     timestamp: Date;
     branch: string;
-    type: "commit" | "merge" | "branch";
-    parentHash?: string;
-    mergeFrom?: string;
+    type: "commit" | "merge" | "split";
+    sourceBranch?: string;
+    targetBranch?: string;
 }
 
 interface BranchInfo {
     name: string;
     color: string;
     lane: number;
-    startIndex: number;
-    endIndex: number;
     active: boolean;
 }
-
-// Mock data with full commit details
-const MOCK_COMMITS: Commit[] = [
-    {
-        hash: "a1b2c3d4e5f6789012345678901234567890abcd",
-        shortHash: "a1b2c3d",
-        message: "Initial project setup",
-        author: "John Doe",
-        timestamp: new Date("2024-01-15T10:00:00"),
-        branch: "main",
-        type: "commit",
-    },
-    {
-        hash: "b2c3d4e5f67890123456789012345678901abcde",
-        shortHash: "b2c3d4e",
-        message: "Add document structure",
-        author: "John Doe",
-        timestamp: new Date("2024-01-15T14:30:00"),
-        branch: "main",
-        type: "commit",
-        parentHash: "a1b2c3d",
-    },
-    {
-        hash: "c3d4e5f678901234567890123456789012abcdef",
-        shortHash: "c3d4e5f",
-        message: "Create feature branch for figures",
-        author: "Jane Smith",
-        timestamp: new Date("2024-01-16T09:00:00"),
-        branch: "feature/figures",
-        type: "branch",
-        parentHash: "b2c3d4e",
-    },
-    {
-        hash: "d4e5f6789012345678901234567890123abcdefg",
-        shortHash: "d4e5f67",
-        message: "Add introduction section",
-        author: "John Doe",
-        timestamp: new Date("2024-01-16T11:00:00"),
-        branch: "main",
-        type: "commit",
-        parentHash: "b2c3d4e",
-    },
-    {
-        hash: "f6789012345678901234567890123456abcdefghi",
-        shortHash: "f678901",
-        message: "Create experimental branch",
-        author: "Bob Wilson",
-        timestamp: new Date("2024-01-17T09:30:00"),
-        branch: "experimental",
-        type: "branch",
-        parentHash: "d4e5f67",
-    },
-    {
-        hash: "e5f67890123456789012345678901234abcdefgh",
-        shortHash: "e5f6789",
-        message: "Add figure 1 with caption",
-        author: "Jane Smith",
-        timestamp: new Date("2024-01-16T14:00:00"),
-        branch: "feature/figures",
-        type: "commit",
-        parentHash: "c3d4e5f",
-    },
-    {
-        hash: "g7890123456789012345678901234567abcdefghij",
-        shortHash: "g789012",
-        message: "Add figure 2 and references",
-        author: "Jane Smith",
-        timestamp: new Date("2024-01-17T10:00:00"),
-        branch: "feature/figures",
-        type: "commit",
-        parentHash: "e5f6789",
-    },
-    {
-        hash: "h8901234567890123456789012345678abcdefghijk",
-        shortHash: "h890123",
-        message: "Try new layout approach",
-        author: "Bob Wilson",
-        timestamp: new Date("2024-01-17T15:00:00"),
-        branch: "experimental",
-        type: "commit",
-        parentHash: "f678901",
-    },
-    {
-        hash: "i9012345678901234567890123456789abcdefghijkl",
-        shortHash: "i901234",
-        message: "Merge feature/figures into main",
-        author: "John Doe",
-        timestamp: new Date("2024-01-18T10:00:00"),
-        branch: "main",
-        type: "merge",
-        parentHash: "d4e5f67",
-        mergeFrom: "feature/figures",
-    },
-    {
-        hash: "j0123456789012345678901234567890abcdefghijklm",
-        shortHash: "j012345",
-        message: "Update bibliography",
-        author: "John Doe",
-        timestamp: new Date("2024-01-18T14:00:00"),
-        branch: "main",
-        type: "commit",
-        parentHash: "i901234",
-    },
-    {
-        hash: "k1234567890123456789012345678901abcdefghijklmn",
-        shortHash: "k123456",
-        message: "Final layout tweaks",
-        author: "Bob Wilson",
-        timestamp: new Date("2024-01-19T09:00:00"),
-        branch: "experimental",
-        type: "commit",
-        parentHash: "h890123",
-    },
-    {
-        hash: "l2345678901234567890123456789012abcdefghijklmno",
-        shortHash: "l234567",
-        message: "Merge experimental into main",
-        author: "John Doe",
-        timestamp: new Date("2024-01-20T11:00:00"),
-        branch: "main",
-        type: "merge",
-        parentHash: "j012345",
-        mergeFrom: "experimental",
-    },
-];
 
 // Branch colors
 const BRANCH_COLORS: Record<string, string> = {
     main: "#22c55e",
-    "feature/figures": "#3b82f6",
-    experimental: "#f59e0b",
     develop: "#8b5cf6",
     hotfix: "#ef4444",
 };
@@ -171,25 +43,50 @@ const getBranchColor = (branchName: string): string => {
     return `hsl(${hue}, 70%, 50%)`;
 };
 
+// Convert API commit to tree commit
+const toTreeCommit = (commit: ApiCommit): TreeCommit => {
+    let type: "commit" | "merge" | "split" = "commit";
+    if (commit.type === "MERGE") type = "merge";
+    else if (commit.type === "SPLIT") type = "split";
+
+    return {
+        id: commit.id,
+        shortId: commit.id.substring(0, 7),
+        message: commit.message || `${commit.type} operation`,
+        author: commit.author || "Unknown",
+        timestamp: new Date(commit.createdAt),
+        branch: commit.branch,
+        type,
+        sourceBranch: commit.sourceBranch || undefined,
+        targetBranch: commit.targetBranch || undefined,
+    };
+};
+
 interface VersionTreeProps {
-    commits?: Commit[];
-    onCommitClick?: (commit: Commit) => void;
+    commits?: ApiCommit[];
+    onCommitClick?: (commit: ApiCommit) => void;
+    isLoading?: boolean;
 }
 
-const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps) => {
-    // Sort commits by timestamp descending (newest first)
-    const sortedCommits = useMemo(() => {
-        return [...commits].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProps) => {
+    // Convert API commits to tree commits
+    const treeCommits = useMemo(() => {
+        return commits.map(toTreeCommit);
     }, [commits]);
 
-    // Calculate branch lanes and positions (process in chronological order for correct lane assignment)
+    // Sort commits by timestamp descending (newest first)
+    const sortedCommits = useMemo(() => {
+        return [...treeCommits].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    }, [treeCommits]);
+
+    // Calculate branch lanes and positions
     const { branchInfoMap, laneCount } = useMemo(() => {
         const branches = new Map<string, BranchInfo>();
         let currentLane = 0;
         const activeLanes: Set<number> = new Set();
 
         // Process in chronological order (oldest first) for lane calculation
-        const chronological = [...commits].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        const chronological = [...treeCommits].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         chronological.forEach((commit) => {
             if (!branches.has(commit.branch)) {
@@ -208,8 +105,6 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                     name: commit.branch,
                     color: getBranchColor(commit.branch),
                     lane,
-                    startIndex: 0,
-                    endIndex: 0,
                     active: true,
                 });
                 activeLanes.add(lane);
@@ -217,8 +112,8 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
             }
 
             // Check for merges that close branches
-            if (commit.type === "merge" && commit.mergeFrom) {
-                const mergedBranch = branches.get(commit.mergeFrom);
+            if (commit.type === "merge" && commit.sourceBranch) {
+                const mergedBranch = branches.get(commit.sourceBranch);
                 if (mergedBranch) {
                     mergedBranch.active = false;
                     activeLanes.delete(mergedBranch.lane);
@@ -228,12 +123,17 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
 
         return {
             branchInfoMap: branches,
-            laneCount: currentLane,
+            laneCount: Math.max(currentLane, 1),
         };
-    }, [commits]);
+    }, [treeCommits]);
 
-    const handleCommitClick = (commit: Commit) => {
-        onCommitClick?.(commit);
+    const handleCommitClick = (commit: TreeCommit) => {
+        if (onCommitClick) {
+            const originalCommit = commits.find(c => c.id === commit.id);
+            if (originalCommit) {
+                onCommitClick(originalCommit);
+            }
+        }
     };
 
     const formatTimestamp = (date: Date) => {
@@ -265,7 +165,7 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
             const x = getLaneX(branchInfo.lane);
             const y = index * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-            // Vertical line to next commit on same branch (older commit, below in the list)
+            // Vertical line to next commit on same branch
             if (index < sortedCommits.length - 1) {
                 const nextOnBranch = sortedCommits.findIndex(
                     (c, i) => i > index && c.branch === commit.branch
@@ -274,7 +174,7 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                     const nextY = nextOnBranch * ROW_HEIGHT + ROW_HEIGHT / 2;
                     lines.push(
                         <line
-                            key={`line-${commit.hash}-vertical`}
+                            key={`line-${commit.id}-vertical`}
                             x1={x}
                             y1={y + NODE_RADIUS}
                             x2={x}
@@ -286,20 +186,22 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                 }
             }
 
-            // Branch creation line (from branch point below to new branch above)
-            if (commit.type === "branch" && commit.parentHash) {
-                const parentCommit = sortedCommits.find((c) => c.shortHash === commit.parentHash);
-                if (parentCommit) {
-                    const parentBranch = branchInfoMap.get(parentCommit.branch);
-                    const parentIndex = sortedCommits.indexOf(parentCommit);
-                    if (parentBranch) {
+            // Branch creation line (SPLIT type)
+            if (commit.type === "split" && commit.sourceBranch) {
+                const parentBranch = branchInfoMap.get(commit.sourceBranch);
+                if (parentBranch) {
+                    // Find the closest commit on parent branch before this split
+                    const parentCommit = sortedCommits.find(
+                        (c, i) => i > index && c.branch === commit.sourceBranch
+                    );
+                    if (parentCommit) {
+                        const parentIndex = sortedCommits.indexOf(parentCommit);
                         const parentX = getLaneX(parentBranch.lane);
                         const parentY = parentIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-                        // Parent is below (older), branch point is above (newer)
                         lines.push(
                             <path
-                                key={`branch-${commit.hash}`}
+                                key={`branch-${commit.id}`}
                                 d={`M ${parentX} ${parentY - NODE_RADIUS}
                                     C ${parentX} ${(parentY + y) / 2},
                                       ${x} ${(parentY + y) / 2},
@@ -313,15 +215,15 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                 }
             }
 
-            // Merge line (from merged branch below to merge commit above)
-            if (commit.type === "merge" && commit.mergeFrom) {
-                const mergedBranch = branchInfoMap.get(commit.mergeFrom);
+            // Merge line
+            if (commit.type === "merge" && commit.sourceBranch) {
+                const mergedBranch = branchInfoMap.get(commit.sourceBranch);
                 if (mergedBranch) {
                     const mergedX = getLaneX(mergedBranch.lane);
-                    // Find the most recent commit on merged branch (first one after merge in sorted list)
+                    // Find the most recent commit on merged branch
                     const lastMergedCommit = sortedCommits
                         .slice(index + 1)
-                        .find((c) => c.branch === commit.mergeFrom);
+                        .find((c) => c.branch === commit.sourceBranch);
 
                     if (lastMergedCommit) {
                         const lastMergedIndex = sortedCommits.indexOf(lastMergedCommit);
@@ -329,7 +231,7 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
 
                         lines.push(
                             <path
-                                key={`merge-${commit.hash}`}
+                                key={`merge-${commit.id}`}
                                 d={`M ${mergedX} ${lastMergedY - NODE_RADIUS}
                                     C ${mergedX} ${(lastMergedY + y) / 2},
                                       ${x} ${(lastMergedY + y) / 2},
@@ -356,7 +258,6 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
             const x = getLaneX(branchInfo.lane);
             const y = index * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-            // Different node styles for different commit types
             const getNodeContent = () => {
                 if (commit.type === "merge") {
                     return (
@@ -377,7 +278,7 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                             />
                         </g>
                     );
-                } else if (commit.type === "branch") {
+                } else if (commit.type === "split") {
                     return (
                         <g>
                             <circle
@@ -397,23 +298,62 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                         </g>
                     );
                 }
+                // Regular commit (user label)
                 return (
-                    <circle
-                        cx={x}
-                        cy={y}
-                        r={NODE_RADIUS}
-                        fill={branchInfo.color}
-                    />
+                    <g>
+                        <circle
+                            cx={x}
+                            cy={y}
+                            r={NODE_RADIUS + 1}
+                            fill="var(--gray-1)"
+                            stroke={branchInfo.color}
+                            strokeWidth={3}
+                        />
+                        <Tag
+                            x={x - 4}
+                            y={y - 4}
+                            size={8}
+                            color={branchInfo.color}
+                        />
+                    </g>
                 );
             };
 
             return (
-                <g key={commit.hash} style={{ cursor: "pointer" }} onClick={() => handleCommitClick(commit)}>
+                <g key={commit.id} style={{ cursor: "pointer" }} onClick={() => handleCommitClick(commit)}>
                     {getNodeContent()}
                 </g>
             );
         });
     };
+
+    if (isLoading) {
+        return (
+            <div style={{ padding: "20px", textAlign: "center" }}>
+                <Text color="gray">Loading commits...</Text>
+            </div>
+        );
+    }
+
+    if (sortedCommits.length === 0) {
+        return (
+            <div style={{
+                padding: "40px",
+                textAlign: "center",
+                backgroundColor: "var(--gray-2)",
+                borderRadius: "8px",
+                border: "2px dashed var(--gray-6)"
+            }}>
+                <Tag size={48} color="var(--gray-8)" style={{ marginBottom: "16px" }} />
+                <Text size="3" weight="medium" style={{ display: "block", marginBottom: "8px" }}>
+                    No Commits Yet
+                </Text>
+                <Text size="2" color="gray">
+                    Create a commit to label and track versions of your document.
+                </Text>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -436,7 +376,7 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
 
                         return (
                             <div
-                                key={commit.hash}
+                                key={commit.id}
                                 onClick={() => handleCommitClick(commit)}
                                 style={{
                                     height: ROW_HEIGHT,
@@ -463,8 +403,11 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                                         {commit.type === "merge" && (
                                             <Badge size="1" color="purple">merge</Badge>
                                         )}
-                                        {commit.type === "branch" && (
+                                        {commit.type === "split" && (
                                             <Badge size="1" color="blue">branch</Badge>
+                                        )}
+                                        {commit.type === "commit" && (
+                                            <Badge size="1" color="green">version</Badge>
                                         )}
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -476,7 +419,7 @@ const VersionTree = ({ commits = MOCK_COMMITS, onCommitClick }: VersionTreeProps
                                                 fontWeight: 500,
                                             }}
                                         >
-                                            {commit.shortHash}
+                                            {commit.shortId}
                                         </Text>
                                         <Text size="1" color="gray">
                                             {commit.author}

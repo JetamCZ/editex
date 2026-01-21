@@ -25,4 +25,7 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.sessionId = :sessionId ORDER BY dc.createdAt ASC")
     List<DocumentChange> findBySessionIdOrderByCreatedAt(@Param("sessionId") String sessionId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC LIMIT 1")
+    Optional<DocumentChange> findLatestByProjectId(@Param("projectId") Long projectId);
 }

@@ -1,10 +1,12 @@
 package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.dto.*;
+import eu.puhony.latex_editor.entity.Commit;
 import eu.puhony.latex_editor.entity.DocumentChange;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.CommitRepository;
 import eu.puhony.latex_editor.repository.DocumentChangeRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
 import eu.puhony.latex_editor.repository.ProjectRepository;
@@ -24,6 +26,7 @@ public class MergeService {
     private final ProjectRepository projectRepository;
     private final ProjectFileRepository projectFileRepository;
     private final DocumentChangeRepository documentChangeRepository;
+    private final CommitRepository commitRepository;
     private final ProjectMemberService projectMemberService;
     private final MinioService minioService;
     private final DocumentChangeService documentChangeService;
@@ -197,6 +200,17 @@ public class MergeService {
                     }
                 }
             }
+
+            // Create MERGE commit to record the merge
+            Commit mergeCommit = new Commit();
+            mergeCommit.setBaseProject(baseProject);
+            mergeCommit.setBranch(targetBranch);
+            mergeCommit.setType(Commit.Type.MERGE);
+            mergeCommit.setSourceBranch(sourceBranch);
+            mergeCommit.setTargetBranch(targetBranch);
+            mergeCommit.setMessage("Merged '" + sourceBranch + "' into '" + targetBranch + "'");
+            mergeCommit.setCreatedBy(user);
+            commitRepository.save(mergeCommit);
 
             // Handle post-merge action
             String postActionResult = handlePostMergeAction(baseProject, sourceBranch, targetBranch,
