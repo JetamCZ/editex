@@ -11,6 +11,7 @@ import {ContentType, getFileContentType} from "~/const/ContentType";
 import CollaborativeEditor, {type CollaborativeEditorRef} from "~/components/CollaborationEditor";
 import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
+import CreateFileModal from "~/components/CreateFileModal";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
 import {type CompilationResult, useLatexCompilation} from "~/hooks/useLatexCompilation";
 import EditorToolbar from "~/components/EditorToolbar";
@@ -29,6 +30,7 @@ const EditorPage = () => {
     const [selectedFileId, setSelectedFileId] = useState<string | null>(params.fileId || null);
     const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [createFileModalOpen, setCreateFileModalOpen] = useState(false);
     const [createBranchDialogOpen, setCreateBranchDialogOpen] = useState(false);
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
     const [editorState, setEditorState] = useState<{
@@ -197,14 +199,29 @@ const EditorPage = () => {
                         >
                             <Upload width={14} height={14} />
                         </button>
-                        <button style={{background: "none", border: "none", cursor: "pointer", color: "var(--gray-9)", padding: "4px"}}>
+                        <button
+                            onClick={() => setCreateFileModalOpen(true)}
+                            style={{background: "none", border: "none", cursor: "pointer", color: "var(--gray-9)", padding: "4px"}}
+                            title="Create new file"
+                        >
                             <FileTextIcon width="14" height="14" />
                         </button>
                     </div>
                 </div>
 
                 <div style={{flex: 1, overflow: "auto"}}>
-                    <ProjectFiles baseProject={project.baseProject} branch={project.branch} handleFileClick={handleFileClick} selectedFileId={selectedFileId} />
+                    <ProjectFiles
+                        baseProject={project.baseProject}
+                        branch={project.branch}
+                        handleFileClick={handleFileClick}
+                        selectedFileId={selectedFileId}
+                        onFileDeleted={(fileId) => {
+                            if (selectedFileId === fileId) {
+                                setSelectedFileId(null);
+                                navigate(`/project/${project.baseProject}/${project.branch}`);
+                            }
+                        }}
+                    />
                 </div>
 
                 <div style={{borderTop: "1px solid var(--gray-6)"}}>
@@ -432,6 +449,14 @@ const EditorPage = () => {
                 baseProject={project.baseProject}
                 branch={project.branch}
                 folder="/files"
+            />
+
+            {/* Create File Modal */}
+            <CreateFileModal
+                open={createFileModalOpen}
+                onOpenChange={setCreateFileModalOpen}
+                baseProject={project.baseProject}
+                branch={project.branch}
             />
 
             {/* Create Branch Dialog */}
