@@ -12,20 +12,20 @@ import java.util.Optional;
 @Repository
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
 
-    @Query("SELECT pm FROM ProjectMember pm WHERE pm.projectId = :projectId")
-    List<ProjectMember> findByProjectId(@Param("projectId") String projectId);
+    @Query("SELECT pm FROM ProjectMember pm WHERE pm.baseProject = :baseProject")
+    List<ProjectMember> findByBaseProject(@Param("baseProject") String baseProject);
 
     @Query("SELECT pm FROM ProjectMember pm WHERE pm.userId = :userId")
     List<ProjectMember> findByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT pm FROM ProjectMember pm WHERE pm.projectId = :projectId AND pm.userId = :userId")
-    Optional<ProjectMember> findByProjectIdAndUserId(@Param("projectId") String projectId, @Param("userId") Long userId);
+    @Query("SELECT pm FROM ProjectMember pm WHERE pm.baseProject = :baseProject AND pm.userId = :userId")
+    Optional<ProjectMember> findByBaseProjectAndUserId(@Param("baseProject") String baseProject, @Param("userId") Long userId);
 
-    @Query("SELECT pm FROM ProjectMember pm WHERE pm.projectId = :projectId AND pm.role = 'OWNER'")
-    Optional<ProjectMember> findOwnerByProjectId(@Param("projectId") String projectId);
+    @Query("SELECT pm FROM ProjectMember pm WHERE pm.baseProject = :baseProject AND pm.role = 'OWNER'")
+    Optional<ProjectMember> findOwnerByBaseProject(@Param("baseProject") String baseProject);
 
-    @Query("SELECT COUNT(pm) FROM ProjectMember pm WHERE pm.projectId = :projectId")
-    long countByProjectId(@Param("projectId") String projectId);
+    @Query("SELECT COUNT(pm) FROM ProjectMember pm WHERE pm.baseProject = :baseProject")
+    long countByBaseProject(@Param("baseProject") String baseProject);
 
     @Query("SELECT pm FROM ProjectMember pm WHERE pm.userId = :userId AND pm.role = 'OWNER'")
     List<ProjectMember> findOwnedProjectsByUserId(@Param("userId") Long userId);
@@ -34,6 +34,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
     List<ProjectMember> findSharedProjectsByUserId(@Param("userId") Long userId);
 
     @Query("SELECT CASE WHEN COUNT(pm) > 0 THEN true ELSE false END FROM ProjectMember pm " +
-           "WHERE pm.projectId = :projectId AND pm.userId = :userId")
-    boolean existsByProjectIdAndUserId(@Param("projectId") String projectId, @Param("userId") Long userId);
+           "WHERE pm.baseProject = :baseProject AND pm.userId = :userId")
+    boolean existsByBaseProjectAndUserId(@Param("baseProject") String baseProject, @Param("userId") Long userId);
 }

@@ -24,9 +24,9 @@ public class FileService {
 
     @Transactional
     public ProjectFile uploadFile(MultipartFile file, Project project, String folder, User uploadedBy) throws Exception {
-        projectMemberService.ensureCanEdit(project.getId(), uploadedBy.getId());
+        projectMemberService.ensureCanEdit(project.getBaseProject(), uploadedBy.getId());
 
-        String s3Url = minioService.uploadFile(file, project.getId() + folder);
+        String s3Url = minioService.uploadFile(file, project.getBaseProject() + "/" + project.getBranch() + folder);
 
         ProjectFile projectFile = new ProjectFile();
         projectFile.setProject(project);
@@ -41,20 +41,20 @@ public class FileService {
         return fileRepository.save(projectFile);
     }
 
-    public List<ProjectFile> getProjectFiles(String projectId, Long userId) {
-        projectMemberService.ensureCanRead(projectId, userId);
+    public List<ProjectFile> getProjectFiles(Long projectId, String baseProject, Long userId) {
+        projectMemberService.ensureCanRead(baseProject, userId);
         return fileRepository.findByProjectIdNonDeleted(projectId);
     }
 
-    public List<ProjectFile> getProjectFilesByFolder(String projectId, String folder, Long userId) {
-        projectMemberService.ensureCanRead(projectId, userId);
+    public List<ProjectFile> getProjectFilesByFolder(Long projectId, String baseProject, String folder, Long userId) {
+        projectMemberService.ensureCanRead(baseProject, userId);
         return fileRepository.findByProjectIdAndFolderNonDeleted(projectId, folder);
     }
 
     public Optional<ProjectFile> getFileById(String fileId, Long userId) {
         Optional<ProjectFile> file = fileRepository.findByIdNonDeleted(fileId);
         if (file.isPresent()) {
-            projectMemberService.ensureCanRead(file.get().getProject().getId(), userId);
+            projectMemberService.ensureCanRead(file.get().getProject().getBaseProject(), userId);
         }
         return file;
     }
@@ -63,7 +63,7 @@ public class FileService {
     public boolean deleteFile(String fileId, Long userId) {
         return fileRepository.findByIdNonDeleted(fileId)
                 .map(file -> {
-                    projectMemberService.ensureCanEdit(file.getProject().getId(), userId);
+                    projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
 
                     try {
                         String objectName = minioService.getObjectNameFromUrl(file.getS3Url());
@@ -84,7 +84,7 @@ public class FileService {
     public ProjectFile saveGeneratedPdf(File pdfFile, Project project,
                                         String sourceFileId, User user) throws Exception {
         String s3Url = minioService.uploadFile(pdfFile,
-                project.getId() + "/compiled",
+                project.getBaseProject() + "/" + project.getBranch() + "/compiled",
                 "application/pdf");
 
         ProjectFile projectFile = new ProjectFile();

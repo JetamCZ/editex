@@ -12,7 +12,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProjectWithRoleResponse {
-    private String id;
+    private Long id;
+    private String baseProject;
+    private String branch;
     private String name;
     private Long ownerId;
     private ProjectMember.Role userRole;
@@ -22,6 +24,8 @@ public class ProjectWithRoleResponse {
     public static ProjectWithRoleResponse from(Project project, ProjectMember.Role userRole) {
         ProjectWithRoleResponse response = new ProjectWithRoleResponse();
         response.setId(project.getId());
+        response.setBaseProject(project.getBaseProject());
+        response.setBranch(project.getBranch());
         response.setName(project.getName());
         response.setOwnerId(project.getOwner().getId());
         response.setUserRole(userRole);

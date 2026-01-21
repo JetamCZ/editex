@@ -37,7 +37,8 @@ const EditorPage = () => {
     const editorRef = useRef<CollaborativeEditorRef>(null);
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
-        projectId: project.id
+        baseProject: project.baseProject,
+        branch: project.branch
     });
 
     const compilationMutation = useLatexCompilation();
@@ -74,14 +75,14 @@ const EditorPage = () => {
             );
             if (mainTexFile) {
                 setSelectedFileId(mainTexFile.id);
-                navigate(`/project/${project.id}/file/${mainTexFile.id}`, {replace: true});
+                navigate(`/project/${project.baseProject}/${project.branch}/file/${mainTexFile.id}`, {replace: true});
             }
         }
-    }, [params.fileId, uploadedFiles, selectedFileId, project.id, navigate]);
+    }, [params.fileId, uploadedFiles, selectedFileId, project.baseProject, project.branch, navigate]);
 
     const handleFileClick = async (fileId: string) => {
         setSelectedFileId(fileId);
-        navigate(`/project/${project.id}/file/${fileId}`);
+        navigate(`/project/${project.baseProject}/${project.branch}/file/${fileId}`);
     };
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
@@ -101,7 +102,7 @@ const EditorPage = () => {
 
     const handleCompile = () => {
         compilationMutation.mutate(
-            {projectId: project.id},
+            {baseProject: project.baseProject, branch: project.branch},
             {
                 onSuccess: (result) => {
                     handleCompilationSuccess(result);
@@ -186,7 +187,7 @@ const EditorPage = () => {
                 </div>
 
                 <div style={{flex: 1, overflow: "auto"}}>
-                    <ProjectFiles projectId={project.id} handleFileClick={handleFileClick} selectedFileId={selectedFileId} />
+                    <ProjectFiles baseProject={project.baseProject} branch={project.branch} handleFileClick={handleFileClick} selectedFileId={selectedFileId} />
                 </div>
 
                 <div style={{borderTop: "1px solid var(--gray-6)"}}>
@@ -363,7 +364,8 @@ const EditorPage = () => {
             <FileUploadModal
                 open={uploadModalOpen}
                 onOpenChange={setUploadModalOpen}
-                projectId={project.id}
+                baseProject={project.baseProject}
+                branch={project.branch}
                 folder="/files"
             />
         </>

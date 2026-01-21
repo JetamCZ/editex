@@ -2,8 +2,10 @@ package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.dto.CompilationResult;
 import eu.puhony.latex_editor.entity.DocumentChange;
+import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
+import eu.puhony.latex_editor.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,7 @@ public class LatexCompilationService {
     private final MinioService minioService;
     private final ProjectMemberService projectMemberService;
     private final ProjectFileRepository projectFileRepository;
+    private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
 
     @Value("${latex.temp.directory:/tmp/latex-compilations}")
@@ -35,19 +38,23 @@ public class LatexCompilationService {
     @Value("${latex.compiler.path:pdflatex}")
     private String compilerPath;
 
-    public CompilationResult compileLatex(String projectId, Long userId) throws Exception {
+    public CompilationResult compileLatex(String baseProject, String branch, Long userId) throws Exception {
         long startTime = System.currentTimeMillis();
         File workDir = null;
 
         try {
             // 1. Validate permissions
-            projectMemberService.ensureCanRead(projectId, userId);
+            projectMemberService.ensureCanRead(baseProject, userId);
+
+            // Get the project to find the numeric ID
+            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+                    .orElseThrow(() -> new RuntimeException("Project not found"));
 
             // 2. Create temp directory
             workDir = createCompilationDirectory();
 
             // 3. Download all project files (with changes applied for .tex files)
-            downloadProjectDependencies(projectId, workDir, userId);
+            downloadProjectDependencies(project.getId(), workDir, userId);
 
             // 4. Always compile main.tex
             String mainTexFile = "main.tex";
@@ -62,7 +69,7 @@ public class LatexCompilationService {
 
                 if (pdfFile.exists()) {
                     // Upload PDF with consistent name (overwrites previous version)
-                    String s3Folder = projectId + "/compiled";
+                    String s3Folder = baseProject + "/" + branch + "/compiled";
                     String s3PdfFileName = "main.pdf";
 
                     System.out.println("Uploading PDF to S3:");
@@ -112,7 +119,7 @@ public class LatexCompilationService {
         return workDir;
     }
 
-    private void downloadProjectDependencies(String projectId, File workDir, Long userId) throws Exception {
+    private void downloadProjectDependencies(Long projectId, File workDir, Long userId) throws Exception {
         List<ProjectFile> projectFiles = projectFileRepository.findByProjectIdNonDeleted(projectId);
 
         System.out.println("=== DOWNLOADING PROJECT FILES ===");

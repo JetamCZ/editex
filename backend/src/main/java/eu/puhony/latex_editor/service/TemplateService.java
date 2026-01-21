@@ -110,7 +110,7 @@ public class TemplateService {
             }
 
             String s3Url = minioService.uploadFile(tempFile,
-                project.getId() + folder,
+                project.getBaseProject() + "/" + project.getBranch() + folder,
                 getContentType(filename));
 
             tempFile.delete();

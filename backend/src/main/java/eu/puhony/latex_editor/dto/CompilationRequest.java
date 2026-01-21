@@ -8,5 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CompilationRequest {
-    private String projectId;  // The project to compile (always compiles main.tex)
+    private String baseProject;  // The base project UUID
+    private String branch = "main";  // The branch to compile (defaults to "main")
 }

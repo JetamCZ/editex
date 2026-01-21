@@ -2,18 +2,25 @@ package eu.puhony.latex_editor.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import org.hibernate.annotations.GenericGenerator;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
-@Table(name = "projects")
+@Table(name = "projects", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"base_project", "branch"})
+})
 public class Project {
 
     @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private String id;
+    private Long id;
+
+    @Column(name = "base_project", nullable = false, length = 36)
+    private String baseProject;
+
+    @Column(name = "branch", nullable = false)
+    private String branch = "main";
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -36,6 +43,12 @@ public class Project {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (baseProject == null) {
+            baseProject = UUID.randomUUID().toString();
+        }
+        if (branch == null) {
+            branch = "main";
+        }
     }
 
     @PreUpdate
@@ -44,12 +57,28 @@ public class Project {
     }
 
     // Getters and Setters
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getBaseProject() {
+        return baseProject;
+    }
+
+    public void setBaseProject(String baseProject) {
+        this.baseProject = baseProject;
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(String branch) {
+        this.branch = branch;
     }
 
     public String getName() {

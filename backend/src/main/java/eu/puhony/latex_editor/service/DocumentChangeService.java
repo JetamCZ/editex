@@ -27,7 +27,7 @@ public class DocumentChangeService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanEdit(file.getProject().getId(), user.getId());
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
 
         DocumentChange change = new DocumentChange();
         change.setFile(file);
@@ -48,7 +48,7 @@ public class DocumentChangeService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanEdit(file.getProject().getId(), user.getId());
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
 
         return changes.stream()
                 .map(changeData -> {
@@ -69,7 +69,7 @@ public class DocumentChangeService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanRead(file.getProject().getId(), userId);
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
 
         return changeRepository.findByFileIdOrderByCreatedAt(fileId);
     }
@@ -78,7 +78,7 @@ public class DocumentChangeService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanRead(file.getProject().getId(), userId);
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
 
         return changeRepository.findLatestByFileId(fileId);
     }
@@ -87,7 +87,7 @@ public class DocumentChangeService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanRead(file.getProject().getId(), userId);
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
 
         return changeRepository.findByFileIdAfterChange(fileId, afterChangeId);
     }

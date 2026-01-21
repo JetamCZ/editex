@@ -19,8 +19,8 @@ public interface ProjectFileRepository extends JpaRepository<ProjectFile, String
     Optional<ProjectFile> findByIdNonDeleted(@Param("id") String id);
 
     @Query("SELECT f FROM ProjectFile f WHERE f.project.id = :projectId AND f.deletedAt IS NULL")
-    List<ProjectFile> findByProjectIdNonDeleted(@Param("projectId") String projectId);
+    List<ProjectFile> findByProjectIdNonDeleted(@Param("projectId") Long projectId);
 
     @Query("SELECT f FROM ProjectFile f WHERE f.project.id = :projectId AND f.projectFolder = :folder AND f.deletedAt IS NULL")
-    List<ProjectFile> findByProjectIdAndFolderNonDeleted(@Param("projectId") String projectId, @Param("folder") String folder);
+    List<ProjectFile> findByProjectIdAndFolderNonDeleted(@Param("projectId") Long projectId, @Param("folder") String folder);
 }

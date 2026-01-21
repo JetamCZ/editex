@@ -38,7 +38,7 @@ const ProjectSettingsPage = () => {
         <Button
             size="2"
             variant="soft"
-            onClick={() => navigate(`/project/${project.id}`)}
+            onClick={() => navigate(`/project/${project.baseProject}/${project.branch}`)}
         >
             Back to Editor
         </Button>,
@@ -70,7 +70,7 @@ const ProjectSettingsPage = () => {
                     />
 
                     <TeamMembersCard
-                        projectId={project.id}
+                        baseProject={project.baseProject}
                         initialMembers={members}
                         bearerToken={bearerToken}
                         isOwner={isOwner}

@@ -4,14 +4,16 @@ import {Box} from "@radix-ui/themes";
 import {FileTreeNode} from "~/components/FileTreeNode";
 
 interface Props {
-    projectId: string
+    baseProject: string
+    branch: string
     selectedFileId: string
     handleFileClick: (fileId: string) => void
 }
 
-const ProjectFiles = ({projectId, selectedFileId, handleFileClick}: Props) => {
+const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick}: Props) => {
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
-        projectId: projectId
+        baseProject: baseProject,
+        branch: branch
     });
 
     const fileTree = buildFileTree(uploadedFiles);

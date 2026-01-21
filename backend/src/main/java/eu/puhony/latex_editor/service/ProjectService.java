@@ -22,12 +22,17 @@ public class ProjectService {
         return projectRepository.findAllNonDeleted();
     }
 
-    public Optional<Project> getProjectById(String id, Long userId) {
+    public Optional<Project> getProjectById(Long id, Long userId) {
         Optional<Project> project = projectRepository.findByIdNonDeleted(id);
         if (project.isPresent()) {
-            projectMemberService.ensureCanRead(id, userId);
+            projectMemberService.ensureCanRead(project.get().getBaseProject(), userId);
         }
         return project;
+    }
+
+    public Optional<Project> getProjectByBaseProjectAndBranch(String baseProject, String branch, Long userId) {
+        projectMemberService.ensureCanRead(baseProject, userId);
+        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch);
     }
 
     public List<Project> getProjectsByOwner(Long ownerId) {
@@ -36,10 +41,11 @@ public class ProjectService {
 
     @Transactional
     public Project createProject(Project project, Long ownerId) {
+        project.setBranch("main");
         Project savedProject = projectRepository.save(project);
 
         projectMemberService.addMember(
-                savedProject.getId(),
+                savedProject.getBaseProject(),
                 ownerId,
                 ProjectMember.Role.OWNER,
                 null
@@ -49,10 +55,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public Optional<Project> updateProject(String id, Project updatedProject, Long userId) {
-        projectMemberService.ensureCanEdit(id, userId);
+    public Optional<Project> updateProject(String baseProject, String branch, Project updatedProject, Long userId) {
+        projectMemberService.ensureCanEdit(baseProject, userId);
 
-        return projectRepository.findByIdNonDeleted(id)
+        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
             .map(project -> {
                 project.setName(updatedProject.getName());
                 return projectRepository.save(project);
@@ -60,10 +66,10 @@ public class ProjectService {
     }
 
     @Transactional
-    public boolean deleteProject(String id, Long userId) {
-        projectMemberService.ensureCanManage(id, userId);
+    public boolean deleteProject(String baseProject, String branch, Long userId) {
+        projectMemberService.ensureCanManage(baseProject, userId);
 
-        return projectRepository.findByIdNonDeleted(id)
+        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
             .map(project -> {
                 project.setDeletedAt(LocalDateTime.now());
                 projectRepository.save(project);

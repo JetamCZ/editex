@@ -6,7 +6,7 @@ export enum Role {
 
 export interface ProjectMember {
   id: number;
-  projectId: string;
+  baseProject: string;
   userId: number;
   userEmail: string;
   userName: string;

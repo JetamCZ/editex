@@ -16,7 +16,7 @@ export default [
 
         route("invitations", "routes/invitations.tsx"),
 
-        route("project/:id", "routes/editor/layout.tsx", {id: "project-layout"}, [
+        route("project/:baseProject/:branch?", "routes/editor/layout.tsx", {id: "project-layout"}, [
             index("routes/editor/index.tsx"),
             route("file/:fileId", "routes/editor/index.tsx", {id: "project-file"}),
             route("settings", "routes/editor/settings.tsx", {id: "project-settings"}),

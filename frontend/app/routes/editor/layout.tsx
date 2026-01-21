@@ -17,11 +17,11 @@ import type {ReactNode} from "react";
 
 export async function loader({request, params}: LoaderFunctionArgs) {
     const api = await getApiClient(request);
-    const {id} = params;
+    const {baseProject, branch = "main"} = params;
 
     try {
-        const {data: project} = await api.get<Project>(`/projects/${id}`);
-        const {data: members} = await api.get<ProjectMember[]>(`/projects/${id}/members`);
+        const {data: project} = await api.get<Project>(`/projects/${baseProject}/${branch}`);
+        const {data: members} = await api.get<ProjectMember[]>(`/projects/${baseProject}/members`);
 
         return {project, members};
     } catch (error) {
@@ -57,9 +57,9 @@ export default function ProjectLayout() {
 
     const handleIconClick = (itemId: string, path: string) => {
         if (path) {
-            navigate(`/project/${project.id}${path}`);
+            navigate(`/project/${project.baseProject}/${project.branch}${path}`);
         } else if (itemId === 'files') {
-            navigate(`/project/${project.id}`);
+            navigate(`/project/${project.baseProject}/${project.branch}`);
         }
     };
 
@@ -95,7 +95,7 @@ export default function ProjectLayout() {
                     <Link to="/dashboard" style={{textDecoration: "none"}}>
                         <Text size="2" style={{color: "var(--gray-11)"}}>Templates</Text>
                     </Link>
-                    <Link to={`/project/${project.id}/settings`} style={{textDecoration: "none"}}>
+                    <Link to={`/project/${project.baseProject}/${project.branch}/settings`} style={{textDecoration: "none"}}>
                         <Text
                             size="2"
                             weight={isSettingsPage ? "bold" : "regular"}

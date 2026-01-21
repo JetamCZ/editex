@@ -8,7 +8,7 @@ export enum InvitationStatus {
 
 export interface ProjectInvitation {
   id: string;
-  projectId: string;
+  baseProject: string;
   projectName: string;
   invitedUserId: number;
   invitedUserEmail: string;

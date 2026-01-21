@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "project_invitations", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"project_id", "invited_user_id"})
+    @UniqueConstraint(columnNames = {"base_project", "invited_user_id"})
 })
 @SQLDelete(sql = "UPDATE project_invitations SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "deleted_at IS NULL")
@@ -27,12 +27,8 @@ public class ProjectInvitation {
     @Column(length = 36)
     private String id;
 
-    @Column(name = "project_id", nullable = false)
-    private String projectId;
-
-    @ManyToOne
-    @JoinColumn(name = "project_id", insertable = false, updatable = false)
-    private Project project;
+    @Column(name = "base_project", nullable = false, length = 36)
+    private String baseProject;
 
     @Column(name = "invited_user_id", nullable = false)
     private Long invitedUserId;

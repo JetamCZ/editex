@@ -21,7 +21,7 @@ import getInitials from "~/lib/getInitials";
 import DeleteMemberDialog from "./DeleteMemberDialog";
 
 interface TeamMembersCardProps {
-    projectId: string;
+    baseProject: string;
     initialMembers: ProjectMember[];
     bearerToken: string;
     isOwner: boolean;
@@ -41,7 +41,7 @@ function getRoleColor(role: Role) {
 }
 
 export default function TeamMembersCard({
-    projectId,
+    baseProject,
     initialMembers,
     bearerToken,
     isOwner,
@@ -52,10 +52,10 @@ export default function TeamMembersCard({
     const [memberToDelete, setMemberToDelete] = useState<ProjectMember | null>(null);
 
     const {data: members = initialMembers, isLoading: loadingMembers} = useQuery({
-        queryKey: ["projectMembers", projectId],
+        queryKey: ["projectMembers", baseProject],
         queryFn: async () => {
             const response = await axios.get<ProjectMember[]>(
-                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${projectId}/members`,
+                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${baseProject}/members`,
                 {
                     headers: {
                         Authorization: `Bearer ${bearerToken}`,
@@ -70,7 +70,7 @@ export default function TeamMembersCard({
     const inviteMutation = useMutation({
         mutationFn: async (data: {email: string; role: Role}) => {
             const response = await axios.post(
-                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${projectId}/invitations`,
+                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${baseProject}/invitations`,
                 data,
                 {
                     headers: {
@@ -83,14 +83,14 @@ export default function TeamMembersCard({
         onSuccess: () => {
             setNewMemberEmail("");
             setNewMemberRole(Role.VIEWER);
-            queryClient.invalidateQueries({queryKey: ["projectMembers", projectId]});
+            queryClient.invalidateQueries({queryKey: ["projectMembers", baseProject]});
         },
     });
 
     const updateRoleMutation = useMutation({
         mutationFn: async (data: {userId: number; role: Role}) => {
             const response = await axios.put(
-                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${projectId}/members/${data.userId}`,
+                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${baseProject}/members/${data.userId}`,
                 {role: data.role},
                 {
                     headers: {
@@ -101,14 +101,14 @@ export default function TeamMembersCard({
             return response.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ["projectMembers", projectId]});
+            queryClient.invalidateQueries({queryKey: ["projectMembers", baseProject]});
         },
     });
 
     const removeMemberMutation = useMutation({
         mutationFn: async (userId: number) => {
             await axios.delete(
-                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${projectId}/members/${userId}`,
+                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${baseProject}/members/${userId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${bearerToken}`,
@@ -117,7 +117,7 @@ export default function TeamMembersCard({
             );
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ["projectMembers", projectId]});
+            queryClient.invalidateQueries({queryKey: ["projectMembers", baseProject]});
             setMemberToDelete(null);
         },
     });

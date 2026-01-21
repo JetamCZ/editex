@@ -5,18 +5,19 @@ import {useRouteLoaderData} from "react-router";
 import type {User} from "../../types/user";
 
 interface UseProjectFilesOptions {
-  projectId: string;
+  baseProject: string;
+  branch?: string;
   enabled?: boolean;
 }
 
-export function useProjectFiles({ projectId, enabled = true }: UseProjectFilesOptions) {
+export function useProjectFiles({ baseProject, branch = "main", enabled = true }: UseProjectFilesOptions) {
   const { bearerToken} = useRouteLoaderData("auth-user") as {user: User, bearerToken: string}
 
   return useQuery({
-    queryKey: ['projectFiles', projectId],
+    queryKey: ['projectFiles', baseProject, branch],
     queryFn: async () => {
       const response = await axios.get<ProjectFile[]>(
-        `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${projectId}/files`,
+        `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/${branch}/files`,
         {
           headers: {
             'Authorization': `Bearer ${bearerToken}`
@@ -25,7 +26,7 @@ export function useProjectFiles({ projectId, enabled = true }: UseProjectFilesOp
       );
       return response.data;
     },
-    enabled: enabled && !!projectId && !!bearerToken,
+    enabled: enabled && !!baseProject && !!bearerToken,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: true,
   });

@@ -15,18 +15,18 @@ public interface ProjectInvitationRepository extends JpaRepository<ProjectInvita
     @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.invitedUserId = :userId AND pi.status = 'PENDING'")
     List<ProjectInvitation> findPendingInvitationsByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.projectId = :projectId AND pi.status = 'PENDING'")
-    List<ProjectInvitation> findPendingInvitationsByProjectId(@Param("projectId") String projectId);
+    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.baseProject = :baseProject AND pi.status = 'PENDING'")
+    List<ProjectInvitation> findPendingInvitationsByBaseProject(@Param("baseProject") String baseProject);
 
-    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.projectId = :projectId AND pi.invitedUserId = :userId")
-    List<ProjectInvitation> findByProjectIdAndUserId(@Param("projectId") String projectId, @Param("userId") Long userId);
+    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.baseProject = :baseProject AND pi.invitedUserId = :userId")
+    List<ProjectInvitation> findByBaseProjectAndUserId(@Param("baseProject") String baseProject, @Param("userId") Long userId);
 
-    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.projectId = :projectId AND pi.invitedUserId = :userId AND pi.status = 'PENDING'")
-    Optional<ProjectInvitation> findPendingInvitation(@Param("projectId") String projectId, @Param("userId") Long userId);
+    @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.baseProject = :baseProject AND pi.invitedUserId = :userId AND pi.status = 'PENDING'")
+    Optional<ProjectInvitation> findPendingInvitation(@Param("baseProject") String baseProject, @Param("userId") Long userId);
 
     @Query("SELECT CASE WHEN COUNT(pi) > 0 THEN true ELSE false END FROM ProjectInvitation pi " +
-           "WHERE pi.projectId = :projectId AND pi.invitedUserId = :userId AND pi.status = 'PENDING'")
-    boolean hasPendingInvitation(@Param("projectId") String projectId, @Param("userId") Long userId);
+           "WHERE pi.baseProject = :baseProject AND pi.invitedUserId = :userId AND pi.status = 'PENDING'")
+    boolean hasPendingInvitation(@Param("baseProject") String baseProject, @Param("userId") Long userId);
 
     @Query("SELECT pi FROM ProjectInvitation pi WHERE pi.invitedBy = :userId AND pi.status = 'PENDING'")
     List<ProjectInvitation> findPendingInvitationsByInviterId(@Param("userId") Long userId);
