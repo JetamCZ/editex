@@ -3,17 +3,19 @@ import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import {useState, useEffect, useRef} from "react";
 import {createPortal} from "react-dom";
-import {Box, Text, Button} from "@radix-ui/themes";
+import {Box, Text, Button, Badge} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
+import {useBranches} from "~/hooks/useBranches";
 import ProjectFiles from "./ProjectFiles";
 import {ContentType, getFileContentType} from "~/const/ContentType";
 import CollaborativeEditor, {type CollaborativeEditorRef} from "~/components/CollaborationEditor";
 import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
+import CreateBranchDialog from "~/components/CreateBranchDialog";
 import {type CompilationResult, useLatexCompilation} from "~/hooks/useLatexCompilation";
 import EditorToolbar from "~/components/EditorToolbar";
 import {FileTextIcon, PlayIcon} from "@radix-ui/react-icons";
-import {Upload} from "lucide-react";
+import {Upload, GitBranch, Plus} from "lucide-react";
 
 interface OutletContextType {
     project: Project;
@@ -27,6 +29,7 @@ const EditorPage = () => {
     const [selectedFileId, setSelectedFileId] = useState<string | null>(params.fileId || null);
     const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [createBranchDialogOpen, setCreateBranchDialogOpen] = useState(false);
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
     const [editorState, setEditorState] = useState<{
         changeHistory: any[];
@@ -39,6 +42,10 @@ const EditorPage = () => {
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
         baseProject: project.baseProject,
         branch: project.branch
+    });
+
+    const {data: branches = []} = useBranches({
+        baseProject: project.baseProject
     });
 
     const compilationMutation = useLatexCompilation();
@@ -126,6 +133,16 @@ const EditorPage = () => {
         editorRef.current?.handleSendChanges();
     };
 
+    const handleBranchSwitch = (branchName: string) => {
+        if (branchName !== project.branch) {
+            navigate(`/project/${project.baseProject}/${branchName}`);
+        }
+    };
+
+    const handleBranchCreated = (branchName: string) => {
+        navigate(`/project/${project.baseProject}/${branchName}`);
+    };
+
     // Header actions rendered via portal
     const headerActions = headerActionsContainer && createPortal(
         <>
@@ -191,17 +208,65 @@ const EditorPage = () => {
                 </div>
 
                 <div style={{borderTop: "1px solid var(--gray-6)"}}>
-                    <div style={{padding: "12px 16px"}}>
-                        <Text size="2" weight="bold" style={{color: "var(--gray-11)", letterSpacing: "0.05em"}}>RECENT VERSIONS</Text>
+                    <div style={{
+                        padding: "12px 16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                    }}>
+                        <Text size="2" weight="bold" style={{color: "var(--gray-11)", letterSpacing: "0.05em"}}>
+                            <GitBranch className="inline h-3 w-3 mr-1" />
+                            BRANCHES
+                        </Text>
+                        <button
+                            onClick={() => setCreateBranchDialogOpen(true)}
+                            style={{background: "none", border: "none", cursor: "pointer", color: "var(--gray-9)", padding: "4px"}}
+                            title="Create new branch"
+                        >
+                            <Plus width={14} height={14} />
+                        </button>
                     </div>
-                    <div style={{padding: "0 16px 16px"}}>
-                        <div style={{display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px"}}>
-                            <div style={{width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "var(--blue-9)"}} />
-                            <div>
-                                <Text size="1" style={{color: "var(--gray-9)"}}>Current</Text>
-                                <Text size="2" weight="medium" style={{display: "block"}}>Unsaved changes</Text>
-                            </div>
-                        </div>
+                    <div style={{padding: "0 16px 16px", maxHeight: "200px", overflowY: "auto"}}>
+                        {branches.map((branch) => (
+                            <button
+                                key={branch.id}
+                                onClick={() => handleBranchSwitch(branch.branch)}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "8px",
+                                    width: "100%",
+                                    background: branch.branch === project.branch ? "var(--blue-3)" : "transparent",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    padding: "8px",
+                                    cursor: "pointer",
+                                    textAlign: "left"
+                                }}
+                            >
+                                <div style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    backgroundColor: branch.branch === project.branch ? "var(--blue-9)" : "var(--gray-6)"
+                                }} />
+                                <div style={{flex: 1, minWidth: 0}}>
+                                    <Text size="2" weight={branch.branch === project.branch ? "bold" : "regular"} style={{display: "block"}}>
+                                        {branch.branch}
+                                    </Text>
+                                    <Text size="1" style={{color: "var(--gray-9)"}}>
+                                        {new Date(branch.createdAt).toLocaleDateString()}
+                                    </Text>
+                                </div>
+                                {branch.branch === project.branch && (
+                                    <Badge size="1" color="blue">current</Badge>
+                                )}
+                            </button>
+                        ))}
+                        {branches.length === 0 && (
+                            <Text size="2" color="gray">No branches yet</Text>
+                        )}
                     </div>
                 </div>
             </aside>
@@ -367,6 +432,15 @@ const EditorPage = () => {
                 baseProject={project.baseProject}
                 branch={project.branch}
                 folder="/files"
+            />
+
+            {/* Create Branch Dialog */}
+            <CreateBranchDialog
+                open={createBranchDialogOpen}
+                onOpenChange={setCreateBranchDialogOpen}
+                baseProject={project.baseProject}
+                currentBranch={project.branch}
+                onBranchCreated={handleBranchCreated}
             />
         </>
     );

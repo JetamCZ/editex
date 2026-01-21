@@ -22,6 +22,9 @@ public class Project {
     @Column(name = "branch", nullable = false)
     private String branch = "main";
 
+    @Column(name = "source_branch")
+    private String sourceBranch;
+
     @Column(name = "name", nullable = false)
     private String name;
 
@@ -79,6 +82,14 @@ public class Project {
 
     public void setBranch(String branch) {
         this.branch = branch;
+    }
+
+    public String getSourceBranch() {
+        return sourceBranch;
+    }
+
+    public void setSourceBranch(String sourceBranch) {
+        this.sourceBranch = sourceBranch;
     }
 
     public String getName() {

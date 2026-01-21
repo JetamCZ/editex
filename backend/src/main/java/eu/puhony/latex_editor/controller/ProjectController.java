@@ -1,5 +1,7 @@
 package eu.puhony.latex_editor.controller;
 
+import eu.puhony.latex_editor.dto.BranchResponse;
+import eu.puhony.latex_editor.dto.CreateBranchRequest;
 import eu.puhony.latex_editor.dto.CreateProjectRequest;
 import eu.puhony.latex_editor.dto.FileUploadResponse;
 import eu.puhony.latex_editor.dto.ProjectWithRoleResponse;
@@ -170,5 +172,34 @@ public class ProjectController {
                 })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{baseProject}/branches")
+    public ResponseEntity<List<BranchResponse>> getBranches(
+            @PathVariable String baseProject,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Project> branches = projectService.getBranches(baseProject, user.getId());
+        List<BranchResponse> response = branches.stream()
+                .map(BranchResponse::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{baseProject}/branches")
+    public ResponseEntity<BranchResponse> createBranch(
+            @PathVariable String baseProject,
+            @Valid @RequestBody CreateBranchRequest request,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String sourceBranch = request.getSourceBranch() != null ? request.getSourceBranch() : "main";
+        Project newBranch = projectService.createBranch(baseProject, sourceBranch, request.getBranchName(), user);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(BranchResponse.from(newBranch));
     }
 }

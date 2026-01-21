@@ -20,6 +20,7 @@ export default [
             index("routes/editor/index.tsx"),
             route("file/:fileId", "routes/editor/index.tsx", {id: "project-file"}),
             route("settings", "routes/editor/settings.tsx", {id: "project-settings"}),
+            route("history", "routes/editor/history.tsx", {id: "project-history"}),
             route("help", "routes/editor/help.tsx", {id: "project-help"}),
         ]),
 

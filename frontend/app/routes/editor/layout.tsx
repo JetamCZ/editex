@@ -9,7 +9,6 @@ import {
     GearIcon,
     QuestionMarkCircledIcon,
     ExitIcon,
-    GitHubLogoIcon,
 } from "@radix-ui/react-icons";
 import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
@@ -32,8 +31,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
 const iconSidebarItems = [
     {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: 'Files', path: ''},
-    {id: 'history', icon: <CounterClockwiseClockIcon width="20" height="20" />, tooltip: 'History', path: ''},
-    {id: 'git', icon: <GitHubLogoIcon width="20" height="20" />, tooltip: 'Version Control', path: ''},
+    {id: 'history', icon: <CounterClockwiseClockIcon width="20" height="20" />, tooltip: 'Version History', path: '/history'},
 ];
 
 const iconSidebarBottomItems = [
@@ -54,6 +52,7 @@ export default function ProjectLayout() {
 
     const isSettingsPage = location.pathname.endsWith('/settings');
     const isHelpPage = location.pathname.endsWith('/help');
+    const isHistoryPage = location.pathname.endsWith('/history');
 
     const handleIconClick = (itemId: string, path: string) => {
         if (path) {
@@ -66,6 +65,7 @@ export default function ProjectLayout() {
     const getActiveItem = () => {
         if (isSettingsPage) return 'settings';
         if (isHelpPage) return 'help';
+        if (isHistoryPage) return 'history';
         return 'files';
     };
 

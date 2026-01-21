@@ -143,4 +143,39 @@ public class MinioService {
             inputStream.transferTo(outputStream);
         }
     }
+
+    public String copyFile(String sourceObjectName, String destFolder, String destFileName) throws Exception {
+        String destObjectName = destFolder + "/" + destFileName;
+
+        minioClient.copyObject(
+                CopyObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(destObjectName)
+                        .source(CopySource.builder()
+                                .bucket(bucketName)
+                                .object(sourceObjectName)
+                                .build())
+                        .build()
+        );
+
+        return getFileUrl(destObjectName);
+    }
+
+    public String uploadContent(String content, String folder, String fileName, String contentType) throws Exception {
+        String objectName = folder + "/" + fileName;
+        byte[] contentBytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        try (InputStream inputStream = new java.io.ByteArrayInputStream(contentBytes)) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(inputStream, contentBytes.length, -1)
+                            .contentType(contentType)
+                            .build()
+            );
+        }
+
+        return getFileUrl(objectName);
+    }
 }

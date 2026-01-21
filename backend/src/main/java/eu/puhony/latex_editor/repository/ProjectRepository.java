@@ -31,4 +31,11 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     @Query("SELECT p FROM Project p WHERE p.branch = 'main' AND p.deletedAt IS NULL")
     List<Project> findAllMainBranchNonDeleted();
+
+    @Query("SELECT p FROM Project p WHERE p.baseProject = :baseProject AND p.deletedAt IS NULL ORDER BY p.createdAt DESC")
+    List<Project> findAllBranchesByBaseProject(@Param("baseProject") String baseProject);
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Project p " +
+           "WHERE p.baseProject = :baseProject AND p.branch = :branch AND p.deletedAt IS NULL")
+    boolean existsByBaseProjectAndBranch(@Param("baseProject") String baseProject, @Param("branch") String branch);
 }
