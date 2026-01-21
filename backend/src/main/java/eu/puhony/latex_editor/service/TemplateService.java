@@ -57,7 +57,7 @@ public class TemplateService {
     public List<ProjectFile> initializeProjectFromTemplate(Project project, String templateId, User user) {
         List<ProjectFile> createdFiles = new ArrayList<>();
 
-        if (templateId == null || templateId.equals("empty")) {
+        if (templateId == null) {
             return createdFiles;
         }
 
