@@ -6,7 +6,8 @@ import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
 import {registerLatexLanguage} from "~/components/CollaborationEditor/lib/latexLanguage";
 import {useRef, useCallback, forwardRef, useImperativeHandle} from "react";
 import type {editor} from "monaco-editor";
-import {Button, Tooltip, Separator} from "@radix-ui/themes";
+import {Button, Tooltip, Separator, IconButton} from "@radix-ui/themes";
+import {FontBoldIcon, FontItalicIcon, QuoteIcon, ListBulletIcon, TableIcon, ImageIcon} from "@radix-ui/react-icons";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
 import type * as Monaco from "monaco-editor";
 
@@ -22,21 +23,6 @@ export interface CollaborativeEditorRef {
     handleShowChanges: () => void;
     handleSendChanges: () => void;
 }
-
-// LaTeX formatting commands
-const LATEX_FORMATS = {
-    bold: { command: '\\textbf', label: 'B', tooltip: 'Bold (Ctrl+B)' },
-    italic: { command: '\\textit', label: 'I', tooltip: 'Italic (Ctrl+I)' },
-    underline: { command: '\\underline', label: 'U', tooltip: 'Underline (Ctrl+U)' },
-    monospace: { command: '\\texttt', label: 'TT', tooltip: 'Monospace' },
-    emphasis: { command: '\\emph', label: 'Em', tooltip: 'Emphasis' },
-} as const;
-
-// LaTeX list environments
-const LATEX_LISTS = {
-    itemize: { env: 'itemize', label: '•', tooltip: 'Bullet List (Ctrl+Shift+U)' },
-    enumerate: { env: 'enumerate', label: '1.', tooltip: 'Numbered List (Ctrl+Shift+O)' },
-} as const;
 
 const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, ref) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -111,6 +97,137 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             const newPosition = {
                 lineNumber: selection.startLineNumber + 1,
                 column: 11 // After "    \item "
+            };
+            editor.setPosition(newPosition);
+        }
+
+        editor.focus();
+    }, []);
+
+    // Insert inline math
+    const insertInlineMath = useCallback(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const selection = editor.getSelection();
+        if (!selection) return;
+
+        const model = editor.getModel();
+        if (!model) return;
+
+        const selectedText = model.getValueInRange(selection);
+        const mathText = `$${selectedText}$`;
+
+        editor.executeEdits('latex-math', [{
+            range: selection,
+            text: mathText,
+            forceMoveMarkers: true
+        }]);
+
+        // If no text was selected, position cursor inside the $ $
+        if (selectedText.length === 0) {
+            const newPosition = {
+                lineNumber: selection.startLineNumber,
+                column: selection.startColumn + 1
+            };
+            editor.setPosition(newPosition);
+        }
+
+        editor.focus();
+    }, []);
+
+    // Insert table
+    const insertTable = useCallback(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const position = editor.getPosition();
+        if (!position) return;
+
+        const tableTemplate = `\\begin{table}[h]
+    \\centering
+    \\begin{tabular}{|c|c|}
+        \\hline
+        Header 1 & Header 2 \\\\
+        \\hline
+        Cell 1 & Cell 2 \\\\
+        \\hline
+    \\end{tabular}
+    \\caption{Table caption}
+    \\label{tab:my-table}
+\\end{table}`;
+
+        editor.executeEdits('latex-table', [{
+            range: {
+                startLineNumber: position.lineNumber,
+                startColumn: position.column,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column
+            },
+            text: tableTemplate,
+            forceMoveMarkers: true
+        }]);
+
+        editor.focus();
+    }, []);
+
+    // Insert image
+    const insertImage = useCallback(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const position = editor.getPosition();
+        if (!position) return;
+
+        const imageTemplate = `\\begin{figure}[h]
+    \\centering
+    \\includegraphics[width=0.5\\textwidth]{image.png}
+    \\caption{Image caption}
+    \\label{fig:my-image}
+\\end{figure}`;
+
+        editor.executeEdits('latex-image', [{
+            range: {
+                startLineNumber: position.lineNumber,
+                startColumn: position.column,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column
+            },
+            text: imageTemplate,
+            forceMoveMarkers: true
+        }]);
+
+        editor.focus();
+    }, []);
+
+    // Insert quote
+    const insertQuote = useCallback(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const selection = editor.getSelection();
+        if (!selection) return;
+
+        const model = editor.getModel();
+        if (!model) return;
+
+        const selectedText = model.getValueInRange(selection);
+
+        const quoteText = selectedText.trim()
+            ? `\\begin{quote}\n    ${selectedText}\n\\end{quote}`
+            : `\\begin{quote}\n    \n\\end{quote}`;
+
+        editor.executeEdits('latex-quote', [{
+            range: selection,
+            text: quoteText,
+            forceMoveMarkers: true
+        }]);
+
+        // If no text was selected, position cursor inside the quote
+        if (!selectedText.trim()) {
+            const newPosition = {
+                lineNumber: selection.startLineNumber + 1,
+                column: 5
             };
             editor.setPosition(newPosition);
         }
@@ -258,106 +375,110 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     return <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* Formatting toolbar - only for .tex files */}
         {isTexFile && (
-            <div style={{
-                padding: '4px 8px',
-                borderBottom: '1px solid #e0e0e0',
-                display: 'flex',
-                gap: '4px',
-                alignItems: 'center',
-                backgroundColor: '#fafafa'
-            }}>
-                <Tooltip content={LATEX_FORMATS.bold.tooltip}>
-                    <Button
-                        onClick={() => wrapWithLatexCommand(LATEX_FORMATS.bold.command)}
-                        size="1"
-                        variant="ghost"
-                        style={{ fontWeight: 'bold', minWidth: '32px' }}
-                    >
-                        B
-                    </Button>
-                </Tooltip>
-                <Tooltip content={LATEX_FORMATS.italic.tooltip}>
-                    <Button
-                        onClick={() => wrapWithLatexCommand(LATEX_FORMATS.italic.command)}
-                        size="1"
-                        variant="ghost"
-                        style={{ fontStyle: 'italic', minWidth: '32px' }}
-                    >
-                        I
-                    </Button>
-                </Tooltip>
-                <Tooltip content={LATEX_FORMATS.underline.tooltip}>
-                    <Button
-                        onClick={() => wrapWithLatexCommand(LATEX_FORMATS.underline.command)}
-                        size="1"
-                        variant="ghost"
-                        style={{ textDecoration: 'underline', minWidth: '32px' }}
-                    >
-                        U
-                    </Button>
-                </Tooltip>
-                <Separator orientation="vertical" size="1" />
-                <Tooltip content={LATEX_FORMATS.monospace.tooltip}>
-                    <Button
-                        onClick={() => wrapWithLatexCommand(LATEX_FORMATS.monospace.command)}
-                        size="1"
-                        variant="ghost"
-                        style={{ fontFamily: 'monospace', minWidth: '32px' }}
-                    >
-                        TT
-                    </Button>
-                </Tooltip>
-                <Tooltip content={LATEX_FORMATS.emphasis.tooltip}>
-                    <Button
-                        onClick={() => wrapWithLatexCommand(LATEX_FORMATS.emphasis.command)}
-                        size="1"
-                        variant="ghost"
-                        style={{ fontStyle: 'italic', minWidth: '32px' }}
-                    >
-                        Em
-                    </Button>
-                </Tooltip>
-                <Separator orientation="vertical" size="1" />
-                <Tooltip content="Section">
-                    <Button
-                        onClick={() => wrapWithLatexCommand('\\section')}
-                        size="1"
-                        variant="ghost"
-                    >
-                        §
-                    </Button>
-                </Tooltip>
-                <Tooltip content="Subsection">
-                    <Button
-                        onClick={() => wrapWithLatexCommand('\\subsection')}
-                        size="1"
-                        variant="ghost"
-                    >
-                        §§
-                    </Button>
-                </Tooltip>
-                <Separator orientation="vertical" size="1" />
-                <Tooltip content={LATEX_LISTS.itemize.tooltip}>
-                    <Button
-                        onClick={() => insertListEnvironment(LATEX_LISTS.itemize.env)}
-                        size="1"
-                        variant="ghost"
-                        style={{ minWidth: '32px' }}
-                    >
-                        •
-                    </Button>
-                </Tooltip>
-                <Tooltip content={LATEX_LISTS.enumerate.tooltip}>
-                    <Button
-                        onClick={() => insertListEnvironment(LATEX_LISTS.enumerate.env)}
-                        size="1"
-                        variant="ghost"
-                        style={{ minWidth: '32px' }}
-                    >
-                        1.
-                    </Button>
-                </Tooltip>
-            </div>
+            <>
+                <div style={{
+                    padding: '8px 16px',
+                    borderBottom: '1px solid var(--gray-6)',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center',
+                    backgroundColor: '#fff'
+                }}>
+                    <Tooltip content="Bold (Ctrl+B)">
+                        <IconButton
+                            onClick={() => wrapWithLatexCommand('\\textbf')}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                        >
+                            <FontBoldIcon width="18" height="18" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Italic (Ctrl+I)">
+                        <IconButton
+                            onClick={() => wrapWithLatexCommand('\\textit')}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                        >
+                            <FontItalicIcon width="18" height="18" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Math equation">
+                        <IconButton
+                            onClick={insertInlineMath}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                            style={{ fontSize: '18px', fontWeight: 'bold' }}
+                        >
+                            Σ
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Insert table">
+                        <IconButton
+                            onClick={insertTable}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                        >
+                            <TableIcon width="18" height="18" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Insert image">
+                        <IconButton
+                            onClick={insertImage}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                        >
+                            <ImageIcon width="18" height="18" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Quote">
+                        <IconButton
+                            onClick={insertQuote}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                        >
+                            <QuoteIcon width="18" height="18" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Bullet list (Ctrl+Shift+U)">
+                        <IconButton
+                            onClick={() => insertListEnvironment('itemize')}
+                            size="2"
+                            variant="ghost"
+                            color="gray"
+                        >
+                            <ListBulletIcon width="18" height="18" />
+                        </IconButton>
+                    </Tooltip>
+                </div>
+                {/* File path breadcrumb */}
+                <div style={{
+                    padding: '8px 16px',
+                    borderBottom: '1px solid var(--gray-6)',
+                    backgroundColor: '#fff',
+                    fontSize: '13px',
+                    color: 'var(--gray-11)'
+                }}>
+                    <span style={{ color: 'var(--gray-10)' }}>workspace</span>
+                    {props.selectedFile.projectFolder && props.selectedFile.projectFolder !== '/' && (
+                        <>
+                            {props.selectedFile.projectFolder.split('/').filter(Boolean).map((folder, index) => (
+                                <span key={index}>
+                                    <span style={{ margin: '0 6px', color: 'var(--gray-9)' }}>›</span>
+                                    <span style={{ color: 'var(--gray-10)' }}>{folder}</span>
+                                </span>
+                            ))}
+                        </>
+                    )}
+                    <span style={{ margin: '0 6px', color: 'var(--gray-9)' }}>›</span>
+                    <span style={{ fontWeight: 500, color: 'var(--gray-12)' }}>{props.selectedFile.originalFileName}</span>
+                </div>
+            </>
         )}
 
         <div style={{ flex: 1 }}>
