@@ -4,6 +4,10 @@ import eu.puhony.latex_editor.dto.BranchResponse;
 import eu.puhony.latex_editor.dto.CreateBranchRequest;
 import eu.puhony.latex_editor.dto.CreateProjectRequest;
 import eu.puhony.latex_editor.dto.FileUploadResponse;
+import eu.puhony.latex_editor.dto.MergeExecuteRequest;
+import eu.puhony.latex_editor.dto.MergeExecuteResponse;
+import eu.puhony.latex_editor.dto.MergePreviewRequest;
+import eu.puhony.latex_editor.dto.MergePreviewResponse;
 import eu.puhony.latex_editor.dto.ProjectWithRoleResponse;
 import eu.puhony.latex_editor.dto.UpdateProjectRequest;
 import eu.puhony.latex_editor.entity.Project;
@@ -14,6 +18,7 @@ import eu.puhony.latex_editor.repository.ProjectRepository;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
+import eu.puhony.latex_editor.service.MergeService;
 import eu.puhony.latex_editor.service.ProjectMemberService;
 import eu.puhony.latex_editor.service.ProjectService;
 import eu.puhony.latex_editor.service.TemplateService;
@@ -40,6 +45,7 @@ public class ProjectController {
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
     private final TemplateService templateService;
+    private final MergeService mergeService;
 
     @GetMapping("/templates")
     public ResponseEntity<List<TemplateService.TemplateInfo>> getTemplates() {
@@ -201,5 +207,59 @@ public class ProjectController {
         Project newBranch = projectService.createBranch(baseProject, sourceBranch, request.getBranchName(), user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(BranchResponse.from(newBranch));
+    }
+
+    // Merge endpoints
+
+    @PostMapping("/{baseProject}/merge/preview")
+    public ResponseEntity<MergePreviewResponse> previewMerge(
+            @PathVariable String baseProject,
+            @Valid @RequestBody MergePreviewRequest request,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        MergePreviewResponse response = mergeService.previewMerge(
+                baseProject,
+                request.getSourceBranch(),
+                request.getTargetBranch(),
+                user.getId()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{baseProject}/merge/execute")
+    public ResponseEntity<MergeExecuteResponse> executeMerge(
+            @PathVariable String baseProject,
+            @Valid @RequestBody MergeExecuteRequest request,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        MergeExecuteResponse response = mergeService.executeMerge(baseProject, request, user);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @GetMapping("/{baseProject}/{branch}/content/{fileId}")
+    public ResponseEntity<String> getFileContent(
+            @PathVariable String baseProject,
+            @PathVariable String branch,
+            @PathVariable String fileId,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            String content = mergeService.getCurrentContent(fileId, user.getId());
+            return ResponseEntity.ok(content);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

@@ -6,7 +6,8 @@ import { Box, Text, Button, Badge, Card, Heading, Separator } from "@radix-ui/th
 import { useBranches } from "~/hooks/useBranches";
 import { useState, useMemo } from "react";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
-import { GitBranch, Plus, GitCommit } from "lucide-react";
+import MergeBranchDialog from "~/components/MergeBranchDialog";
+import { GitBranch, Plus, GitCommit, GitMerge } from "lucide-react";
 import VersionTree from "~/components/VersionTree";
 
 interface OutletContextType {
@@ -26,6 +27,8 @@ const HistoryPage = () => {
     const navigate = useNavigate();
     const [createBranchDialogOpen, setCreateBranchDialogOpen] = useState(false);
     const [selectedBranchForNew, setSelectedBranchForNew] = useState<string>(project.branch);
+    const [mergeBranchDialogOpen, setMergeBranchDialogOpen] = useState(false);
+    const [selectedBranchForMerge, setSelectedBranchForMerge] = useState<Branch | null>(null);
 
     const { data: branches = [], isLoading } = useBranches({
         baseProject: project.baseProject
@@ -74,6 +77,16 @@ const HistoryPage = () => {
 
     const handleBranchCreated = (branchName: string) => {
         navigate(`/project/${project.baseProject}/${branchName}/history`);
+    };
+
+    const handleMergeBranch = (branch: Branch) => {
+        setSelectedBranchForMerge(branch);
+        setMergeBranchDialogOpen(true);
+    };
+
+    const handleMergeComplete = (targetBranch: string) => {
+        // Navigate to the target branch since the source branch was deleted/merged
+        navigate(`/project/${project.baseProject}/${targetBranch}/history`);
     };
 
     // Render branch node in the tree
@@ -188,16 +201,32 @@ const HistoryPage = () => {
                         </div>
 
                         {/* Actions */}
-                        <Button
-                            size="1"
-                            variant="soft"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleCreateBranchFrom(node.branch.branch);
-                            }}
-                        >
-                            <Plus size={14} /> Branch
-                        </Button>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            {/* Merge button - only for non-main branches (branches that have a source branch) */}
+                            {node.branch.sourceBranch && (
+                                <Button
+                                    size="1"
+                                    variant="soft"
+                                    color="orange"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMergeBranch(node.branch);
+                                    }}
+                                >
+                                    <GitMerge size={14} /> Merge
+                                </Button>
+                            )}
+                            <Button
+                                size="1"
+                                variant="soft"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCreateBranchFrom(node.branch.branch);
+                                }}
+                            >
+                                <Plus size={14} /> Branch
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -337,6 +366,18 @@ const HistoryPage = () => {
                 currentBranch={selectedBranchForNew}
                 onBranchCreated={handleBranchCreated}
             />
+
+            {/* Merge Branch Dialog */}
+            {selectedBranchForMerge && (
+                <MergeBranchDialog
+                    open={mergeBranchDialogOpen}
+                    onOpenChange={setMergeBranchDialogOpen}
+                    baseProject={project.baseProject}
+                    sourceBranch={selectedBranchForMerge}
+                    branches={branches}
+                    onMergeComplete={handleMergeComplete}
+                />
+            )}
         </Box>
     );
 };
