@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useRouteLoaderData } from 'react-router';
-import type { Commit, CreateCommitRequest } from '../../types/commit';
+import type { Commit, CreateCommitRequest, BranchPendingChanges } from '../../types/commit';
 import type { User } from '../../types/user';
 
 interface UseCommitsOptions {
@@ -58,6 +58,33 @@ export function useCreateCommit() {
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['commits', variables.baseProject] });
+            queryClient.invalidateQueries({ queryKey: ['pendingChanges', variables.baseProject] });
         }
+    });
+}
+
+interface UsePendingChangesOptions {
+    baseProject: string;
+    enabled?: boolean;
+}
+
+export function usePendingChanges({ baseProject, enabled = true }: UsePendingChangesOptions) {
+    const { bearerToken } = useRouteLoaderData("auth-user") as { user: User, bearerToken: string };
+
+    return useQuery({
+        queryKey: ['pendingChanges', baseProject],
+        queryFn: async () => {
+            const response = await axios.get<BranchPendingChanges[]>(
+                `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/commits/pending-changes`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${bearerToken}`
+                    }
+                }
+            );
+            return response.data;
+        },
+        enabled: enabled && !!baseProject && !!bearerToken,
+        staleTime: 1000 * 30, // 30 seconds - refresh more frequently for pending changes
     });
 }

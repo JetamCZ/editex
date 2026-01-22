@@ -4,7 +4,7 @@ import type { ProjectMember } from "../../../types/member";
 import type { Branch } from "../../../types/branch";
 import { Box, Text, Button, Badge, Card, Heading, Separator } from "@radix-ui/themes";
 import { useBranches } from "~/hooks/useBranches";
-import { useCommits } from "~/hooks/useCommits";
+import { useCommits, usePendingChanges } from "~/hooks/useCommits";
 import { useState, useMemo } from "react";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
 import CreateCommitDialog from "~/components/CreateCommitDialog";
@@ -38,6 +38,10 @@ const HistoryPage = () => {
     });
 
     const { data: commits = [], isLoading: commitsLoading, refetch: refetchCommits } = useCommits({
+        baseProject: project.baseProject
+    });
+
+    const { data: pendingChanges = [], refetch: refetchPendingChanges } = usePendingChanges({
         baseProject: project.baseProject
     });
 
@@ -84,6 +88,7 @@ const HistoryPage = () => {
 
     const handleBranchCreated = (branchName: string) => {
         refetchCommits();
+        refetchPendingChanges();
         navigate(`/project/${project.baseProject}/${branchName}/history`);
     };
 
@@ -94,11 +99,13 @@ const HistoryPage = () => {
 
     const handleMergeComplete = (targetBranch: string) => {
         refetchCommits();
+        refetchPendingChanges();
         navigate(`/project/${project.baseProject}/${targetBranch}/history`);
     };
 
     const handleCommitCreated = () => {
         refetchCommits();
+        refetchPendingChanges();
     };
 
     // Render branch node in the tree
@@ -323,6 +330,7 @@ const HistoryPage = () => {
 
                         <VersionTree
                             commits={commits}
+                            pendingChanges={pendingChanges}
                             isLoading={commitsLoading}
                         />
                     </div>

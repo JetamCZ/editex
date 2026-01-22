@@ -1,5 +1,6 @@
 package eu.puhony.latex_editor.controller;
 
+import eu.puhony.latex_editor.dto.BranchPendingChanges;
 import eu.puhony.latex_editor.dto.CommitResponse;
 import eu.puhony.latex_editor.dto.CreateCommitRequest;
 import eu.puhony.latex_editor.entity.User;
@@ -72,5 +73,19 @@ public class CommitController {
 
         CommitResponse commit = commitService.createUserCommit(baseProject, request, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(commit);
+    }
+
+    /**
+     * Get pending changes info for all branches.
+     */
+    @GetMapping("/pending-changes")
+    public ResponseEntity<List<BranchPendingChanges>> getPendingChanges(
+            @PathVariable String baseProject,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<BranchPendingChanges> pendingChanges = commitService.getPendingChanges(baseProject, user.getId());
+        return ResponseEntity.ok(pendingChanges);
     }
 }

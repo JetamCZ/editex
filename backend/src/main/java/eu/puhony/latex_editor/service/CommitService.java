@@ -1,5 +1,6 @@
 package eu.puhony.latex_editor.service;
 
+import eu.puhony.latex_editor.dto.BranchPendingChanges;
 import eu.puhony.latex_editor.dto.CommitResponse;
 import eu.puhony.latex_editor.dto.CreateCommitRequest;
 import eu.puhony.latex_editor.entity.Commit;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -120,5 +122,66 @@ public class CommitService {
         commit.setCreatedBy(user);
 
         return commitRepository.save(commit);
+    }
+
+    /**
+     * Get pending changes info for all branches in a project.
+     * Compares the last COMMIT's lastChangeId with the actual latest DocumentChange.
+     */
+    public List<BranchPendingChanges> getPendingChanges(String baseProject, Long userId) {
+        projectMemberService.ensureCanRead(baseProject, userId);
+
+        List<BranchPendingChanges> result = new ArrayList<>();
+
+        // Get all branches for this project
+        List<Project> branches = projectRepository.findAllBranchesByBaseProject(baseProject);
+
+        for (Project branch : branches) {
+            BranchPendingChanges pendingChanges = new BranchPendingChanges();
+            pendingChanges.setBranch(branch.getBranch());
+
+            // Get the latest COMMIT type commit for this branch (user-created version label)
+            List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch.getBranch());
+            String lastCommitChangeId = null;
+            if (!userCommits.isEmpty()) {
+                lastCommitChangeId = userCommits.get(0).getLastChangeId();
+            }
+            pendingChanges.setLastCommitChangeId(lastCommitChangeId);
+
+            // Get the actual latest change for this branch
+            Optional<DocumentChange> latestChange = documentChangeRepository.findLatestByProjectId(branch.getId());
+
+            if (latestChange.isPresent()) {
+                DocumentChange latest = latestChange.get();
+                pendingChanges.setCurrentChangeId(latest.getId());
+                pendingChanges.setLastChangeAt(latest.getCreatedAt());
+
+                // Determine if there are pending changes
+                if (lastCommitChangeId == null) {
+                    // No commits yet - all changes are pending
+                    long totalChanges = documentChangeRepository.countByProjectId(branch.getId());
+                    pendingChanges.setHasPendingChanges(totalChanges > 0);
+                    pendingChanges.setPendingChangeCount((int) totalChanges);
+                } else if (!lastCommitChangeId.equals(latest.getId())) {
+                    // There are changes after the last commit
+                    long pendingCount = documentChangeRepository.countByProjectIdAfterChange(
+                            branch.getId(), lastCommitChangeId);
+                    pendingChanges.setHasPendingChanges(pendingCount > 0);
+                    pendingChanges.setPendingChangeCount((int) pendingCount);
+                } else {
+                    // Last commit is up to date
+                    pendingChanges.setHasPendingChanges(false);
+                    pendingChanges.setPendingChangeCount(0);
+                }
+            } else {
+                // No changes at all in this branch
+                pendingChanges.setHasPendingChanges(false);
+                pendingChanges.setPendingChangeCount(0);
+            }
+
+            result.add(pendingChanges);
+        }
+
+        return result;
     }
 }

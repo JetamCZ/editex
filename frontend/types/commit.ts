@@ -1,4 +1,4 @@
-export type CommitType = 'SPLIT' | 'MERGE' | 'COMMIT';
+export type CommitType = 'SPLIT' | 'MERGE' | 'COMMIT' | 'UNCOMMITTED';
 
 export interface Commit {
     id: string;
@@ -17,4 +17,13 @@ export interface Commit {
 export interface CreateCommitRequest {
     message: string;
     branch: string;
+}
+
+export interface BranchPendingChanges {
+    branch: string;
+    hasPendingChanges: boolean;
+    lastCommitChangeId: string | null;
+    currentChangeId: string | null;
+    lastChangeAt: string | null;
+    pendingChangeCount: number;
 }

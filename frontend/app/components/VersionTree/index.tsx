@@ -1,7 +1,7 @@
 import { useMemo, type ReactElement } from "react";
 import { Text, Badge } from "@radix-ui/themes";
-import { GitBranch, GitMerge, Tag } from "lucide-react";
-import type { Commit as ApiCommit } from "../../../types/commit";
+import { GitBranch, GitMerge, Tag, PenLine } from "lucide-react";
+import type { Commit as ApiCommit, BranchPendingChanges } from "../../../types/commit";
 
 // Internal representation for rendering
 interface TreeCommit {
@@ -11,9 +11,10 @@ interface TreeCommit {
     author: string;
     timestamp: Date;
     branch: string;
-    type: "commit" | "merge" | "split";
+    type: "commit" | "merge" | "split" | "uncommitted";
     sourceBranch?: string;
     targetBranch?: string;
+    pendingChangeCount?: number;
 }
 
 interface BranchInfo {
@@ -45,9 +46,10 @@ const getBranchColor = (branchName: string): string => {
 
 // Convert API commit to tree commit
 const toTreeCommit = (commit: ApiCommit): TreeCommit => {
-    let type: "commit" | "merge" | "split" = "commit";
+    let type: "commit" | "merge" | "split" | "uncommitted" = "commit";
     if (commit.type === "MERGE") type = "merge";
     else if (commit.type === "SPLIT") type = "split";
+    else if (commit.type === "UNCOMMITTED") type = "uncommitted";
 
     return {
         id: commit.id,
@@ -62,17 +64,41 @@ const toTreeCommit = (commit: ApiCommit): TreeCommit => {
     };
 };
 
+// Create synthetic uncommitted changes entry
+const createUncommittedEntry = (pendingChange: BranchPendingChanges): TreeCommit => {
+    return {
+        id: `uncommitted-${pendingChange.branch}`,
+        shortId: "pending",
+        message: `${pendingChange.pendingChangeCount} uncommitted change${pendingChange.pendingChangeCount !== 1 ? 's' : ''}`,
+        author: "",
+        timestamp: pendingChange.lastChangeAt ? new Date(pendingChange.lastChangeAt) : new Date(),
+        branch: pendingChange.branch,
+        type: "uncommitted",
+        pendingChangeCount: pendingChange.pendingChangeCount,
+    };
+};
+
 interface VersionTreeProps {
     commits?: ApiCommit[];
+    pendingChanges?: BranchPendingChanges[];
     onCommitClick?: (commit: ApiCommit) => void;
     isLoading?: boolean;
 }
 
-const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProps) => {
-    // Convert API commits to tree commits
+const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, isLoading }: VersionTreeProps) => {
+    // Convert API commits to tree commits and add uncommitted entries
     const treeCommits = useMemo(() => {
-        return commits.map(toTreeCommit);
-    }, [commits]);
+        const converted = commits.map(toTreeCommit);
+
+        // Add uncommitted entries for branches with pending changes
+        pendingChanges.forEach((pc) => {
+            if (pc.hasPendingChanges) {
+                converted.push(createUncommittedEntry(pc));
+            }
+        });
+
+        return converted;
+    }, [commits, pendingChanges]);
 
     // Sort commits by timestamp descending (newest first)
     const sortedCommits = useMemo(() => {
@@ -86,7 +112,10 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
         const activeLanes: Set<number> = new Set();
 
         // Process in chronological order (oldest first) for lane calculation
-        const chronological = [...treeCommits].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        // Filter out uncommitted entries for lane calculation
+        const chronological = [...treeCommits]
+            .filter(c => c.type !== "uncommitted")
+            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         chronological.forEach((commit) => {
             if (!branches.has(commit.branch)) {
@@ -128,7 +157,7 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
     }, [treeCommits]);
 
     const handleCommitClick = (commit: TreeCommit) => {
-        if (onCommitClick) {
+        if (onCommitClick && commit.type !== "uncommitted") {
             const originalCommit = commits.find(c => c.id === commit.id);
             if (originalCommit) {
                 onCommitClick(originalCommit);
@@ -157,8 +186,12 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
     // Render SVG paths for branch lines
     const renderBranchLines = () => {
         const lines: ReactElement[] = [];
+        // Filter out uncommitted for line rendering
+        const commitsForLines = sortedCommits.filter(c => c.type !== "uncommitted");
 
         sortedCommits.forEach((commit, index) => {
+            if (commit.type === "uncommitted") return;
+
             const branchInfo = branchInfoMap.get(commit.branch);
             if (!branchInfo) return;
 
@@ -168,7 +201,7 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
             // Vertical line to next commit on same branch
             if (index < sortedCommits.length - 1) {
                 const nextOnBranch = sortedCommits.findIndex(
-                    (c, i) => i > index && c.branch === commit.branch
+                    (c, i) => i > index && c.branch === commit.branch && c.type !== "uncommitted"
                 );
                 if (nextOnBranch !== -1) {
                     const nextY = nextOnBranch * ROW_HEIGHT + ROW_HEIGHT / 2;
@@ -192,7 +225,7 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                 if (parentBranch) {
                     // Find the closest commit on parent branch before this split
                     const parentCommit = sortedCommits.find(
-                        (c, i) => i > index && c.branch === commit.sourceBranch
+                        (c, i) => i > index && c.branch === commit.sourceBranch && c.type !== "uncommitted"
                     );
                     if (parentCommit) {
                         const parentIndex = sortedCommits.indexOf(parentCommit);
@@ -223,7 +256,7 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                     // Find the most recent commit on merged branch
                     const lastMergedCommit = sortedCommits
                         .slice(index + 1)
-                        .find((c) => c.branch === commit.sourceBranch);
+                        .find((c) => c.branch === commit.sourceBranch && c.type !== "uncommitted");
 
                     if (lastMergedCommit) {
                         const lastMergedIndex = sortedCommits.indexOf(lastMergedCommit);
@@ -246,6 +279,39 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
             }
         });
 
+        // Draw dashed lines from uncommitted to the latest commit on the same branch
+        sortedCommits.forEach((commit, index) => {
+            if (commit.type !== "uncommitted") return;
+
+            const branchInfo = branchInfoMap.get(commit.branch);
+            if (!branchInfo) return;
+
+            const x = getLaneX(branchInfo.lane);
+            const y = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+            // Find the next commit on the same branch
+            const nextOnBranch = sortedCommits.findIndex(
+                (c, i) => i > index && c.branch === commit.branch && c.type !== "uncommitted"
+            );
+
+            if (nextOnBranch !== -1) {
+                const nextY = nextOnBranch * ROW_HEIGHT + ROW_HEIGHT / 2;
+                lines.push(
+                    <line
+                        key={`line-${commit.id}-uncommitted`}
+                        x1={x}
+                        y1={y + NODE_RADIUS}
+                        x2={x}
+                        y2={nextY - NODE_RADIUS}
+                        stroke={branchInfo.color}
+                        strokeWidth={2}
+                        strokeDasharray="4 4"
+                        opacity={0.6}
+                    />
+                );
+            }
+        });
+
         return lines;
     };
 
@@ -259,7 +325,27 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
             const y = index * ROW_HEIGHT + ROW_HEIGHT / 2;
 
             const getNodeContent = () => {
-                if (commit.type === "merge") {
+                if (commit.type === "uncommitted") {
+                    return (
+                        <g>
+                            <circle
+                                cx={x}
+                                cy={y}
+                                r={NODE_RADIUS + 2}
+                                fill="var(--gray-1)"
+                                stroke="var(--orange-9)"
+                                strokeWidth={3}
+                                strokeDasharray="3 3"
+                            />
+                            <PenLine
+                                x={x - 5}
+                                y={y - 5}
+                                size={10}
+                                color="var(--orange-9)"
+                            />
+                        </g>
+                    );
+                } else if (commit.type === "merge") {
                     return (
                         <g>
                             <circle
@@ -320,7 +406,11 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
             };
 
             return (
-                <g key={commit.id} style={{ cursor: "pointer" }} onClick={() => handleCommitClick(commit)}>
+                <g
+                    key={commit.id}
+                    style={{ cursor: commit.type !== "uncommitted" ? "pointer" : "default" }}
+                    onClick={() => handleCommitClick(commit)}
+                >
                     {getNodeContent()}
                 </g>
             );
@@ -373,6 +463,7 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                 <div style={{ flex: 1, minWidth: 0 }}>
                     {sortedCommits.map((commit) => {
                         const branchInfo = branchInfoMap.get(commit.branch);
+                        const isUncommitted = commit.type === "uncommitted";
 
                         return (
                             <div
@@ -384,7 +475,10 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                                     alignItems: "center",
                                     padding: "8px 16px",
                                     marginLeft: "8px",
-                                    cursor: "pointer",
+                                    cursor: isUncommitted ? "default" : "pointer",
+                                    backgroundColor: isUncommitted ? "var(--orange-2)" : "transparent",
+                                    borderRadius: isUncommitted ? "8px" : "0",
+                                    margin: isUncommitted ? "4px 8px" : "0 0 0 8px",
                                 }}
                             >
                                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -396,10 +490,14 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                                                 overflow: "hidden",
                                                 textOverflow: "ellipsis",
                                                 whiteSpace: "nowrap",
+                                                color: isUncommitted ? "var(--orange-11)" : undefined,
                                             }}
                                         >
                                             {commit.message}
                                         </Text>
+                                        {commit.type === "uncommitted" && (
+                                            <Badge size="1" color="orange">uncommitted</Badge>
+                                        )}
                                         {commit.type === "merge" && (
                                             <Badge size="1" color="purple">merge</Badge>
                                         )}
@@ -411,19 +509,23 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                                         )}
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                        <Text
-                                            size="1"
-                                            style={{
-                                                fontFamily: "monospace",
-                                                color: branchInfo?.color,
-                                                fontWeight: 500,
-                                            }}
-                                        >
-                                            {commit.shortId}
-                                        </Text>
-                                        <Text size="1" color="gray">
-                                            {commit.author}
-                                        </Text>
+                                        {!isUncommitted && (
+                                            <Text
+                                                size="1"
+                                                style={{
+                                                    fontFamily: "monospace",
+                                                    color: branchInfo?.color,
+                                                    fontWeight: 500,
+                                                }}
+                                            >
+                                                {commit.shortId}
+                                            </Text>
+                                        )}
+                                        {!isUncommitted && commit.author && (
+                                            <Text size="1" color="gray">
+                                                {commit.author}
+                                            </Text>
+                                        )}
                                         <Text size="1" color="gray">
                                             {formatTimestamp(commit.timestamp)}
                                         </Text>
@@ -433,7 +535,7 @@ const VersionTree = ({ commits = [], onCommitClick, isLoading }: VersionTreeProp
                                     <Badge
                                         size="1"
                                         style={{
-                                            backgroundColor: branchInfo?.color,
+                                            backgroundColor: isUncommitted ? "var(--orange-9)" : branchInfo?.color,
                                             color: "white",
                                         }}
                                     >
