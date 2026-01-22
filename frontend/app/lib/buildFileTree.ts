@@ -47,6 +47,7 @@ function buildFileTree(files: ProjectFile[]): FileNode[] {
             path: folderPath + "/" + file.originalFileName,
             fileId: file.id,
             s3Url: file.s3Url,
+            folder: file.projectFolder,
         };
 
         if (!parentNode.children) {

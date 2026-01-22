@@ -81,6 +81,48 @@ public class FileService {
     }
 
     @Transactional
+    public ProjectFile moveFile(String fileId, String targetFolder, Long userId) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+
+        String currentFolder = file.getProjectFolder();
+
+        // Don't move if already in the target folder
+        if (currentFolder.equals(targetFolder)) {
+            return file;
+        }
+
+        try {
+            // Get the current S3 object name
+            String currentObjectName = minioService.getObjectNameFromUrl(file.getS3Url());
+            if (currentObjectName == null) {
+                throw new RuntimeException("Could not extract object name from URL");
+            }
+
+            // Build new S3 path
+            String baseProject = file.getProject().getBaseProject();
+            String branch = file.getProject().getBranch();
+            String newFolder = baseProject + "/" + branch + targetFolder;
+
+            // Copy file to new location
+            String newS3Url = minioService.copyFile(currentObjectName, newFolder, file.getFileName());
+
+            // Delete old file from S3
+            minioService.deleteFile(currentObjectName);
+
+            // Update the database record
+            file.setProjectFolder(targetFolder);
+            file.setS3Url(newS3Url);
+
+            return fileRepository.save(file);
+        } catch (Exception e) {
+            throw new RuntimeException("Error moving file: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional
     public ProjectFile saveGeneratedPdf(File pdfFile, Project project,
                                         String sourceFileId, User user) throws Exception {
         String s3Url = minioService.uploadFile(pdfFile,

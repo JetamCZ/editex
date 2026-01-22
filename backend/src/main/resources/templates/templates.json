@@ -6,7 +6,7 @@
       "description": "Start from scratch with no files",
       "files": [
         {
-          "path": "/",
+          "path": "/files",
           "filename": "main.tex",
           "templateFile": "empty/main.tex"
         }

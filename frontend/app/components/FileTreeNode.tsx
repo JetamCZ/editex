@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Folder, FolderOpen, FileText, MoreVertical, Trash2, Download } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, FileText, MoreVertical, Trash2, Download, FolderInput } from "lucide-react";
 import { DropdownMenu, AlertDialog, Button, Flex, Text } from "@radix-ui/themes";
 import styles from "./FileTreeNode.module.css";
 
@@ -9,6 +9,7 @@ export type FileNode = {
   path: string;
   fileId?: string;
   s3Url?: string;
+  folder?: string;
   children?: FileNode[];
 };
 
@@ -16,12 +17,14 @@ export function FileTreeNode({
   node,
   onFileClick,
   onDeleteFile,
+  onMoveFile,
   selectedFileId,
   level = 0,
 }: {
   node: FileNode;
   onFileClick: (fileId: string) => void;
   onDeleteFile?: (fileId: string, fileName: string) => void;
+  onMoveFile?: (fileId: string, fileName: string, currentFolder: string) => void;
   selectedFileId: string | null;
   level?: number;
 }) {
@@ -59,6 +62,12 @@ export function FileTreeNode({
       onDeleteFile(node.fileId, node.name);
     }
     setDeleteDialogOpen(false);
+  };
+
+  const handleMoveClick = () => {
+    if (node.fileId && onMoveFile && node.folder) {
+      onMoveFile(node.fileId, node.name, node.folder);
+    }
   };
 
   const renderIcon = () => {
@@ -103,6 +112,10 @@ export function FileTreeNode({
                 </DropdownMenu.Item>
                 {!isMainTex && (
                   <>
+                    <DropdownMenu.Item onSelect={handleMoveClick}>
+                      <FolderInput size={14} style={{ marginRight: 8 }} />
+                      Move to...
+                    </DropdownMenu.Item>
                     <DropdownMenu.Separator />
                     <DropdownMenu.Item color="red" onSelect={handleDeleteClick}>
                       <Trash2 size={14} style={{ marginRight: 8 }} />
@@ -123,6 +136,7 @@ export function FileTreeNode({
               node={child}
               onFileClick={onFileClick}
               onDeleteFile={onDeleteFile}
+              onMoveFile={onMoveFile}
               selectedFileId={selectedFileId}
               level={level + 1}
             />

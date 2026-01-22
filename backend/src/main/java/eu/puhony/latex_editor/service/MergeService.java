@@ -171,10 +171,16 @@ public class MergeService {
                         added++;
                     }
                     case MODIFIED -> {
-                        // Update target file with source content
-                        updateTargetFile(baseProject, targetBranch, targetProject,
-                                fileStatus.getSourceFileId(), fileStatus.getTargetFileId(),
-                                fileStatus.getFilePath(), user);
+                        // Update target file with auto-merged content (or source content if no auto-merge available)
+                        if (fileStatus.getAutoMergedContent() != null) {
+                            updateTargetFileWithContent(baseProject, targetBranch, targetProject,
+                                    fileStatus.getTargetFileId(), fileStatus.getFilePath(),
+                                    fileStatus.getAutoMergedContent(), user);
+                        } else {
+                            updateTargetFile(baseProject, targetBranch, targetProject,
+                                    fileStatus.getSourceFileId(), fileStatus.getTargetFileId(),
+                                    fileStatus.getFilePath(), user);
+                        }
                         modified++;
                     }
                     case DELETED -> {
@@ -248,42 +254,260 @@ public class MergeService {
     }
 
     /**
-     * Detect line conflicts between two versions of a text file using LCS-based diff.
+     * Perform a 3-way merge and detect true conflicts.
+     * Returns null if auto-merge is possible (no conflicts), or the list of conflicts.
+     * Also returns the auto-merged content if no conflicts.
      */
-    public List<LineConflict> detectLineConflicts(String sourceContent, String targetContent) {
+    public ThreeWayMergeResult threeWayMerge(String baseContent, String sourceContent, String targetContent) {
+        List<String> baseLines = Arrays.asList(baseContent.split("\n", -1));
         List<String> sourceLines = Arrays.asList(sourceContent.split("\n", -1));
         List<String> targetLines = Arrays.asList(targetContent.split("\n", -1));
 
-        // Use LCS to find common subsequence
-        int[][] lcs = computeLCS(sourceLines, targetLines);
+        // Find changes from base to source
+        List<DiffHunk> sourceChanges = computeDiffHunks(baseLines, sourceLines);
+        // Find changes from base to target
+        List<DiffHunk> targetChanges = computeDiffHunks(baseLines, targetLines);
+
+        // If neither branch changed anything, no merge needed
+        if (sourceChanges.isEmpty() && targetChanges.isEmpty()) {
+            return new ThreeWayMergeResult(baseContent, Collections.emptyList(), true);
+        }
+
+        // If only source changed, use source content
+        if (targetChanges.isEmpty()) {
+            return new ThreeWayMergeResult(sourceContent, Collections.emptyList(), true);
+        }
+
+        // If only target changed, keep target content (no changes needed)
+        if (sourceChanges.isEmpty()) {
+            return new ThreeWayMergeResult(targetContent, Collections.emptyList(), true);
+        }
+
+        // Both branches have changes - check for overlapping regions (conflicts)
+        List<LineConflict> conflicts = new ArrayList<>();
+        List<MergeRegion> mergeRegions = new ArrayList<>();
+
+        int sourceIdx = 0;
+        int targetIdx = 0;
+
+        while (sourceIdx < sourceChanges.size() || targetIdx < targetChanges.size()) {
+            DiffHunk sourceHunk = sourceIdx < sourceChanges.size() ? sourceChanges.get(sourceIdx) : null;
+            DiffHunk targetHunk = targetIdx < targetChanges.size() ? targetChanges.get(targetIdx) : null;
+
+            if (sourceHunk == null) {
+                // Only target changes left
+                mergeRegions.add(new MergeRegion(MergeRegionType.TARGET, targetHunk));
+                targetIdx++;
+            } else if (targetHunk == null) {
+                // Only source changes left
+                mergeRegions.add(new MergeRegion(MergeRegionType.SOURCE, sourceHunk));
+                sourceIdx++;
+            } else if (hunksOverlap(sourceHunk, targetHunk)) {
+                // Overlapping changes - check if they're the same or different
+                if (hunksAreIdentical(sourceHunk, targetHunk)) {
+                    // Same change in both - use either one
+                    mergeRegions.add(new MergeRegion(MergeRegionType.BOTH_SAME, sourceHunk));
+                } else {
+                    // Different changes to overlapping region - true conflict
+                    LineConflict conflict = createConflict(sourceHunk, targetHunk, sourceLines, targetLines);
+                    conflicts.add(conflict);
+                    mergeRegions.add(new MergeRegion(MergeRegionType.CONFLICT, sourceHunk, targetHunk));
+                }
+                sourceIdx++;
+                targetIdx++;
+            } else if (sourceHunk.baseStart < targetHunk.baseStart) {
+                // Source change comes first
+                mergeRegions.add(new MergeRegion(MergeRegionType.SOURCE, sourceHunk));
+                sourceIdx++;
+            } else {
+                // Target change comes first
+                mergeRegions.add(new MergeRegion(MergeRegionType.TARGET, targetHunk));
+                targetIdx++;
+            }
+        }
+
+        // If there are conflicts, return them
+        if (!conflicts.isEmpty()) {
+            return new ThreeWayMergeResult(null, conflicts, false);
+        }
+
+        // No conflicts - build merged content
+        String mergedContent = buildMergedContent(baseLines, sourceLines, targetLines, mergeRegions);
+        return new ThreeWayMergeResult(mergedContent, Collections.emptyList(), true);
+    }
+
+    /**
+     * Compute diff hunks between two versions of content.
+     */
+    private List<DiffHunk> computeDiffHunks(List<String> baseLines, List<String> changedLines) {
+        List<DiffHunk> hunks = new ArrayList<>();
+
+        int[][] lcs = computeLCS(baseLines, changedLines);
 
         // Backtrack to find differences
-        List<LineConflict> conflicts = new ArrayList<>();
-        int i = sourceLines.size();
-        int j = targetLines.size();
+        int i = baseLines.size();
+        int j = changedLines.size();
 
-        List<DiffRegion> diffRegions = new ArrayList<>();
+        List<int[]> diffs = new ArrayList<>(); // [baseStart, baseEnd, changedStart, changedEnd]
 
         while (i > 0 || j > 0) {
-            if (i > 0 && j > 0 && sourceLines.get(i - 1).equals(targetLines.get(j - 1))) {
+            if (i > 0 && j > 0 && baseLines.get(i - 1).equals(changedLines.get(j - 1))) {
                 i--;
                 j--;
             } else if (j > 0 && (i == 0 || lcs[i][j - 1] >= lcs[i - 1][j])) {
-                // Line added in target
-                diffRegions.add(new DiffRegion(i, i, j - 1, j, DiffType.TARGET_ONLY));
+                // Line added in changed version
+                diffs.add(new int[]{i, i, j - 1, j});
                 j--;
             } else if (i > 0) {
-                // Line added in source
-                diffRegions.add(new DiffRegion(i - 1, i, j, j, DiffType.SOURCE_ONLY));
+                // Line deleted/modified from base
+                diffs.add(new int[]{i - 1, i, j, j});
                 i--;
             }
         }
 
-        // Merge adjacent diff regions into conflicts
-        Collections.reverse(diffRegions);
-        conflicts = mergeIntoConflicts(diffRegions, sourceLines, targetLines);
+        Collections.reverse(diffs);
 
-        return conflicts;
+        // Merge adjacent diffs into hunks
+        if (diffs.isEmpty()) {
+            return hunks;
+        }
+
+        int[] current = diffs.get(0);
+        for (int k = 1; k < diffs.size(); k++) {
+            int[] next = diffs.get(k);
+            // If adjacent or overlapping, merge
+            if (next[0] <= current[1] + 1 && next[2] <= current[3] + 1) {
+                current[1] = Math.max(current[1], next[1]);
+                current[3] = Math.max(current[3], next[3]);
+            } else {
+                hunks.add(new DiffHunk(current[0], current[1], current[2], current[3]));
+                current = next;
+            }
+        }
+        hunks.add(new DiffHunk(current[0], current[1], current[2], current[3]));
+
+        return hunks;
+    }
+
+    private boolean hunksOverlap(DiffHunk a, DiffHunk b) {
+        // Two hunks overlap if their base ranges intersect
+        return !(a.baseEnd <= b.baseStart || b.baseEnd <= a.baseStart);
+    }
+
+    private boolean hunksAreIdentical(DiffHunk sourceHunk, DiffHunk targetHunk) {
+        // Hunks are identical if they affect the same base region and have the same new content
+        return sourceHunk.baseStart == targetHunk.baseStart &&
+               sourceHunk.baseEnd == targetHunk.baseEnd &&
+               sourceHunk.changedStart == targetHunk.changedStart &&
+               sourceHunk.changedEnd == targetHunk.changedEnd;
+    }
+
+    private LineConflict createConflict(DiffHunk sourceHunk, DiffHunk targetHunk,
+                                         List<String> sourceLines, List<String> targetLines) {
+        List<String> sourceConflictLines = sourceHunk.changedStart < sourceHunk.changedEnd
+                ? new ArrayList<>(sourceLines.subList(sourceHunk.changedStart, sourceHunk.changedEnd))
+                : Collections.emptyList();
+        List<String> targetConflictLines = targetHunk.changedStart < targetHunk.changedEnd
+                ? new ArrayList<>(targetLines.subList(targetHunk.changedStart, targetHunk.changedEnd))
+                : Collections.emptyList();
+
+        LineConflict conflict = new LineConflict();
+        conflict.setStartLine(Math.min(sourceHunk.baseStart, targetHunk.baseStart) + 1);
+        conflict.setEndLine(Math.max(sourceHunk.baseEnd, targetHunk.baseEnd));
+        conflict.setSourceLines(sourceConflictLines);
+        conflict.setTargetLines(targetConflictLines);
+        conflict.setContextStartLine(Math.max(1, conflict.getStartLine() - 3));
+        conflict.setContextEndLine(conflict.getEndLine() + 3);
+
+        return conflict;
+    }
+
+    private String buildMergedContent(List<String> baseLines, List<String> sourceLines,
+                                       List<String> targetLines, List<MergeRegion> regions) {
+        // Start with target lines (since we're merging into target) and apply source changes
+        List<String> result = new ArrayList<>(targetLines);
+
+        // Sort regions by their position in base (reverse order for easier modification)
+        regions.sort((a, b) -> Integer.compare(b.getBaseStart(), a.getBaseStart()));
+
+        for (MergeRegion region : regions) {
+            if (region.type == MergeRegionType.SOURCE) {
+                // Apply source change: find corresponding position in result and replace
+                // This is simplified - in practice you'd need to track position shifts
+                DiffHunk hunk = region.sourceHunk;
+                List<String> newLines = hunk.changedStart < hunk.changedEnd
+                        ? sourceLines.subList(hunk.changedStart, hunk.changedEnd)
+                        : Collections.emptyList();
+
+                // Find where in target this corresponds to
+                int targetPos = findCorrespondingPosition(baseLines, targetLines, hunk.baseStart);
+                int targetEnd = findCorrespondingPosition(baseLines, targetLines, hunk.baseEnd);
+
+                if (targetPos >= 0 && targetEnd >= targetPos && targetEnd <= result.size()) {
+                    // Remove old lines and insert new ones
+                    for (int i = targetEnd - 1; i >= targetPos; i--) {
+                        if (i < result.size()) {
+                            result.remove(i);
+                        }
+                    }
+                    result.addAll(targetPos, newLines);
+                }
+            }
+            // For TARGET and BOTH_SAME, the content is already in result (target)
+        }
+
+        return String.join("\n", result);
+    }
+
+    private int findCorrespondingPosition(List<String> baseLines, List<String> targetLines, int basePos) {
+        // Simple approach: find the position in target that corresponds to basePos
+        // This uses LCS to map positions
+        if (basePos == 0) return 0;
+        if (basePos >= baseLines.size()) return targetLines.size();
+
+        int[][] lcs = computeLCS(baseLines, targetLines);
+        int i = basePos;
+        int j = 0;
+
+        // Find the target position that matches
+        for (int ti = 0; ti < targetLines.size() && i > 0; ti++) {
+            if (i > 0 && ti > 0 && i <= baseLines.size() && baseLines.get(i - 1).equals(targetLines.get(ti - 1))) {
+                j = ti;
+                i--;
+            } else if (ti < targetLines.size()) {
+                j = ti + 1;
+            }
+        }
+
+        return Math.min(j, targetLines.size());
+    }
+
+    // Helper classes for 3-way merge
+    public record ThreeWayMergeResult(String mergedContent, List<LineConflict> conflicts, boolean canAutoMerge) {}
+
+    private record DiffHunk(int baseStart, int baseEnd, int changedStart, int changedEnd) {}
+
+    private enum MergeRegionType { SOURCE, TARGET, BOTH_SAME, CONFLICT }
+
+    private static class MergeRegion {
+        MergeRegionType type;
+        DiffHunk sourceHunk;
+        DiffHunk targetHunk;
+
+        MergeRegion(MergeRegionType type, DiffHunk hunk) {
+            this.type = type;
+            this.sourceHunk = hunk;
+        }
+
+        MergeRegion(MergeRegionType type, DiffHunk sourceHunk, DiffHunk targetHunk) {
+            this.type = type;
+            this.sourceHunk = sourceHunk;
+            this.targetHunk = targetHunk;
+        }
+
+        int getBaseStart() {
+            return sourceHunk != null ? sourceHunk.baseStart : (targetHunk != null ? targetHunk.baseStart : 0);
+        }
     }
 
     // Helper methods
@@ -340,7 +564,7 @@ public class MergeService {
             return status;
         }
 
-        // File in both branches - compare content
+        // File in both branches - compare content using 3-way merge
         try {
             String sourceContent = getCurrentContentInternal(sourceFile);
             String targetContent = getCurrentContentInternal(targetFile);
@@ -352,14 +576,21 @@ public class MergeService {
 
             // Content differs
             if (status.isTextFile()) {
-                // For text files, detect line-level conflicts
-                List<LineConflict> conflicts = detectLineConflicts(sourceContent, targetContent);
-                if (conflicts.isEmpty()) {
-                    // No conflicts - can auto-merge
+                // Get base content (source file's S3 content without DocumentChanges)
+                // This represents the state when the branch was created
+                String baseContent = getBaseContent(sourceFile);
+
+                // Perform 3-way merge
+                ThreeWayMergeResult mergeResult = threeWayMerge(baseContent, sourceContent, targetContent);
+
+                if (mergeResult.canAutoMerge()) {
+                    // Can auto-merge without conflicts
                     status.setStatus(FileMergeStatus.Status.MODIFIED);
+                    status.setAutoMergedContent(mergeResult.mergedContent());
                 } else {
+                    // Has true conflicts
                     status.setStatus(FileMergeStatus.Status.CONFLICT);
-                    status.setConflicts(conflicts);
+                    status.setConflicts(mergeResult.conflicts());
                 }
             } else {
                 // Binary files with different content are always conflicts
@@ -373,6 +604,18 @@ public class MergeService {
         }
 
         return status;
+    }
+
+    /**
+     * Get the base content of a source file (S3 content without DocumentChanges).
+     * This represents the state when the branch was created from target.
+     */
+    private String getBaseContent(ProjectFile sourceFile) {
+        try {
+            return minioService.getFileContent(sourceFile.getS3Url());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get base content", e);
+        }
     }
 
     // Overload that skips permission check for internal use
@@ -423,6 +666,26 @@ public class MergeService {
                 .orElseThrow(() -> new RuntimeException("Target file not found"));
 
         String content = getCurrentContentInternal(sourceFile);
+
+        String folder = filePath.substring(0, filePath.lastIndexOf('/'));
+        String destFolder = baseProject + "/" + targetBranch + folder;
+        String newS3Url = minioService.uploadContent(content, destFolder,
+                targetFile.getFileName(), targetFile.getFileType());
+
+        // Delete old changes for target file
+        documentChangeRepository.findByFileIdOrderByCreatedAt(targetFileId)
+                .forEach(documentChangeRepository::delete);
+
+        // Update target file with new S3 URL
+        targetFile.setS3Url(newS3Url);
+        targetFile.setFileSize((long) content.getBytes(StandardCharsets.UTF_8).length);
+        projectFileRepository.save(targetFile);
+    }
+
+    private void updateTargetFileWithContent(String baseProject, String targetBranch, Project targetProject,
+                                              String targetFileId, String filePath, String content, User user) throws Exception {
+        ProjectFile targetFile = projectFileRepository.findByIdNonDeleted(targetFileId)
+                .orElseThrow(() -> new RuntimeException("Target file not found"));
 
         String folder = filePath.substring(0, filePath.lastIndexOf('/'));
         String destFolder = baseProject + "/" + targetBranch + folder;
@@ -522,6 +785,16 @@ public class MergeService {
                         .orElseThrow(() -> new RuntimeException("Source branch not found"));
                 sourceProject.setDeletedAt(LocalDateTime.now());
                 projectRepository.save(sourceProject);
+
+                // Delete S3 folder for the branch
+                try {
+                    String folderPrefix = baseProject + "/" + sourceBranch + "/";
+                    minioService.deleteFolder(folderPrefix);
+                } catch (Exception e) {
+                    // Log but don't fail the merge if S3 cleanup fails
+                    System.err.println("Warning: Failed to delete S3 folder for branch " + sourceBranch + ": " + e.getMessage());
+                }
+
                 return "Source branch '" + sourceBranch + "' has been deleted";
             }
             case RESET_BRANCH -> {
@@ -530,6 +803,14 @@ public class MergeService {
                         .orElseThrow(() -> new RuntimeException("Source branch not found"));
                 sourceProject.setDeletedAt(LocalDateTime.now());
                 projectRepository.save(sourceProject);
+
+                // Delete S3 folder for the old branch
+                try {
+                    String folderPrefix = baseProject + "/" + sourceBranch + "/";
+                    minioService.deleteFolder(folderPrefix);
+                } catch (Exception e) {
+                    System.err.println("Warning: Failed to delete S3 folder for branch " + sourceBranch + ": " + e.getMessage());
+                }
 
                 // Recreate source branch from target
                 Project targetProject = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, targetBranch)
@@ -592,68 +873,5 @@ public class MergeService {
         }
 
         return dp;
-    }
-
-    private enum DiffType {
-        SOURCE_ONLY, TARGET_ONLY
-    }
-
-    private record DiffRegion(int sourceStart, int sourceEnd, int targetStart, int targetEnd, DiffType type) {}
-
-    private List<LineConflict> mergeIntoConflicts(List<DiffRegion> regions, List<String> sourceLines, List<String> targetLines) {
-        if (regions.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<LineConflict> conflicts = new ArrayList<>();
-        List<DiffRegion> currentGroup = new ArrayList<>();
-
-        for (DiffRegion region : regions) {
-            if (currentGroup.isEmpty()) {
-                currentGroup.add(region);
-            } else {
-                DiffRegion last = currentGroup.get(currentGroup.size() - 1);
-                // If regions are adjacent or overlapping, group them
-                if (region.sourceStart <= last.sourceEnd + 1 && region.targetStart <= last.targetEnd + 1) {
-                    currentGroup.add(region);
-                } else {
-                    // Create conflict from current group
-                    conflicts.add(createConflictFromGroup(currentGroup, sourceLines, targetLines));
-                    currentGroup.clear();
-                    currentGroup.add(region);
-                }
-            }
-        }
-
-        // Handle remaining group
-        if (!currentGroup.isEmpty()) {
-            conflicts.add(createConflictFromGroup(currentGroup, sourceLines, targetLines));
-        }
-
-        return conflicts;
-    }
-
-    private LineConflict createConflictFromGroup(List<DiffRegion> group, List<String> sourceLines, List<String> targetLines) {
-        int sourceStart = group.stream().mapToInt(DiffRegion::sourceStart).min().orElse(0);
-        int sourceEnd = group.stream().mapToInt(DiffRegion::sourceEnd).max().orElse(0);
-        int targetStart = group.stream().mapToInt(DiffRegion::targetStart).min().orElse(0);
-        int targetEnd = group.stream().mapToInt(DiffRegion::targetEnd).max().orElse(0);
-
-        List<String> sourceConflictLines = sourceStart < sourceEnd && sourceEnd <= sourceLines.size()
-                ? sourceLines.subList(sourceStart, sourceEnd)
-                : Collections.emptyList();
-        List<String> targetConflictLines = targetStart < targetEnd && targetEnd <= targetLines.size()
-                ? targetLines.subList(targetStart, targetEnd)
-                : Collections.emptyList();
-
-        LineConflict conflict = new LineConflict();
-        conflict.setStartLine(sourceStart + 1); // 1-based
-        conflict.setEndLine(sourceEnd);
-        conflict.setSourceLines(new ArrayList<>(sourceConflictLines));
-        conflict.setTargetLines(new ArrayList<>(targetConflictLines));
-        conflict.setContextStartLine(Math.max(1, sourceStart - 2));
-        conflict.setContextEndLine(Math.min(sourceLines.size(), sourceEnd + 2));
-
-        return conflict;
     }
 }

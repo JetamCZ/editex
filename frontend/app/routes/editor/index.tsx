@@ -13,6 +13,7 @@ import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
 import CreateFileModal from "~/components/CreateFileModal";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
+import CompilationErrorDialog from "~/components/CompilationErrorDialog";
 import {type CompilationResult, useLatexCompilation} from "~/hooks/useLatexCompilation";
 import EditorToolbar from "~/components/EditorToolbar";
 import {FileTextIcon, PlayIcon} from "@radix-ui/react-icons";
@@ -32,6 +33,11 @@ const EditorPage = () => {
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [createFileModalOpen, setCreateFileModalOpen] = useState(false);
     const [createBranchDialogOpen, setCreateBranchDialogOpen] = useState(false);
+    const [compilationError, setCompilationError] = useState<{
+        open: boolean;
+        errorMessage: string | null;
+        compilationLog: string | null;
+    }>({ open: false, errorMessage: null, compilationLog: null });
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
     const [editorState, setEditorState] = useState<{
         changeHistory: any[];
@@ -103,9 +109,18 @@ const EditorPage = () => {
     const isImageFile = fileContentType === ContentType.IMAGE;
     const isPdfFile = fileContentType === ContentType.PDF;
 
-    const handleCompilationSuccess = (result: CompilationResult) => {
+    const handleCompilationResult = (result: CompilationResult) => {
         if (result.success && result.pdfUrl) {
             setCurrentPdfUrl(result.pdfUrl);
+            // Clear any previous error
+            setCompilationError({ open: false, errorMessage: null, compilationLog: null });
+        } else {
+            // Show error dialog
+            setCompilationError({
+                open: true,
+                errorMessage: result.errorMessage,
+                compilationLog: result.compilationLog
+            });
         }
     };
 
@@ -114,10 +129,15 @@ const EditorPage = () => {
             {baseProject: project.baseProject, branch: project.branch},
             {
                 onSuccess: (result) => {
-                    handleCompilationSuccess(result);
+                    handleCompilationResult(result);
                 },
                 onError: (error) => {
                     console.error("Compilation failed:", error);
+                    setCompilationError({
+                        open: true,
+                        errorMessage: error instanceof Error ? error.message : "An unexpected error occurred",
+                        compilationLog: null
+                    });
                 }
             }
         );
@@ -466,6 +486,14 @@ const EditorPage = () => {
                 baseProject={project.baseProject}
                 currentBranch={project.branch}
                 onBranchCreated={handleBranchCreated}
+            />
+
+            {/* Compilation Error Dialog */}
+            <CompilationErrorDialog
+                open={compilationError.open}
+                onOpenChange={(open) => setCompilationError(prev => ({ ...prev, open }))}
+                errorMessage={compilationError.errorMessage}
+                compilationLog={compilationError.compilationLog}
             />
         </>
     );

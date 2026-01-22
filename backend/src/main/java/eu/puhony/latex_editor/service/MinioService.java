@@ -2,6 +2,7 @@ package eu.puhony.latex_editor.service;
 
 import io.minio.*;
 import io.minio.http.Method;
+import io.minio.messages.Item;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -177,5 +180,36 @@ public class MinioService {
         }
 
         return getFileUrl(objectName);
+    }
+
+    /**
+     * Delete all files in a folder (prefix).
+     * Used when deleting a branch to clean up S3 storage.
+     */
+    public void deleteFolder(String folderPrefix) throws Exception {
+        // List all objects with the given prefix
+        Iterable<Result<Item>> objects = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(folderPrefix)
+                        .recursive(true)
+                        .build()
+        );
+
+        // Collect all object names to delete
+        List<String> objectsToDelete = new ArrayList<>();
+        for (Result<Item> result : objects) {
+            objectsToDelete.add(result.get().objectName());
+        }
+
+        // Delete each object
+        for (String objectName : objectsToDelete) {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build()
+            );
+        }
     }
 }

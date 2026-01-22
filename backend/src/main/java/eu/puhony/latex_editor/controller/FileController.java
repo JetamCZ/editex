@@ -1,10 +1,12 @@
 package eu.puhony.latex_editor.controller;
 
 import eu.puhony.latex_editor.dto.FileUploadResponse;
+import eu.puhony.latex_editor.dto.MoveFileRequest;
 import eu.puhony.latex_editor.entity.DocumentChange;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
+import jakarta.validation.Valid;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
@@ -204,6 +206,18 @@ public class FileController {
         public void setFileName(String fileName) {
             this.fileName = fileName;
         }
+    }
+
+    @PatchMapping("/{fileId}/move")
+    public ResponseEntity<FileUploadResponse> moveFile(
+            @PathVariable String fileId,
+            @Valid @RequestBody MoveFileRequest request,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        ProjectFile movedFile = fileService.moveFile(fileId, request.getTargetFolder(), user.getId());
+        return ResponseEntity.ok(mapToResponse(movedFile));
     }
 
     @DeleteMapping("/{fileId}")

@@ -36,4 +36,7 @@ public class FileMergeStatus {
     // Target file info (null if file doesn't exist in target)
     private String targetFileId;
     private Long targetFileSize;
+
+    // Auto-merged content (when status is MODIFIED and can be auto-merged)
+    private String autoMergedContent;
 }
