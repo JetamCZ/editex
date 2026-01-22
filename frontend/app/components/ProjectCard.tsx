@@ -28,7 +28,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   };
 
   return (
-    <Link to={`/project/${project.id}`} style={{ textDecoration: 'none' }}>
+    <Link to={`/project/${project.baseProject}`} style={{ textDecoration: 'none' }}>
       <Card className="hover:shadow-lg transition-shadow cursor-pointer">
         <Flex direction="column" gap="2">
           <Flex justify="between" align="center">

@@ -1,7 +1,9 @@
 import { Role } from './member';
 
 export interface Project {
-    id: string;
+    id: number;
+    baseProject: string;
+    branch: string;
     name: string;
     ownerId: number;
     userRole: Role;

@@ -43,7 +43,7 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
     const updateProjectMutation = useMutation({
         mutationFn: async (name: string) => {
             const response = await axios.put(
-                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${project.id}`,
+                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${project.baseProject}/${project.branch}`,
                 {name},
                 {
                     headers: {
@@ -142,7 +142,11 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
                 <Flex direction="column" gap="2">
                     <Flex justify="between" align="center">
                         <Text size="2" className="text-gray-11">Project ID</Text>
-                        <Text size="2" style={{fontFamily: "monospace"}}>{project.id}</Text>
+                        <Text size="2" style={{fontFamily: "monospace"}}>{project.baseProject}</Text>
+                    </Flex>
+                    <Flex justify="between" align="center">
+                        <Text size="2" className="text-gray-11">Branch</Text>
+                        <Text size="2" style={{fontFamily: "monospace"}}>{project.branch}</Text>
                     </Flex>
                     <Flex justify="between" align="center">
                         <Text size="2" className="text-gray-11">Your Role</Text>

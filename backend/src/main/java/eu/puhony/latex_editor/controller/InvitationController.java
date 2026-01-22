@@ -26,18 +26,18 @@ public class InvitationController {
     private final ProjectMemberService projectMemberService;
     private final UserRepository userRepository;
 
-    @PostMapping("/projects/{projectId}/invitations")
+    @PostMapping("/projects/{baseProject}/invitations")
     public ResponseEntity<ProjectInvitationResponse> inviteUser(
-            @PathVariable String projectId,
+            @PathVariable String baseProject,
             @Valid @RequestBody InviteUserRequest request,
             Authentication authentication) {
         User currentUser = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        projectMemberService.ensureCanManage(projectId, currentUser.getId());
+        projectMemberService.ensureCanManage(baseProject, currentUser.getId());
 
         ProjectInvitation invitation = invitationService.inviteUser(
-                projectId,
+                baseProject,
                 request.getEmail(),
                 request.getRole(),
                 currentUser.getId()
@@ -47,16 +47,16 @@ public class InvitationController {
                 .body(ProjectInvitationResponse.from(invitation));
     }
 
-    @GetMapping("/projects/{projectId}/invitations")
+    @GetMapping("/projects/{baseProject}/invitations")
     public ResponseEntity<List<ProjectInvitationResponse>> getProjectInvitations(
-            @PathVariable String projectId,
+            @PathVariable String baseProject,
             Authentication authentication) {
         User currentUser = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        projectMemberService.ensureCanManage(projectId, currentUser.getId());
+        projectMemberService.ensureCanManage(baseProject, currentUser.getId());
 
-        List<ProjectInvitation> invitations = invitationService.getPendingInvitationsForProject(projectId);
+        List<ProjectInvitation> invitations = invitationService.getPendingInvitationsForProject(baseProject);
         List<ProjectInvitationResponse> response = invitations.stream()
                 .map(ProjectInvitationResponse::from)
                 .collect(Collectors.toList());
@@ -114,15 +114,15 @@ public class InvitationController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/projects/{projectId}/invitations/{invitationId}")
+    @DeleteMapping("/projects/{baseProject}/invitations/{invitationId}")
     public ResponseEntity<Void> cancelInvitation(
-            @PathVariable String projectId,
+            @PathVariable String baseProject,
             @PathVariable String invitationId,
             Authentication authentication) {
         User currentUser = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        invitationService.cancelInvitation(invitationId, currentUser.getId(), projectId);
+        invitationService.cancelInvitation(invitationId, currentUser.getId(), baseProject);
         return ResponseEntity.noContent().build();
     }
 }

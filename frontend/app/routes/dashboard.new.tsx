@@ -33,7 +33,7 @@ export async function action({ request }: ActionFunctionArgs) {
       templateId: templateId
     });
 
-    return redirect(`/project/${response.data.id}`);
+    return redirect(`/project/${response.data.baseProject}`);
   } catch (error) {
     console.error("Error creating project:", error);
     return { error: "Failed to create project" };

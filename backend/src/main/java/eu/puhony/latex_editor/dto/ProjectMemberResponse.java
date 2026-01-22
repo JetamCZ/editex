@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ProjectMemberResponse {
     private Long id;
-    private String projectId;
+    private String baseProject;
     private Long userId;
     private String userEmail;
     private String userName;
@@ -25,7 +25,7 @@ public class ProjectMemberResponse {
     public static ProjectMemberResponse from(ProjectMember member) {
         ProjectMemberResponse response = new ProjectMemberResponse();
         response.setId(member.getId());
-        response.setProjectId(member.getProjectId());
+        response.setBaseProject(member.getBaseProject());
         response.setUserId(member.getUserId());
         response.setRole(member.getRole());
         response.setInvitedBy(member.getInvitedBy());

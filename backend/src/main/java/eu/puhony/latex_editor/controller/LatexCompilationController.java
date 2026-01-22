@@ -28,8 +28,10 @@ public class LatexCompilationController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         try {
+            String branch = request.getBranch() != null ? request.getBranch() : "main";
             CompilationResult result = compilationService.compileLatex(
-                request.getProjectId(),
+                request.getBaseProject(),
+                branch,
                 user.getId()
             );
             return ResponseEntity.ok(result);

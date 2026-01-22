@@ -3,7 +3,8 @@ import axios from 'axios';
 import { useRouteLoaderData } from 'react-router';
 
 interface CompilationRequest {
-    projectId: string;
+    baseProject: string;
+    branch?: string;
 }
 
 interface CompilationResult {

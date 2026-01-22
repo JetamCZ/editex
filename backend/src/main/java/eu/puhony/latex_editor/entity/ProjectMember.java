@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project_members", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"project_id", "user_id"})
+    @UniqueConstraint(columnNames = {"base_project", "user_id"})
 })
 @SQLDelete(sql = "UPDATE project_members SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "deleted_at IS NULL")
@@ -26,12 +26,8 @@ public class ProjectMember {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "project_id", nullable = false)
-    private String projectId;
-
-    @ManyToOne
-    @JoinColumn(name = "project_id", insertable = false, updatable = false)
-    private Project project;
+    @Column(name = "base_project", nullable = false, length = 36)
+    private String baseProject;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

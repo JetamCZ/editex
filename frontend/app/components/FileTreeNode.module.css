@@ -85,3 +85,35 @@
 .treeChildren.collapsed {
   display: none;
 }
+
+.treeItemMenuWrapper {
+  flex-shrink: 0;
+}
+
+.treeItemMenu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-1);
+  color: var(--gray-11);
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.treeItemMenu:hover {
+  background-color: var(--gray-4);
+  color: var(--gray-12);
+}
+
+.treeItem:hover .treeItemMenu {
+  opacity: 1;
+}
+
+/* Keep menu visible when dropdown is open */
+.treeItemMenu[data-state="open"] {
+  opacity: 1;
+}

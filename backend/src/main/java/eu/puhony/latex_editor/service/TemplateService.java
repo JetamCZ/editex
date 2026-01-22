@@ -57,7 +57,7 @@ public class TemplateService {
     public List<ProjectFile> initializeProjectFromTemplate(Project project, String templateId, User user) {
         List<ProjectFile> createdFiles = new ArrayList<>();
 
-        if (templateId == null || templateId.equals("empty")) {
+        if (templateId == null) {
             return createdFiles;
         }
 
@@ -110,7 +110,7 @@ public class TemplateService {
             }
 
             String s3Url = minioService.uploadFile(tempFile,
-                project.getId() + folder,
+                project.getBaseProject() + "/" + project.getBranch() + folder,
                 getContentType(filename));
 
             tempFile.delete();

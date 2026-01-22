@@ -7,7 +7,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 interface FileUploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectId: string;
+  baseProject: string;
+  branch?: string;
   folder?: string;
 }
 
@@ -21,7 +22,8 @@ interface FilePreview {
 export default function FileUploadModal({
   open,
   onOpenChange,
-  projectId,
+  baseProject,
+  branch = "main",
   folder = "/files",
 }: FileUploadModalProps) {
   const {bearerToken} = useAuth()
@@ -41,7 +43,8 @@ export default function FileUploadModal({
       for (let i = 0; i < totalFiles; i++) {
         const formData = new FormData();
         formData.append('file', filesToUpload[i].file);
-        formData.append('projectId', projectId);
+        formData.append('baseProject', baseProject);
+        formData.append('branch', branch);
         formData.append('folder', selectedFolder);
 
         await axios.post(
@@ -65,7 +68,7 @@ export default function FileUploadModal({
     },
     onSuccess: () => {
       // Invalidate and refetch project files
-      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', baseProject, branch] });
       setFiles([]);
       setUploadProgress(100);
 

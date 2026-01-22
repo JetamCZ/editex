@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ProjectInvitationResponse {
     private String id;
-    private String projectId;
+    private String baseProject;
     private String projectName;
     private Long invitedUserId;
     private String invitedUserEmail;
@@ -29,17 +29,13 @@ public class ProjectInvitationResponse {
     public static ProjectInvitationResponse from(ProjectInvitation invitation) {
         ProjectInvitationResponse response = new ProjectInvitationResponse();
         response.setId(invitation.getId());
-        response.setProjectId(invitation.getProjectId());
+        response.setBaseProject(invitation.getBaseProject());
         response.setInvitedUserId(invitation.getInvitedUserId());
         response.setInvitedBy(invitation.getInvitedBy());
         response.setRole(invitation.getRole());
         response.setStatus(invitation.getStatus());
         response.setCreatedAt(invitation.getCreatedAt());
         response.setRespondedAt(invitation.getRespondedAt());
-
-        if (invitation.getProject() != null) {
-            response.setProjectName(invitation.getProject().getName());
-        }
 
         if (invitation.getInvitedUser() != null) {
             response.setInvitedUserEmail(invitation.getInvitedUser().getEmail());

@@ -4,7 +4,7 @@ import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket"
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
 import {registerLatexLanguage} from "~/components/CollaborationEditor/lib/latexLanguage";
-import {useRef, useCallback, forwardRef, useImperativeHandle} from "react";
+import {useRef, useCallback, forwardRef, useImperativeHandle, useEffect} from "react";
 import type {editor} from "monaco-editor";
 import {Button, Tooltip, Separator, IconButton} from "@radix-ui/themes";
 import {FontBoldIcon, FontItalicIcon, QuoteIcon, ListBulletIcon, TableIcon, ImageIcon} from "@radix-ui/react-icons";
@@ -282,7 +282,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         console.log('Change History:', changeHistory);
     };
 
-    const handleSendChanges = () => {
+    const handleSendChanges = useCallback(() => {
         if (changeHistory.length > 0) {
             sendChanges(changeHistory, lastChangeId!);
             console.log(`Sent ${changeHistory.length} changes to server`);
@@ -295,7 +295,18 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         } else {
             console.log('No changes to send');
         }
-    };
+    }, [changeHistory, lastChangeId, sendChanges, resetTracking]);
+
+    // Debounced auto-save: send changes 500ms after user stops typing
+    useEffect(() => {
+        if (changeHistory.length === 0) return;
+
+        const timeoutId = setTimeout(() => {
+            handleSendChanges();
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [changeHistory, handleSendChanges]);
 
     const handleReloadFile = async () => {
         console.log('Reloading file from server...');

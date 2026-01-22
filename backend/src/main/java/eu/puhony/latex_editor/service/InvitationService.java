@@ -24,8 +24,8 @@ public class InvitationService {
         return invitationRepository.findPendingInvitationsByUserId(userId);
     }
 
-    public List<ProjectInvitation> getPendingInvitationsForProject(String projectId) {
-        return invitationRepository.findPendingInvitationsByProjectId(projectId);
+    public List<ProjectInvitation> getPendingInvitationsForProject(String baseProject) {
+        return invitationRepository.findPendingInvitationsByBaseProject(baseProject);
     }
 
     public List<ProjectInvitation> getPendingInvitationsSentByUser(Long userId) {
@@ -33,20 +33,20 @@ public class InvitationService {
     }
 
     @Transactional
-    public ProjectInvitation inviteUser(String projectId, String invitedUserEmail, ProjectMember.Role role, Long invitedBy) {
+    public ProjectInvitation inviteUser(String baseProject, String invitedUserEmail, ProjectMember.Role role, Long invitedBy) {
         User invitedUser = userRepository.findByEmail(invitedUserEmail)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + invitedUserEmail));
 
-        if (projectMemberService.hasAccess(projectId, invitedUser.getId())) {
+        if (projectMemberService.hasAccess(baseProject, invitedUser.getId())) {
             throw new IllegalStateException("User is already a member of this project");
         }
 
-        if (invitationRepository.hasPendingInvitation(projectId, invitedUser.getId())) {
+        if (invitationRepository.hasPendingInvitation(baseProject, invitedUser.getId())) {
             throw new IllegalStateException("User already has a pending invitation for this project");
         }
 
         ProjectInvitation invitation = new ProjectInvitation();
-        invitation.setProjectId(projectId);
+        invitation.setBaseProject(baseProject);
         invitation.setInvitedUserId(invitedUser.getId());
         invitation.setInvitedBy(invitedBy);
         invitation.setRole(role);
@@ -73,7 +73,7 @@ public class InvitationService {
         invitationRepository.save(invitation);
 
         projectMemberService.addMember(
-                invitation.getProjectId(),
+                invitation.getBaseProject(),
                 invitation.getInvitedUserId(),
                 invitation.getRole(),
                 invitation.getInvitedBy()
@@ -99,15 +99,15 @@ public class InvitationService {
     }
 
     @Transactional
-    public void cancelInvitation(String invitationId, Long userId, String projectId) {
+    public void cancelInvitation(String invitationId, Long userId, String baseProject) {
         ProjectInvitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new IllegalArgumentException("Invitation not found"));
 
-        if (!invitation.getProjectId().equals(projectId)) {
+        if (!invitation.getBaseProject().equals(baseProject)) {
             throw new IllegalArgumentException("Invitation does not belong to this project");
         }
 
-        projectMemberService.ensureCanManage(projectId, userId);
+        projectMemberService.ensureCanManage(baseProject, userId);
 
         if (invitation.getStatus() != ProjectInvitation.Status.PENDING) {
             throw new IllegalStateException("Can only cancel pending invitations");

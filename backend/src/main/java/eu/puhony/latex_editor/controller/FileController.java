@@ -1,10 +1,12 @@
 package eu.puhony.latex_editor.controller;
 
 import eu.puhony.latex_editor.dto.FileUploadResponse;
+import eu.puhony.latex_editor.dto.MoveFileRequest;
 import eu.puhony.latex_editor.entity.DocumentChange;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
+import jakarta.validation.Valid;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
@@ -44,7 +46,8 @@ public class FileController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FileUploadResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("projectId") String projectId,
+            @RequestParam("baseProject") String baseProject,
+            @RequestParam(value = "branch", defaultValue = "main") String branch,
             @RequestParam(value = "folder", defaultValue = "/files") String folder,
             Authentication authentication) {
 
@@ -52,7 +55,7 @@ public class FileController {
             User user = userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            Project project = projectService.getProjectById(projectId, user.getId())
+            Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
                     .orElseThrow(() -> new RuntimeException("Project not found"));
 
             ProjectFile uploadedFile = fileService.uploadFile(file, project, folder, user);
@@ -64,29 +67,37 @@ public class FileController {
         }
     }
 
-    @GetMapping("/project/{projectId}")
+    @GetMapping("/project/{baseProject}/{branch}")
     public ResponseEntity<List<FileUploadResponse>> getProjectFiles(
-            @PathVariable String projectId,
+            @PathVariable String baseProject,
+            @PathVariable String branch,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<ProjectFile> files = fileService.getProjectFiles(projectId, user.getId());
+        Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        List<ProjectFile> files = fileService.getProjectFiles(project.getId(), baseProject, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/project/{projectId}/folder")
+    @GetMapping("/project/{baseProject}/{branch}/folder")
     public ResponseEntity<List<FileUploadResponse>> getProjectFilesByFolder(
-            @PathVariable String projectId,
+            @PathVariable String baseProject,
+            @PathVariable String branch,
             @RequestParam String folder,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<ProjectFile> files = fileService.getProjectFilesByFolder(projectId, folder, user.getId());
+        Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        List<ProjectFile> files = fileService.getProjectFilesByFolder(project.getId(), baseProject, folder, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -197,6 +208,18 @@ public class FileController {
         }
     }
 
+    @PatchMapping("/{fileId}/move")
+    public ResponseEntity<FileUploadResponse> moveFile(
+            @PathVariable String fileId,
+            @Valid @RequestBody MoveFileRequest request,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        ProjectFile movedFile = fileService.moveFile(fileId, request.getTargetFolder(), user.getId());
+        return ResponseEntity.ok(mapToResponse(movedFile));
+    }
+
     @DeleteMapping("/{fileId}")
     public ResponseEntity<Void> deleteFile(
             @PathVariable String fileId,
@@ -222,7 +245,7 @@ public class FileController {
 
         return new FileUploadResponse(
                 file.getId(),
-                file.getProject().getId(),
+                file.getProject().getBaseProject(),
                 file.getProjectFolder(),
                 file.getFileName(),
                 file.getOriginalFileName(),
