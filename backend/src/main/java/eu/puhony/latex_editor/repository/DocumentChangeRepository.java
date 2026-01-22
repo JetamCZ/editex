@@ -35,4 +35,7 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
 
     @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
     long countByProjectId(@Param("projectId") Long projectId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC")
+    List<DocumentChange> findRecentByProjectId(@Param("projectId") Long projectId, org.springframework.data.domain.Pageable pageable);
 }

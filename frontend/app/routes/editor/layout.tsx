@@ -10,6 +10,7 @@ import {
     QuestionMarkCircledIcon,
     ExitIcon,
 } from "@radix-ui/react-icons";
+import { GitBranch } from "lucide-react";
 import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
 import type {ReactNode} from "react";
@@ -31,7 +32,8 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
 const iconSidebarItems = [
     {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: 'Files', path: ''},
-    {id: 'history', icon: <CounterClockwiseClockIcon width="20" height="20" />, tooltip: 'Version History', path: '/history'},
+    {id: 'versions', icon: <GitBranch size={20} />, tooltip: 'Versions', path: '/versions'},
+    {id: 'history', icon: <CounterClockwiseClockIcon width="20" height="20" />, tooltip: 'History', path: '/history'},
 ];
 
 const iconSidebarBottomItems = [
@@ -52,6 +54,7 @@ export default function ProjectLayout() {
 
     const isSettingsPage = location.pathname.endsWith('/settings');
     const isHelpPage = location.pathname.endsWith('/help');
+    const isVersionsPage = location.pathname.endsWith('/versions');
     const isHistoryPage = location.pathname.endsWith('/history');
 
     const handleIconClick = (itemId: string, path: string) => {
@@ -65,6 +68,7 @@ export default function ProjectLayout() {
     const getActiveItem = () => {
         if (isSettingsPage) return 'settings';
         if (isHelpPage) return 'help';
+        if (isVersionsPage) return 'versions';
         if (isHistoryPage) return 'history';
         return 'files';
     };
