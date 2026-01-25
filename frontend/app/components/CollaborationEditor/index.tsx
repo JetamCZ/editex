@@ -1,15 +1,17 @@
 import type {ProjectFile} from "../../../types/file";
 import {useChangeTracking, type ChangeOperation} from "~/components/CollaborationEditor/hooks/useChangeTracking";
-import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket";
+import {useWebSocket, type RemoteCursor} from "~/components/CollaborationEditor/hooks/useWebSocket";
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
 import {registerLatexLanguage} from "~/components/CollaborationEditor/lib/latexLanguage";
-import {useRef, useCallback, forwardRef, useImperativeHandle, useEffect} from "react";
+import {transformCursorPosition} from "~/components/CollaborationEditor/lib/transformCursor";
+import {useRef, useCallback, forwardRef, useImperativeHandle, useEffect, useState} from "react";
 import type {editor} from "monaco-editor";
-import {Button, Tooltip, Separator, IconButton} from "@radix-ui/themes";
+import {Tooltip, IconButton} from "@radix-ui/themes";
 import {FontBoldIcon, FontItalicIcon, QuoteIcon, ListBulletIcon, TableIcon, ImageIcon} from "@radix-ui/react-icons";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
 import type * as Monaco from "monaco-editor";
+import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
     selectedFile: ProjectFile;
@@ -24,9 +26,21 @@ export interface CollaborativeEditorRef {
     handleSendChanges: () => void;
 }
 
+// Generate consistent color from user ID
+const getUserColor = (userId: number): string => {
+    const colors = [
+        '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3',
+        '#00bcd4', '#009688', '#4caf50', '#ff9800', '#ff5722'
+    ];
+    return colors[userId % colors.length];
+};
+
 const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, ref) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<typeof Monaco | null>(null);
+    const decorationsRef = useRef<Map<string, string[]>>(new Map());
+    const sessionIdRef = useRef<string>(uuidv4());
+    const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
 
     const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges} = useChangeTracking();
 
@@ -235,7 +249,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         editor.focus();
     }, []);
 
-    const setEditorContent = useCallback((newContent: string) => {
+    const setEditorContent = useCallback((newContent: string, changes?: ChangeOperation[]) => {
         if (editorRef.current) {
             const model = editorRef.current.getModel();
 
@@ -254,9 +268,16 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
                     monaco.editor.setModelLanguage(model, language);
                 }
 
-                // Restore cursor position if it was saved
+                // Restore cursor position, transformed if changes were provided
                 if (position) {
-                    editorRef.current.setPosition(position);
+                    let lineNumber = position.lineNumber;
+                    let column = position.column;
+                    if (changes && changes.length > 0) {
+                        const transformed = transformCursorPosition(lineNumber, column, changes);
+                        lineNumber = transformed.line;
+                        column = transformed.column;
+                    }
+                    editorRef.current.setPosition({ lineNumber, column });
                     editorRef.current.setScrollTop(scrollTop);
                 }
             }
@@ -270,12 +291,41 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         setChangeHistory,
         updatePreviousLines,
         setEditorContent,
-        setIsApplyingRemoteChanges
+        setIsApplyingRemoteChanges,
+        sessionIdRef.current
     )
 
-    const {isConnected, sessionId, sendChanges} = useWebSocket({
+    // Handle remote cursor updates
+    const handleCursorUpdate = useCallback((cursor: RemoteCursor) => {
+        setRemoteCursors(prev => {
+            const next = new Map(prev);
+            next.set(cursor.sessionId, cursor);
+            return next;
+        });
+    }, []);
+
+    // Handle remote cursor leave
+    const handleCursorLeave = useCallback((sessionId: string) => {
+        setRemoteCursors(prev => {
+            const next = new Map(prev);
+            next.delete(sessionId);
+            return next;
+        });
+
+        // Clean up decorations for this user
+        if (editorRef.current) {
+            const decorations = decorationsRef.current.get(sessionId) || [];
+            editorRef.current.deltaDecorations(decorations, []);
+            decorationsRef.current.delete(sessionId);
+        }
+    }, []);
+
+    const {isConnected, sendChanges, sendCursorPosition} = useWebSocket({
         fileId: props.selectedFile.id,
-        onChangesReceived
+        sessionId: sessionIdRef.current,
+        onChangesReceived,
+        onCursorUpdate: handleCursorUpdate,
+        onCursorLeave: handleCursorLeave,
     });
 
     const handleShowChanges = () => {
@@ -317,11 +367,111 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     useImperativeHandle(ref, () => ({
         changeHistory,
         isConnected,
-        sessionId,
+        sessionId: sessionIdRef.current,
         handleReloadFile,
         handleShowChanges,
         handleSendChanges,
     }));
+
+    // Inject CSS for collaborator cursors (only once)
+    useEffect(() => {
+        if (document.getElementById('collaborator-cursors-style')) return;
+
+        const style = document.createElement('style');
+        style.id = 'collaborator-cursors-style';
+        style.textContent = `
+            .collaborator-cursor {
+                width: 2px !important;
+                margin-left: -1px;
+            }
+            .collaborator-selection {
+                opacity: 0.3;
+            }
+        `;
+        document.head.appendChild(style);
+    }, []);
+
+    // Update remote cursor decorations when cursors change
+    useEffect(() => {
+        const editor = editorRef.current;
+        const monaco = monacoRef.current;
+        if (!editor || !monaco) return;
+
+        remoteCursors.forEach((cursor, cursorSessionId) => {
+            const color = getUserColor(cursor.userId);
+            const existingDecorations = decorationsRef.current.get(cursorSessionId) || [];
+
+            // Create unique class names for this user
+            const cursorClass = `cursor-${cursor.userId}`;
+            const selectionClass = `selection-${cursor.userId}`;
+
+            // Add dynamic styles for this user if not exists
+            const styleId = `cursor-style-${cursor.userId}`;
+            if (!document.getElementById(styleId)) {
+                const style = document.createElement('style');
+                style.id = styleId;
+                style.textContent = `
+                    .${cursorClass} {
+                        background-color: ${color} !important;
+                        width: 2px !important;
+                    }
+                    .${cursorClass}::after {
+                        content: '${cursor.userName}';
+                        background-color: ${color};
+                        color: white;
+                        padding: 2px 6px;
+                        font-size: 11px;
+                        font-weight: 500;
+                        border-radius: 3px 3px 3px 0;
+                        position: absolute;
+                        top: -18px;
+                        left: 0;
+                        white-space: nowrap;
+                        pointer-events: none;
+                        z-index: 100;
+                    }
+                    .${selectionClass} {
+                        background-color: ${color};
+                        opacity: 0.3;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            const decorations: editor.IModelDeltaDecoration[] = [];
+
+            // Add cursor decoration
+            decorations.push({
+                range: new monaco.Range(cursor.line, cursor.column, cursor.line, cursor.column),
+                options: {
+                    className: `collaborator-cursor ${cursorClass}`,
+                    stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+                    zIndex: 100,
+                }
+            });
+
+            // Add selection decoration if there's a selection
+            if (cursor.selectionStartLine && cursor.selectionEndLine &&
+                (cursor.selectionStartLine !== cursor.selectionEndLine ||
+                 cursor.selectionStartColumn !== cursor.selectionEndColumn)) {
+                decorations.push({
+                    range: new monaco.Range(
+                        cursor.selectionStartLine,
+                        cursor.selectionStartColumn || 1,
+                        cursor.selectionEndLine,
+                        cursor.selectionEndColumn || 1
+                    ),
+                    options: {
+                        className: `collaborator-selection ${selectionClass}`,
+                        stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+                    }
+                });
+            }
+
+            const newDecorations = editor.deltaDecorations(existingDecorations, decorations);
+            decorationsRef.current.set(cursorSessionId, newDecorations);
+        });
+    }, [remoteCursors]);
 
     const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
         editorRef.current = editor;
@@ -335,6 +485,19 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         if (model) {
             previousLinesRef.current = model.getLinesContent();
         }
+
+        // Send cursor position on selection change
+        editor.onDidChangeCursorSelection((e) => {
+            const selection = e.selection;
+            sendCursorPosition({
+                line: selection.positionLineNumber,
+                column: selection.positionColumn,
+                selectionStartLine: selection.startLineNumber,
+                selectionStartColumn: selection.startColumn,
+                selectionEndLine: selection.endLineNumber,
+                selectionEndColumn: selection.endColumn,
+            });
+        });
 
         // Listen to content changes with detailed change information
         editor.onDidChangeModelContent((e) => {

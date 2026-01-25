@@ -12,8 +12,9 @@ const useContent = (
     changeHistory: ChangeOperation[],
     setChangeHistory: (changes: ChangeOperation[]) => void,
     updatePreviousLines: (lines: string[]) => void,
-    setEditorContent: (newContent: string) => void,
-    setIsApplyingRemoteChanges: (value: boolean) => void
+    setEditorContent: (newContent: string, changes?: ChangeOperation[]) => void,
+    setIsApplyingRemoteChanges: (value: boolean) => void,
+    localSessionId: string
 ) => {
     const [content, setContent] = useState('');
     const [lastChangeId, setLastChangeId] = useState("");
@@ -52,7 +53,7 @@ const useContent = (
         refetch()
     }, [fileId, refetch]);
 
-    const handleChanges = useCallback((changes: ChangeOperation[]) => {
+    const handleChanges = useCallback((changes: ChangeOperation[], senderSessionId: string | null) => {
         // Step 1: Apply remote changes to current content to get new server state
         const lines = contentRef.current.split('\n');
         const newServerContent = applyChanges(lines, changes);
@@ -70,11 +71,13 @@ const useContent = (
         setChangeHistory(transformedHistory);
 
         // Step 5: Update editor without triggering change detection
+        // Only pass changes for cursor transformation if they're from another user
+        const isRemoteChange = senderSessionId !== null && senderSessionId !== localSessionId;
         setIsApplyingRemoteChanges(true);
-        setEditorContent(finalContent.join('\n'));
+        setEditorContent(finalContent.join('\n'), isRemoteChange ? changes : undefined);
         setIsApplyingRemoteChanges(false);
 
-    }, [contentRef, changeHistoryRef, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges]);
+    }, [contentRef, changeHistoryRef, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges, localSessionId]);
 
     return {
         refetch,

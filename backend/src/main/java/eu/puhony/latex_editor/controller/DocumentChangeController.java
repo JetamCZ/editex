@@ -61,6 +61,45 @@ public class DocumentChangeController {
         messagingTemplate.convertAndSend("/topic/document/" + fileId, response);
     }
 
+    @MessageMapping("/document/{fileId}/cursor")
+    public void handleCursorUpdate(@DestinationVariable String fileId,
+                                   @Payload CursorUpdateRequest request,
+                                   Principal principal) {
+        UserDetails userDetails = (UserDetails) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal).getPrincipal();
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        CursorUpdateResponse response = new CursorUpdateResponse();
+        response.setFileId(fileId);
+        response.setSessionId(request.getSessionId());
+        response.setUserId(user.getId());
+        response.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+        response.setLine(request.getLine());
+        response.setColumn(request.getColumn());
+        response.setSelectionStartLine(request.getSelectionStartLine());
+        response.setSelectionStartColumn(request.getSelectionStartColumn());
+        response.setSelectionEndLine(request.getSelectionEndLine());
+        response.setSelectionEndColumn(request.getSelectionEndColumn());
+
+        messagingTemplate.convertAndSend("/topic/document/" + fileId + "/cursors", response);
+    }
+
+    @MessageMapping("/document/{fileId}/cursor/leave")
+    public void handleCursorLeave(@DestinationVariable String fileId,
+                                  @Payload CursorLeaveRequest request,
+                                  Principal principal) {
+        UserDetails userDetails = (UserDetails) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal).getPrincipal();
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        CursorLeaveResponse response = new CursorLeaveResponse();
+        response.setFileId(fileId);
+        response.setSessionId(request.getSessionId());
+        response.setUserId(user.getId());
+
+        messagingTemplate.convertAndSend("/topic/document/" + fileId + "/cursors/leave", response);
+    }
+
     // DTOs
     public static class ChangesBatchRequest {
         private String sessionId;
@@ -177,5 +216,85 @@ public class DocumentChangeController {
         public void setContent(String content) {
             this.content = content;
         }
+    }
+
+    // Cursor DTOs
+    public static class CursorUpdateRequest {
+        private String sessionId;
+        private Integer line;
+        private Integer column;
+        private Integer selectionStartLine;
+        private Integer selectionStartColumn;
+        private Integer selectionEndLine;
+        private Integer selectionEndColumn;
+
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Integer getLine() { return line; }
+        public void setLine(Integer line) { this.line = line; }
+        public Integer getColumn() { return column; }
+        public void setColumn(Integer column) { this.column = column; }
+        public Integer getSelectionStartLine() { return selectionStartLine; }
+        public void setSelectionStartLine(Integer selectionStartLine) { this.selectionStartLine = selectionStartLine; }
+        public Integer getSelectionStartColumn() { return selectionStartColumn; }
+        public void setSelectionStartColumn(Integer selectionStartColumn) { this.selectionStartColumn = selectionStartColumn; }
+        public Integer getSelectionEndLine() { return selectionEndLine; }
+        public void setSelectionEndLine(Integer selectionEndLine) { this.selectionEndLine = selectionEndLine; }
+        public Integer getSelectionEndColumn() { return selectionEndColumn; }
+        public void setSelectionEndColumn(Integer selectionEndColumn) { this.selectionEndColumn = selectionEndColumn; }
+    }
+
+    public static class CursorUpdateResponse {
+        private String fileId;
+        private String sessionId;
+        private Long userId;
+        private String userName;
+        private Integer line;
+        private Integer column;
+        private Integer selectionStartLine;
+        private Integer selectionStartColumn;
+        private Integer selectionEndLine;
+        private Integer selectionEndColumn;
+
+        public String getFileId() { return fileId; }
+        public void setFileId(String fileId) { this.fileId = fileId; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+        public Integer getLine() { return line; }
+        public void setLine(Integer line) { this.line = line; }
+        public Integer getColumn() { return column; }
+        public void setColumn(Integer column) { this.column = column; }
+        public Integer getSelectionStartLine() { return selectionStartLine; }
+        public void setSelectionStartLine(Integer selectionStartLine) { this.selectionStartLine = selectionStartLine; }
+        public Integer getSelectionStartColumn() { return selectionStartColumn; }
+        public void setSelectionStartColumn(Integer selectionStartColumn) { this.selectionStartColumn = selectionStartColumn; }
+        public Integer getSelectionEndLine() { return selectionEndLine; }
+        public void setSelectionEndLine(Integer selectionEndLine) { this.selectionEndLine = selectionEndLine; }
+        public Integer getSelectionEndColumn() { return selectionEndColumn; }
+        public void setSelectionEndColumn(Integer selectionEndColumn) { this.selectionEndColumn = selectionEndColumn; }
+    }
+
+    public static class CursorLeaveRequest {
+        private String sessionId;
+
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+    }
+
+    public static class CursorLeaveResponse {
+        private String fileId;
+        private String sessionId;
+        private Long userId;
+
+        public String getFileId() { return fileId; }
+        public void setFileId(String fileId) { this.fileId = fileId; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
     }
 }
