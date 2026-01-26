@@ -90,6 +90,7 @@ public class TemplateService {
             }
         } catch (IOException e) {
             log.error("Failed to initialize project from template", e);
+            throw new RuntimeException("Failed to initialize project from template", e);
         }
 
         return createdFiles;
@@ -128,7 +129,7 @@ public class TemplateService {
             return projectFileRepository.save(projectFile);
         } catch (Exception e) {
             log.error("Failed to create file from template: {}", templateFile, e);
-            return null;
+            throw new RuntimeException("Failed to upload template file to S3: " + templateFile, e);
         }
     }
 

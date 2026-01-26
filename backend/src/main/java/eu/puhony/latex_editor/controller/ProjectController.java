@@ -102,9 +102,7 @@ public class ProjectController {
         project.setName(request.getName());
         project.setOwner(owner);
         project.setBranch("main");
-        Project createdProject = projectService.createProject(project, owner);
-
-        templateService.initializeProjectFromTemplate(createdProject, request.getTemplateId(), owner);
+        Project createdProject = projectService.createProjectWithTemplate(project, owner, request.getTemplateId());
 
         ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, ProjectMember.Role.OWNER);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

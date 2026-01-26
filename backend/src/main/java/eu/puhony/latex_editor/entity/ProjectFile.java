@@ -20,13 +20,13 @@ public class ProjectFile {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(name = "project_folder", nullable = false)
+    @Column(name = "project_folder", nullable = false, length = 1024)
     private String projectFolder;
 
-    @Column(name = "file_name", nullable = false)
+    @Column(name = "file_name", nullable = false, length = 512)
     private String fileName;
 
-    @Column(name = "original_file_name", nullable = false)
+    @Column(name = "original_file_name", nullable = false, length = 512)
     private String originalFileName;
 
     @Column(name = "file_size", nullable = false)
@@ -35,7 +35,7 @@ public class ProjectFile {
     @Column(name = "file_type")
     private String fileType;
 
-    @Column(name = "s3_url", nullable = false)
+    @Column(name = "s3_url", nullable = false, columnDefinition = "TEXT")
     private String s3Url;
 
     @JsonIgnore

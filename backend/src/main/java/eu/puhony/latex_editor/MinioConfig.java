@@ -25,12 +25,20 @@ public class MinioConfig {
     @Value("${minio.auto.create.bucket}")
     private boolean autoCreateBucket;
 
+    @Value("${minio.region:}")
+    private String region;
+
     @Bean
     public MinioClient minioClient() {
-        MinioClient minioClient = MinioClient.builder()
+        MinioClient.Builder builder = MinioClient.builder()
                 .endpoint(minioUrl)
-                .credentials(accessKey, secretKey)
-                .build();
+                .credentials(accessKey, secretKey);
+
+        if (region != null && !region.isBlank()) {
+            builder.region(region);
+        }
+
+        MinioClient minioClient = builder.build();
 
         if (autoCreateBucket) {
             try {
@@ -38,9 +46,11 @@ public class MinioConfig {
                         BucketExistsArgs.builder().bucket(bucketName).build()
                 );
                 if (!bucketExists) {
-                    minioClient.makeBucket(
-                            MakeBucketArgs.builder().bucket(bucketName).build()
-                    );
+                    MakeBucketArgs.Builder makeBucketBuilder = MakeBucketArgs.builder().bucket(bucketName);
+                    if (region != null && !region.isBlank()) {
+                        makeBucketBuilder.region(region);
+                    }
+                    minioClient.makeBucket(makeBucketBuilder.build());
                     System.out.println("MinIO bucket '" + bucketName + "' created successfully.");
                 }
             } catch (Exception e) {

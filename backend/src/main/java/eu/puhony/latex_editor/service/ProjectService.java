@@ -29,6 +29,7 @@ public class ProjectService {
     private final ProjectMemberService projectMemberService;
     private final MinioService minioService;
     private final DocumentChangeService documentChangeService;
+    private final TemplateService templateService;
 
     public List<Project> getAllProjects() {
         return projectRepository.findAllNonDeleted();
@@ -73,6 +74,13 @@ public class ProjectService {
         commitRepository.save(initCommit);
 
         return savedProject;
+    }
+
+    @Transactional
+    public Project createProjectWithTemplate(Project project, User owner, String templateId) {
+        Project createdProject = createProject(project, owner);
+        templateService.initializeProjectFromTemplate(createdProject, templateId, owner);
+        return createdProject;
     }
 
     @Transactional
