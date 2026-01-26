@@ -104,9 +104,12 @@ export default function ProjectLayout() {
                     <Link to="/dashboard" style={{textDecoration: "none"}}>
                         <Text size="2" style={{color: "var(--gray-11)"}}>Projects</Text>
                     </Link>
+                    {/* TODO: Uncomment when templates page is implemented
                     <Link to="/dashboard" style={{textDecoration: "none"}}>
                         <Text size="2" style={{color: "var(--gray-11)"}}>Templates</Text>
                     </Link>
+                    */}
+                    {/* TODO: Uncomment when settings page is fully implemented
                     <Link to={`/project/${project.baseProject}/${project.branch}/settings`} style={{textDecoration: "none"}}>
                         <Text
                             size="2"
@@ -116,6 +119,7 @@ export default function ProjectLayout() {
                             Settings
                         </Text>
                     </Link>
+                    */}
                 </nav>
 
                 <div style={{flex: 1}} />

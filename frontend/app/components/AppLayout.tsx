@@ -1,6 +1,9 @@
 import {Link, useRouteLoaderData} from "react-router";
-import { Avatar, DropdownMenu, Flex, Text, TextField } from "@radix-ui/themes";
-import { MagnifyingGlassIcon, GearIcon, ExitIcon, HomeIcon, QuestionMarkCircledIcon, EnvelopeClosedIcon } from "@radix-ui/react-icons";
+import { Avatar, DropdownMenu, Flex, Text } from "@radix-ui/themes";
+import { GearIcon, ExitIcon, HomeIcon, EnvelopeClosedIcon } from "@radix-ui/react-icons";
+// TODO: Uncomment when search/support is implemented
+// import { TextField } from "@radix-ui/themes";
+// import { MagnifyingGlassIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import getInitials from "~/lib/getInitials";
 import useAuth from "~/hooks/useAuth";
 
@@ -24,13 +27,14 @@ const menuStructure: MenuCategory[] = [
       { label: "Profile", href: "/profile", icon: <GearIcon /> },
     ],
   },
-  {
-    category: "Support",
-    items: [
-      { label: "Help", href: "/help", icon: <QuestionMarkCircledIcon /> },
-      { label: "Documentation", href: "/docs", icon: <QuestionMarkCircledIcon /> },
-    ],
-  },
+  // TODO: Uncomment when support pages are implemented
+  // {
+  //   category: "Support",
+  //   items: [
+  //     { label: "Help", href: "/help", icon: <QuestionMarkCircledIcon /> },
+  //     { label: "Documentation", href: "/docs", icon: <QuestionMarkCircledIcon /> },
+  //   ],
+  // },
 ];
 
 interface AppLayoutProps {
@@ -78,7 +82,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <header className="h-16 bg-gray-2 border-b border-gray-a6 px-6 flex items-center justify-between">
-          {/* Search Bar */}
+          {/* TODO: Uncomment when search is implemented
           <div className="flex-1 max-w-xl">
             <TextField.Root
               placeholder="Search..."
@@ -89,6 +93,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </TextField.Slot>
             </TextField.Root>
           </div>
+          */}
+          <div className="flex-1" />
 
           {/* User Menu */}
           <Flex align="center" gap="3">
