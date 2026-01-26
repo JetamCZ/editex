@@ -27,3 +27,12 @@ export interface BranchPendingChanges {
     lastChangeAt: string | null;
     pendingChangeCount: number;
 }
+
+export interface FileDiff {
+    fileId: string;
+    fileName: string;
+    filePath: string;
+    oldContent: string;
+    newContent: string;
+    changeCount: number;
+}

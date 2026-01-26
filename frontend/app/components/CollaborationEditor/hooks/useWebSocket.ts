@@ -25,15 +25,21 @@ interface CursorPosition {
     selectionEndColumn?: number;
 }
 
+interface ReloadMessage {
+    branch: string;
+    reason: string;
+}
+
 interface WebSocketConfig {
     fileId: string;
     sessionId: string;
     onChangesReceived: (changes: ChangeOperation[], senderSessionId: string | null) => void;
     onCursorUpdate?: (cursor: RemoteCursor) => void;
     onCursorLeave?: (sessionId: string) => void;
+    onReload?: (message: ReloadMessage) => void;
 }
 
-export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpdate, onCursorLeave}: WebSocketConfig) => {
+export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpdate, onCursorLeave, onReload}: WebSocketConfig) => {
     const clientRef = useRef<Client | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const sessionIdRef = useRef<string>(sessionId)
@@ -87,6 +93,15 @@ export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpda
                         onCursorLeave(response.sessionId);
                     }
                 });
+
+                // Subscribe to reload events (triggered when changes are discarded)
+                client.subscribe(`/topic/document/${fileId}/reload`, (message: IMessage) => {
+                    const response = JSON.parse(message.body);
+                    console.log('Received reload message:', response);
+                    if (onReload) {
+                        onReload(response);
+                    }
+                });
             },
             onDisconnect: () => {
                 console.log('WebSocket disconnected');
@@ -100,7 +115,7 @@ export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpda
 
         client.activate();
         clientRef.current = client;
-    }, [fileId, onChangesReceived, onCursorUpdate, onCursorLeave, bearerToken]);
+    }, [fileId, onChangesReceived, onCursorUpdate, onCursorLeave, onReload, bearerToken]);
 
     const sendCursorLeave = useCallback(() => {
         if (!clientRef.current?.connected) return;

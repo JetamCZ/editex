@@ -88,4 +88,34 @@ public class CommitController {
         List<BranchPendingChanges> pendingChanges = commitService.getPendingChanges(baseProject, user.getId());
         return ResponseEntity.ok(pendingChanges);
     }
+
+    /**
+     * Get diff preview of uncommitted changes for a branch.
+     */
+    @GetMapping("/diff")
+    public ResponseEntity<List<CommitService.FileDiff>> getUncommittedDiff(
+            @PathVariable String baseProject,
+            @RequestParam String branch,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<CommitService.FileDiff> diffs = commitService.getUncommittedDiff(baseProject, branch, user.getId());
+        return ResponseEntity.ok(diffs);
+    }
+
+    /**
+     * Discard all uncommitted changes for a branch.
+     */
+    @DeleteMapping("/discard")
+    public ResponseEntity<Void> discardChanges(
+            @PathVariable String baseProject,
+            @RequestParam String branch,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        commitService.discardChanges(baseProject, branch, user.getId());
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -1,6 +1,6 @@
 import { useMemo, type ReactElement } from "react";
-import { Text, Badge } from "@radix-ui/themes";
-import { GitBranch, GitMerge, Tag, PenLine } from "lucide-react";
+import { Text, Badge, Button } from "@radix-ui/themes";
+import { GitBranch, GitMerge, Tag, PenLine, Undo2, Eye } from "lucide-react";
 import type { Commit as ApiCommit, BranchPendingChanges } from "../../../types/commit";
 
 // Internal representation for rendering
@@ -82,10 +82,13 @@ interface VersionTreeProps {
     commits?: ApiCommit[];
     pendingChanges?: BranchPendingChanges[];
     onCommitClick?: (commit: ApiCommit) => void;
+    onDiscardChanges?: (branch: string) => void;
+    onPreviewChanges?: (branch: string) => void;
     isLoading?: boolean;
+    isDiscarding?: boolean;
 }
 
-const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, isLoading }: VersionTreeProps) => {
+const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, onDiscardChanges, onPreviewChanges, isLoading, isDiscarding }: VersionTreeProps) => {
     // Convert API commits to tree commits and add uncommitted entries
     const treeCommits = useMemo(() => {
         const converted = commits.map(toTreeCommit);
@@ -531,7 +534,36 @@ const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, isLoadi
                                         </Text>
                                     </div>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    {isUncommitted && onPreviewChanges && (
+                                        <Button
+                                            size="1"
+                                            variant="soft"
+                                            color="blue"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onPreviewChanges(commit.branch);
+                                            }}
+                                        >
+                                            <Eye size={12} />
+                                            Preview
+                                        </Button>
+                                    )}
+                                    {isUncommitted && onDiscardChanges && (
+                                        <Button
+                                            size="1"
+                                            variant="soft"
+                                            color="red"
+                                            disabled={isDiscarding}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDiscardChanges(commit.branch);
+                                            }}
+                                        >
+                                            <Undo2 size={12} />
+                                            {isDiscarding ? "Discarding..." : "Discard Changes"}
+                                        </Button>
+                                    )}
                                     <Badge
                                         size="1"
                                         style={{

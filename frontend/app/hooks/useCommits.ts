@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useRouteLoaderData } from 'react-router';
-import type { Commit, CreateCommitRequest, BranchPendingChanges } from '../../types/commit';
+import type { Commit, CreateCommitRequest, BranchPendingChanges, FileDiff } from '../../types/commit';
 import type { User } from '../../types/user';
 
 interface UseCommitsOptions {
@@ -86,5 +86,59 @@ export function usePendingChanges({ baseProject, enabled = true }: UsePendingCha
         },
         enabled: enabled && !!baseProject && !!bearerToken,
         staleTime: 1000 * 30, // 30 seconds - refresh more frequently for pending changes
+    });
+}
+
+interface DiscardChangesParams {
+    baseProject: string;
+    branch: string;
+}
+
+export function useDiscardChanges() {
+    const { bearerToken } = useRouteLoaderData("auth-user") as { user: User, bearerToken: string };
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ baseProject, branch }: DiscardChangesParams) => {
+            await axios.delete(
+                `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/commits/discard?branch=${encodeURIComponent(branch)}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${bearerToken}`
+                    }
+                }
+            );
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['commits', variables.baseProject] });
+            queryClient.invalidateQueries({ queryKey: ['pendingChanges', variables.baseProject] });
+        }
+    });
+}
+
+interface UseUncommittedDiffOptions {
+    baseProject: string;
+    branch: string;
+    enabled?: boolean;
+}
+
+export function useUncommittedDiff({ baseProject, branch, enabled = true }: UseUncommittedDiffOptions) {
+    const { bearerToken } = useRouteLoaderData("auth-user") as { user: User, bearerToken: string };
+
+    return useQuery({
+        queryKey: ['uncommittedDiff', baseProject, branch],
+        queryFn: async () => {
+            const response = await axios.get<FileDiff[]>(
+                `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/projects/${baseProject}/commits/diff?branch=${encodeURIComponent(branch)}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${bearerToken}`
+                    }
+                }
+            );
+            return response.data;
+        },
+        enabled: enabled && !!baseProject && !!branch && !!bearerToken,
+        staleTime: 1000 * 10, // 10 seconds
     });
 }

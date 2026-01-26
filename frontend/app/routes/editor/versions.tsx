@@ -4,11 +4,12 @@ import type { ProjectMember } from "../../../types/member";
 import type { Branch } from "../../../types/branch";
 import { Box, Text, Button, Badge, Card, Heading, Separator } from "@radix-ui/themes";
 import { useBranches } from "~/hooks/useBranches";
-import { useCommits, usePendingChanges } from "~/hooks/useCommits";
-import { useState, useMemo } from "react";
+import { useCommits, usePendingChanges, useDiscardChanges, useUncommittedDiff } from "~/hooks/useCommits";
+import { useState, useMemo, useEffect } from "react";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
 import CreateCommitDialog from "~/components/CreateCommitDialog";
 import MergeBranchDialog from "~/components/MergeBranchDialog";
+import DiffPreviewDialog from "~/components/DiffPreviewDialog";
 import { GitBranch, Plus, GitMerge, Tag } from "lucide-react";
 import VersionTree from "~/components/VersionTree";
 
@@ -40,6 +41,8 @@ const VersionsPage = () => {
     const [mergeBranchDialogOpen, setMergeBranchDialogOpen] = useState(false);
     const [selectedBranchForMerge, setSelectedBranchForMerge] = useState<Branch | null>(null);
     const [createCommitDialogOpen, setCreateCommitDialogOpen] = useState(false);
+    const [diffPreviewDialogOpen, setDiffPreviewDialogOpen] = useState(false);
+    const [selectedBranchForDiff, setSelectedBranchForDiff] = useState<string>("");
 
     const { data: branches = [], isLoading: branchesLoading } = useBranches({
         baseProject: project.baseProject
@@ -52,6 +55,20 @@ const VersionsPage = () => {
     const { data: pendingChanges = [], refetch: refetchPendingChanges } = usePendingChanges({
         baseProject: project.baseProject
     });
+
+    const discardChangesMutation = useDiscardChanges();
+
+    const { data: diffData = [], isLoading: isDiffLoading } = useUncommittedDiff({
+        baseProject: project.baseProject,
+        branch: selectedBranchForDiff,
+        enabled: diffPreviewDialogOpen && !!selectedBranchForDiff
+    });
+
+    // Refresh data when page is loaded
+    useEffect(() => {
+        refetchCommits();
+        refetchPendingChanges();
+    }, []);
 
     // Build tree structure from branches
     const branchTree = useMemo(() => {
@@ -114,6 +131,38 @@ const VersionsPage = () => {
     const handleCommitCreated = () => {
         refetchCommits();
         refetchPendingChanges();
+    };
+
+    const handlePreviewChanges = (branch: string) => {
+        setSelectedBranchForDiff(branch);
+        setDiffPreviewDialogOpen(true);
+    };
+
+    const handleDiscardChanges = (branch: string) => {
+        if (window.confirm("Are you sure you want to discard all unsaved changes? All changes will be reverted including work of other users in this branch! This action cannot be undone.")) {
+            discardChangesMutation.mutate(
+                { baseProject: project.baseProject, branch },
+                {
+                    onSuccess: () => {
+                        refetchCommits();
+                        refetchPendingChanges();
+                    }
+                }
+            );
+        }
+    };
+
+    const handleConfirmDiscardFromDialog = () => {
+        discardChangesMutation.mutate(
+            { baseProject: project.baseProject, branch: selectedBranchForDiff },
+            {
+                onSuccess: () => {
+                    setDiffPreviewDialogOpen(false);
+                    refetchCommits();
+                    refetchPendingChanges();
+                }
+            }
+        );
     };
 
     // Render branch node in the tree
@@ -340,6 +389,9 @@ const VersionsPage = () => {
                             commits={commits}
                             pendingChanges={pendingChanges}
                             isLoading={commitsLoading}
+                            onDiscardChanges={handleDiscardChanges}
+                            onPreviewChanges={handlePreviewChanges}
+                            isDiscarding={discardChangesMutation.isPending}
                         />
                     </div>
                 </Card>
@@ -374,6 +426,16 @@ const VersionsPage = () => {
                     onMergeComplete={handleMergeComplete}
                 />
             )}
+
+            {/* Diff Preview Dialog */}
+            <DiffPreviewDialog
+                open={diffPreviewDialogOpen}
+                onOpenChange={setDiffPreviewDialogOpen}
+                diffs={diffData}
+                isLoading={isDiffLoading}
+                onConfirmDiscard={handleConfirmDiscardFromDialog}
+                isDiscarding={discardChangesMutation.isPending}
+            />
         </Box>
     );
 };

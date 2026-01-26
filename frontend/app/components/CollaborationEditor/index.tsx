@@ -320,12 +320,19 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         }
     }, []);
 
+    // Handle reload event (triggered when changes are discarded)
+    const handleReload = useCallback(() => {
+        console.log('Reloading file due to discard changes event');
+        refetch();
+    }, [refetch]);
+
     const {isConnected, sendChanges, sendCursorPosition} = useWebSocket({
         fileId: props.selectedFile.id,
         sessionId: sessionIdRef.current,
         onChangesReceived,
         onCursorUpdate: handleCursorUpdate,
         onCursorLeave: handleCursorLeave,
+        onReload: handleReload,
     });
 
     const handleShowChanges = () => {

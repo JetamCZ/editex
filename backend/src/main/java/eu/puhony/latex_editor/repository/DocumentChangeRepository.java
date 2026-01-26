@@ -38,4 +38,11 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC")
     List<DocumentChange> findRecentByProjectId(@Param("projectId") Long projectId, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.createdAt > " +
+           "(SELECT dc2.createdAt FROM DocumentChange dc2 WHERE dc2.id = :afterChangeId)")
+    List<DocumentChange> findByProjectIdAfterChange(@Param("projectId") Long projectId, @Param("afterChangeId") String afterChangeId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
+    List<DocumentChange> findAllByProjectId(@Param("projectId") Long projectId);
 }
