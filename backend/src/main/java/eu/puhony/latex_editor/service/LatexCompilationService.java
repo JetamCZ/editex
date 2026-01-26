@@ -38,7 +38,7 @@ public class LatexCompilationService {
     @Value("${latex.compiler.path:pdflatex}")
     private String compilerPath;
 
-    public CompilationResult compileLatex(String baseProject, String branch, Long userId) throws Exception {
+    public CompilationResult compileLatex(String baseProject, String branch, String targetFile, Long userId) throws Exception {
         long startTime = System.currentTimeMillis();
         File workDir = null;
 
@@ -56,21 +56,26 @@ public class LatexCompilationService {
             // 3. Download all project files (with changes applied for .tex files)
             downloadProjectDependencies(project.getId(), workDir, userId);
 
-            // 4. Always compile main.tex
-            String mainTexFile = "main.tex";
+            // 4. Resolve target file (default to main.tex if null/empty)
+            String mainTexFile = resolveTargetFile(targetFile, workDir);
 
             // 5. Execute pdflatex
             CompilationResult result = executePdfLatex(workDir, mainTexFile);
 
+            // Set source file in result
+            result.setSourceFile(mainTexFile);
+
             // 6. If successful, upload PDF to S3 (without creating ProjectFile)
             if (result.isSuccess()) {
-                String localPdfFileName = "main.pdf";
+                // Derive PDF name from source file
+                String baseName = mainTexFile.replaceAll("\\.tex$", "");
+                String localPdfFileName = baseName + ".pdf";
                 File pdfFile = new File(workDir, localPdfFileName);
 
                 if (pdfFile.exists()) {
-                    // Upload PDF with consistent name (overwrites previous version)
+                    // Upload PDF with name derived from source (overwrites previous version)
                     String s3Folder = baseProject + "/" + branch + "/compiled";
-                    String s3PdfFileName = "main.pdf";
+                    String s3PdfFileName = baseName + ".pdf";
 
                     System.out.println("Uploading PDF to S3:");
                     System.out.println("  Folder: " + s3Folder);
@@ -101,6 +106,35 @@ public class LatexCompilationService {
                 cleanupDirectory(workDir);
             }
         }
+    }
+
+    /**
+     * Resolve and validate the target .tex file to compile.
+     * Defaults to "main.tex" if null/empty. Sanitizes to prevent path traversal.
+     */
+    private String resolveTargetFile(String targetFile, File workDir) {
+        // Default to main.tex if not specified
+        if (targetFile == null || targetFile.trim().isEmpty()) {
+            return "main.tex";
+        }
+
+        // Sanitize: remove any path components (prevent path traversal)
+        String sanitized = targetFile.trim();
+        // Remove any directory separators
+        sanitized = sanitized.replace("/", "").replace("\\", "");
+
+        // Ensure it ends with .tex
+        if (!sanitized.toLowerCase().endsWith(".tex")) {
+            sanitized = sanitized + ".tex";
+        }
+
+        // Verify the file exists in the work directory
+        File targetFileObj = new File(workDir, sanitized);
+        if (!targetFileObj.exists()) {
+            throw new RuntimeException("Target file not found: " + sanitized);
+        }
+
+        return sanitized;
     }
 
     private File createCompilationDirectory() throws IOException {

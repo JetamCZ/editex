@@ -14,4 +14,5 @@ public class CompilationResult {
     private String compilationLog; // stdout + stderr from pdflatex
     private String errorMessage;   // User-friendly error if failed
     private long compilationTimeMs;
+    private String sourceFile;     // Which .tex file was compiled
 }

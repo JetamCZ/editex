@@ -5,6 +5,7 @@ import { useRouteLoaderData } from 'react-router';
 interface CompilationRequest {
     baseProject: string;
     branch?: string;
+    targetFile?: string;
 }
 
 interface CompilationResult {
@@ -14,6 +15,7 @@ interface CompilationResult {
     compilationLog: string;
     errorMessage: string | null;
     compilationTimeMs: number;
+    sourceFile?: string;
 }
 
 export function useLatexCompilation() {

@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class CompilationRequest {
     private String baseProject;  // The base project UUID
     private String branch = "main";  // The branch to compile (defaults to "main")
+    private String targetFile;  // Optional: .tex file to compile (defaults to "main.tex")
 }

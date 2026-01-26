@@ -3,7 +3,7 @@ import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import {useState, useEffect, useRef} from "react";
 import {createPortal} from "react-dom";
-import {Box, Text, Button, Badge} from "@radix-ui/themes";
+import {Box, Text, Button, Badge, Select} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import {useBranches} from "~/hooks/useBranches";
 import ProjectFiles from "./ProjectFiles";
@@ -38,6 +38,7 @@ const EditorPage = () => {
         errorMessage: string | null;
         compilationLog: string | null;
     }>({ open: false, errorMessage: null, compilationLog: null });
+    const [compileTarget, setCompileTarget] = useState<string>("main.tex");
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
     const [editorState, setEditorState] = useState<{
         changeHistory: any[];
@@ -57,6 +58,11 @@ const EditorPage = () => {
     });
 
     const compilationMutation = useLatexCompilation();
+
+    // Derive list of .tex files for compilation target dropdown
+    const texFiles = uploadedFiles.filter(f =>
+        f.originalFileName.toLowerCase().endsWith('.tex')
+    );
 
     // Get header actions container
     useEffect(() => {
@@ -95,6 +101,19 @@ const EditorPage = () => {
         }
     }, [params.fileId, uploadedFiles, selectedFileId, project.baseProject, project.branch, navigate]);
 
+    // Auto-select compile target when files load
+    useEffect(() => {
+        if (texFiles.length > 0) {
+            // Check if current compileTarget exists in texFiles
+            const exists = texFiles.some(f => f.originalFileName === compileTarget);
+            if (!exists) {
+                // Try to find main.tex, otherwise use first .tex file
+                const mainTex = texFiles.find(f => f.originalFileName.toLowerCase() === 'main.tex');
+                setCompileTarget(mainTex ? mainTex.originalFileName : texFiles[0].originalFileName);
+            }
+        }
+    }, [texFiles, compileTarget]);
+
     const handleFileClick = async (fileId: string) => {
         setSelectedFileId(fileId);
         navigate(`/project/${project.baseProject}/${project.branch}/file/${fileId}`);
@@ -126,7 +145,7 @@ const EditorPage = () => {
 
     const handleCompile = () => {
         compilationMutation.mutate(
-            {baseProject: project.baseProject, branch: project.branch},
+            {baseProject: project.baseProject, branch: project.branch, targetFile: compileTarget},
             {
                 onSuccess: (result) => {
                     handleCompilationResult(result);
@@ -177,11 +196,25 @@ const EditorPage = () => {
                     onSendChanges={handleSendChanges}
                 />
             )}
+            <Select.Root
+                value={compileTarget}
+                onValueChange={setCompileTarget}
+                disabled={texFiles.length === 0}
+            >
+                <Select.Trigger style={{minWidth: "140px"}} />
+                <Select.Content>
+                    {texFiles.map(file => (
+                        <Select.Item key={file.id} value={file.originalFileName}>
+                            {file.originalFileName}
+                        </Select.Item>
+                    ))}
+                </Select.Content>
+            </Select.Root>
             <Button
                 size="2"
                 style={{backgroundColor: "var(--blue-9)"}}
                 onClick={handleCompile}
-                disabled={!selectedFileId || compilationMutation.isPending}
+                disabled={texFiles.length === 0 || compilationMutation.isPending}
                 loading={compilationMutation.isPending}
             >
                 <PlayIcon /> Compile

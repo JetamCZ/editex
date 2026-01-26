@@ -29,9 +29,11 @@ public class LatexCompilationController {
 
         try {
             String branch = request.getBranch() != null ? request.getBranch() : "main";
+            String targetFile = request.getTargetFile();
             CompilationResult result = compilationService.compileLatex(
                 request.getBaseProject(),
                 branch,
+                targetFile,
                 user.getId()
             );
             return ResponseEntity.ok(result);
