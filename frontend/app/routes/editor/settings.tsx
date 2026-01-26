@@ -14,6 +14,14 @@ import {
 import useAuth from "~/hooks/useAuth";
 import {ProjectInfoCard, TeamMembersCard, DangerZoneCard} from "./settings/index";
 
+export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
+    const parentData = matches.find(m => m.data?.project)?.data;
+    const projectName = parentData?.project?.name || "Project";
+    return [
+        { title: `Settings - ${projectName} - Editex` },
+    ];
+}
+
 interface OutletContextType {
     project: Project;
     members: ProjectMember[];

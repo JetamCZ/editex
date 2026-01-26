@@ -7,6 +7,13 @@ import { Box, Card, Flex, Text, TextField, Button, Heading, Avatar, Separator, C
 import { PersonIcon, LockClosedIcon, CheckCircledIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { useState, useEffect } from "react";
 
+export function meta() {
+    return [
+        { title: "Profile - Editex" },
+        { name: "description", content: "Manage your profile settings" },
+    ];
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
     const api = await getApiClient(request);
 

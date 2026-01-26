@@ -12,6 +12,14 @@ import MergeBranchDialog from "~/components/MergeBranchDialog";
 import { GitBranch, Plus, GitMerge, Tag } from "lucide-react";
 import VersionTree from "~/components/VersionTree";
 
+export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
+    const parentData = matches.find(m => m.data?.project)?.data;
+    const projectName = parentData?.project?.name || "Project";
+    return [
+        { title: `Versions - ${projectName} - Editex` },
+    ];
+}
+
 interface OutletContextType {
     project: Project;
     members: ProjectMember[];

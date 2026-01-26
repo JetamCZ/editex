@@ -15,6 +15,14 @@ import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
 import type {ReactNode} from "react";
 
+export function meta({ data }: { data: { project: Project } | undefined }) {
+    const projectName = data?.project?.name || "Project";
+    return [
+        { title: `${projectName} - Editex` },
+        { name: "description", content: `Edit ${projectName} in Editex` },
+    ];
+}
+
 export async function loader({request, params}: LoaderFunctionArgs) {
     const api = await getApiClient(request);
     const {baseProject, branch = "main"} = params;

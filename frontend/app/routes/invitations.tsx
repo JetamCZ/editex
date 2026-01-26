@@ -8,6 +8,13 @@ import { Link, useLoaderData, useRevalidator, type LoaderFunctionArgs } from "re
 import AppLayout from "../components/AppLayout";
 import { getApiClient } from "~/lib/axios.server";
 
+export function meta() {
+    return [
+        { title: "Invitations - Editex" },
+        { name: "description", content: "Manage your project invitations" },
+    ];
+}
+
 interface InvitationsData {
   receivedInvites: ProjectInvitation[];
   sentInvites: ProjectInvitation[];

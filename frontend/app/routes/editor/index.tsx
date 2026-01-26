@@ -19,6 +19,14 @@ import EditorToolbar from "~/components/EditorToolbar";
 import {FileTextIcon, PlayIcon} from "@radix-ui/react-icons";
 import {Upload, GitBranch, Plus} from "lucide-react";
 
+export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
+    const parentData = matches.find(m => m.data?.project)?.data;
+    const projectName = parentData?.project?.name || "Editor";
+    return [
+        { title: `Editor - ${projectName} - Editex` },
+    ];
+}
+
 interface OutletContextType {
     project: Project;
     members: ProjectMember[];

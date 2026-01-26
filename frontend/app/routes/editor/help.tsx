@@ -16,6 +16,13 @@ import {
     ScrollArea,
 } from "@radix-ui/themes";
 
+export function meta() {
+    return [
+        { title: "LaTeX Reference - Editex" },
+        { name: "description", content: "Quick reference for LaTeX commands and syntax" },
+    ];
+}
+
 interface OutletContextType {
     project: Project;
     members: ProjectMember[];

@@ -6,6 +6,14 @@ import { useRecentChanges } from "~/hooks/useRecentChanges";
 import { Clock, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import getInitials from "~/lib/getInitials";
 
+export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
+    const parentData = matches.find(m => m.data?.project)?.data;
+    const projectName = parentData?.project?.name || "Project";
+    return [
+        { title: `History - ${projectName} - Editex` },
+    ];
+}
+
 interface OutletContextType {
     project: Project;
     members: ProjectMember[];

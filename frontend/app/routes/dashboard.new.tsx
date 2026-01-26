@@ -4,6 +4,13 @@ import { getApiClient } from "../lib/axios.server";
 import type { Project } from "../../types/project";
 import { useState } from "react";
 
+export function meta() {
+    return [
+        { title: "New Project - Editex" },
+        { name: "description", content: "Create a new LaTeX project" },
+    ];
+}
+
 interface Template {
   id: string;
   name: string;

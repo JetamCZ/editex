@@ -4,6 +4,13 @@ import api from '../lib/axios.server';
 import delay from "~/lib/delay";
 import {commitSession, getSession} from "~/lib/sessions.server";
 
+export function meta() {
+    return [
+        { title: "Register - Editex" },
+        { name: "description", content: "Create a new Editex account" },
+    ];
+}
+
 export async function action({request}: ActionFunctionArgs) {
   await delay(1000)
 
