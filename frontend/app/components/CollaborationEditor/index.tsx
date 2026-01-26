@@ -42,7 +42,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     const sessionIdRef = useRef<string>(uuidv4());
     const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
 
-    const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges} = useChangeTracking();
+    const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, undo, redo} = useChangeTracking();
 
     // Wrap selected text with LaTeX command
     const wrapWithLatexCommand = useCallback((command: string) => {
@@ -541,6 +541,28 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             label: 'LaTeX Numbered List',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyO],
             run: () => insertListEnvironment('enumerate')
+        });
+
+        // Override default undo/redo with custom implementation for collaborative editing
+        editor.addAction({
+            id: 'custom-undo',
+            label: 'Undo',
+            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ],
+            run: () => { undo(editor); }
+        });
+
+        editor.addAction({
+            id: 'custom-redo',
+            label: 'Redo',
+            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY],
+            run: () => { redo(editor); }
+        });
+
+        editor.addAction({
+            id: 'custom-redo-shift',
+            label: 'Redo',
+            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ],
+            run: () => { redo(editor); }
         });
     };
 
