@@ -36,6 +36,17 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME}
       - S3_REGION=${S3_REGION}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_PROTOCOL=${MAIL_PROTOCOL:-smtp}
+      - MAIL_AUTH=${MAIL_AUTH:-true}
+      - MAIL_SSL=${MAIL_SSL:-false}
+      - MAIL_STARTTLS=${MAIL_STARTTLS:-true}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_DEBUG=${MAIL_DEBUG:-false}
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       postgres:
         condition: service_healthy

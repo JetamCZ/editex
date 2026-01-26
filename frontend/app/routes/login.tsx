@@ -1,6 +1,7 @@
 import {Link, redirect, useActionData, useNavigation, Form} from 'react-router';
 import type {ActionFunctionArgs} from "react-router";
-import {Button, Card, TextField, Flex, Text, Heading, Callout} from '@radix-ui/themes';
+import {Button, Card, TextField, Flex, Text, Callout} from '@radix-ui/themes';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 import api from '../lib/axios.server';
 import delay from "~/lib/delay";
 import {commitSession, getSession} from "~/lib/sessions.server";
@@ -15,9 +16,25 @@ export function meta() {
 export async function action({request}: ActionFunctionArgs) {
     await delay(1000)
 
-    try {
-        const formData = await request.formData();
+    const formData = await request.formData();
+    const intent = formData.get('intent');
 
+    if (intent === 'resend-verification') {
+        try {
+            const email = formData.get('email');
+            await api.post('/auth/resend-verification', { email });
+            return {
+                verificationSent: true,
+                email: email as string,
+            };
+        } catch (err: any) {
+            return {
+                error: 'Failed to resend verification email. Please try again.',
+            };
+        }
+    }
+
+    try {
         const response = await api.post<{ token: string }>('/auth/login', formData);
 
         const session = await getSession(request);
@@ -31,8 +48,16 @@ export async function action({request}: ActionFunctionArgs) {
     } catch (err: any) {
         console.error("ERROR", "login-action", err);
 
+        if (err.response?.status === 403 && err.response?.data?.error === 'Email not verified') {
+            return {
+                emailNotVerified: true,
+                email: err.response?.data?.email,
+                error: err.response?.data?.message,
+            };
+        }
+
         return {
-            error: err.response?.data?.message || 'Login failed. Please try again.',
+            error: err.response?.data?.message || err.response?.data?.error || 'Login failed. Please try again.',
         }
     }
 }
@@ -40,6 +65,8 @@ export async function action({request}: ActionFunctionArgs) {
 export default function Login() {
     const actionData = useActionData<typeof action>()
     const error = actionData?.error
+    const emailNotVerified = actionData?.emailNotVerified
+    const verificationSent = actionData?.verificationSent
 
     const navigation = useNavigation();
     const loading = navigation.state !== "idle"
@@ -55,7 +82,36 @@ export default function Login() {
                 <Flex direction="column" gap="4">
                     <img src="/logo.svg" style={{maxHeight: '80px', marginBottom: '1rem'}}/>
 
-                    {error && (
+                    {verificationSent && (
+                        <Callout.Root color="green">
+                            <Callout.Text>
+                                Verification email sent to {actionData?.email}. Please check your inbox.
+                            </Callout.Text>
+                        </Callout.Root>
+                    )}
+
+                    {emailNotVerified && !verificationSent && (
+                        <Callout.Root color="amber">
+                            <Callout.Icon>
+                                <InfoCircledIcon />
+                            </Callout.Icon>
+                            <Callout.Text>
+                                {error}
+                            </Callout.Text>
+                        </Callout.Root>
+                    )}
+
+                    {emailNotVerified && !verificationSent && (
+                        <Form method="post">
+                            <input type="hidden" name="intent" value="resend-verification" />
+                            <input type="hidden" name="email" value={actionData?.email || ''} />
+                            <Button type="submit" size="2" variant="outline" style={{ width: '100%' }} disabled={loading}>
+                                {loading ? 'Sending...' : 'Resend Verification Email'}
+                            </Button>
+                        </Form>
+                    )}
+
+                    {error && !emailNotVerified && (
                         <Callout.Root color="red">
                             <Callout.Text>{error}</Callout.Text>
                         </Callout.Root>
@@ -92,6 +148,12 @@ export default function Login() {
                             </Button>
                         </Flex>
                     </Form>
+
+                    <Text size="2" align="center">
+                        <Link to="/auth/forgot-password" style={{color: 'var(--accent-9)'}}>
+                            Forgot password?
+                        </Link>
+                    </Text>
 
                     <Text size="2" align="center">
                         Don't have an account?{' '}

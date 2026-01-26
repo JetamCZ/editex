@@ -6,6 +6,9 @@ export default [
     route("auth/login", "routes/login.tsx"),
     route("auth/register", "routes/register.tsx"),
     route("auth/logout", "routes/logout.tsx"),
+    route("auth/verify-email", "routes/verify-email.tsx"),
+    route("auth/forgot-password", "routes/forgot-password.tsx"),
+    route("auth/reset-password", "routes/reset-password.tsx"),
 
     // Auth layout wraps all protected routes
     layout("routes/api/auth-user.tsx", {id: "auth-user"}, [
