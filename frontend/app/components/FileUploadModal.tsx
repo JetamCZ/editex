@@ -24,7 +24,7 @@ export default function FileUploadModal({
   onOpenChange,
   baseProject,
   branch = "main",
-  folder = "/files",
+  folder = "/",
 }: FileUploadModalProps) {
   const {bearerToken} = useAuth()
   const queryClient = useQueryClient();

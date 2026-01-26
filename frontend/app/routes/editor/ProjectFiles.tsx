@@ -49,7 +49,7 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
     // Extract unique folders from files
     const folders = useMemo(() => {
         const folderSet = new Set<string>();
-        folderSet.add("/files"); // Always include root
+        folderSet.add("/"); // Always include root
         uploadedFiles.forEach(file => {
             if (file.projectFolder) {
                 folderSet.add(file.projectFolder);

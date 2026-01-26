@@ -22,15 +22,22 @@ public class FileService {
     private final MinioService minioService;
     private final ProjectMemberService projectMemberService;
 
+    private static final String SOURCES_ROOT = "/sources";
+
     @Transactional
     public ProjectFile uploadFile(MultipartFile file, Project project, String folder, User uploadedBy) throws Exception {
         projectMemberService.ensureCanEdit(project.getBaseProject(), uploadedBy.getId());
 
-        String s3Url = minioService.uploadFile(file, project.getBaseProject() + "/" + project.getBranch() + folder);
+        // Validate and normalize folder path
+        String normalizedFolder = validateAndNormalizeFolder(folder);
+
+        // S3 path: {baseProject}/{branch}/sources{folder}
+        String s3Path = project.getBaseProject() + "/" + project.getBranch() + SOURCES_ROOT + normalizedFolder;
+        String s3Url = minioService.uploadFile(file, s3Path);
 
         ProjectFile projectFile = new ProjectFile();
         projectFile.setProject(project);
-        projectFile.setProjectFolder(folder);
+        projectFile.setProjectFolder(normalizedFolder);
         projectFile.setFileName(file.getOriginalFilename());
         projectFile.setOriginalFileName(file.getOriginalFilename());
         projectFile.setFileSize(file.getSize());
@@ -87,10 +94,13 @@ public class FileService {
 
         projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
 
+        // Validate and normalize target folder
+        String normalizedFolder = validateAndNormalizeFolder(targetFolder);
+
         String currentFolder = file.getProjectFolder();
 
         // Don't move if already in the target folder
-        if (currentFolder.equals(targetFolder)) {
+        if (currentFolder.equals(normalizedFolder)) {
             return file;
         }
 
@@ -101,25 +111,52 @@ public class FileService {
                 throw new RuntimeException("Could not extract object name from URL");
             }
 
-            // Build new S3 path
+            // Build new S3 path: {baseProject}/{branch}/sources{folder}
             String baseProject = file.getProject().getBaseProject();
             String branch = file.getProject().getBranch();
-            String newFolder = baseProject + "/" + branch + targetFolder;
+            String newS3Path = baseProject + "/" + branch + SOURCES_ROOT + normalizedFolder;
 
             // Copy file to new location
-            String newS3Url = minioService.copyFile(currentObjectName, newFolder, file.getFileName());
+            String newS3Url = minioService.copyFile(currentObjectName, newS3Path, file.getFileName());
 
             // Delete old file from S3
             minioService.deleteFile(currentObjectName);
 
             // Update the database record
-            file.setProjectFolder(targetFolder);
+            file.setProjectFolder(normalizedFolder);
             file.setS3Url(newS3Url);
 
             return fileRepository.save(file);
         } catch (Exception e) {
             throw new RuntimeException("Error moving file: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Validates and normalizes a folder path.
+     * - Must start with /
+     * - Cannot contain path traversal (..)
+     * - Trailing slashes are removed (except for root /)
+     */
+    private String validateAndNormalizeFolder(String folder) {
+        if (folder == null || folder.isEmpty()) {
+            return "/";
+        }
+
+        // Ensure it starts with /
+        String normalized = folder.startsWith("/") ? folder : "/" + folder;
+
+        // Remove trailing slashes (except for root)
+        while (normalized.length() > 1 && normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+
+        // Check for path traversal attempts
+        if (normalized.contains("..")) {
+            throw new IllegalArgumentException("Invalid folder path: path traversal not allowed");
+        }
+
+        return normalized;
     }
 
     @Transactional

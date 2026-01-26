@@ -28,7 +28,7 @@ export default function MoveFileDialog({
     const handleMove = () => {
         if (showNewFolder && newFolderName.trim()) {
             // Create new folder path
-            const newFolder = "/files/" + newFolderName.trim().replace(/^\/+|\/+$/g, '');
+            const newFolder = "/" + newFolderName.trim().replace(/^\/+|\/+$/g, '');
             onMove(newFolder);
         } else if (selectedFolder && selectedFolder !== currentFolder) {
             onMove(selectedFolder);
@@ -50,8 +50,8 @@ export default function MoveFileDialog({
 
     // Get display name for folder
     const getFolderDisplayName = (folder: string) => {
-        if (folder === "/files") return "Root (files)";
-        return folder.replace("/files/", "").replace("/files", "Root");
+        if (folder === "/") return "Root";
+        return folder.replace(/^\//, "");
     };
 
     return (

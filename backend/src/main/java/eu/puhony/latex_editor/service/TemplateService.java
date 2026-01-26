@@ -30,6 +30,7 @@ public class TemplateService {
     private final ProjectFileRepository projectFileRepository;
 
     private static final String TEMPLATES_CONFIG = "templates/templates.json";
+    private static final String SOURCES_ROOT = "/sources";
 
     public List<TemplateInfo> getAvailableTemplates() {
         List<TemplateInfo> templates = new ArrayList<>();
@@ -110,9 +111,9 @@ public class TemplateService {
                 fos.write(content);
             }
 
-            String s3Url = minioService.uploadFile(tempFile,
-                project.getBaseProject() + "/" + project.getBranch() + folder,
-                getContentType(filename));
+            // S3 path: {baseProject}/{branch}/sources{folder}
+            String s3Path = project.getBaseProject() + "/" + project.getBranch() + SOURCES_ROOT + folder;
+            String s3Url = minioService.uploadFile(tempFile, s3Path, getContentType(filename));
 
             tempFile.delete();
 

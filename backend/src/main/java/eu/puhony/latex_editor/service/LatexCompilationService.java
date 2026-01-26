@@ -305,11 +305,11 @@ public class LatexCompilationService {
 
     private File resolveDestinationFile(File workDir, String projectFolder, String filename) throws IOException {
         // Convert project folder path to relative path within workDir
-        // e.g., "/files" -> "", "/files/sections" -> "sections"
+        // Folder paths are now relative to /sources root, e.g., "/" -> "", "/sections" -> "sections"
         String relativePath = "";
-        if (projectFolder != null && !projectFolder.isEmpty()) {
-            // Remove leading "/files" prefix if present
-            relativePath = projectFolder.replaceFirst("^/files/?", "");
+        if (projectFolder != null && !projectFolder.isEmpty() && !projectFolder.equals("/")) {
+            // Remove leading slash
+            relativePath = projectFolder.replaceFirst("^/", "");
         }
 
         File destDir;

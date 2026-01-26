@@ -501,7 +501,7 @@ const EditorPage = () => {
                 onOpenChange={setUploadModalOpen}
                 baseProject={project.baseProject}
                 branch={project.branch}
-                folder="/files"
+                folder="/"
             />
 
             {/* Create File Modal */}

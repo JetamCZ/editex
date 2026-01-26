@@ -48,7 +48,7 @@ public class FileController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("baseProject") String baseProject,
             @RequestParam(value = "branch", defaultValue = "main") String branch,
-            @RequestParam(value = "folder", defaultValue = "/files") String folder,
+            @RequestParam(value = "folder", defaultValue = "/") String folder,
             Authentication authentication) {
 
         try {

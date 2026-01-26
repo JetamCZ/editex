@@ -6,7 +6,7 @@
       "description": "Start from scratch with no files",
       "files": [
         {
-          "path": "/files",
+          "path": "/",
           "filename": "main.tex",
           "templateFile": "empty/main.tex"
         }
@@ -18,17 +18,17 @@
       "description": "A complete LaTeX document with sections demonstrating basic features",
       "files": [
         {
-          "path": "/files",
+          "path": "/",
           "filename": "main.tex",
           "templateFile": "default/main.tex"
         },
         {
-          "path": "/files/sections",
+          "path": "/sections",
           "filename": "01-introduction.tex",
           "templateFile": "default/sections/01-introduction.tex"
         },
         {
-          "path": "/files/sections",
+          "path": "/sections",
           "filename": "02-examples.tex",
           "templateFile": "default/sections/02-examples.tex"
         }
@@ -40,17 +40,17 @@
       "description": "A template with an example document and image",
       "files": [
         {
-          "path": "/files",
+          "path": "/",
           "filename": "main.tex",
           "templateFile": "overleaf/main.tex"
         },
         {
-          "path": "/files",
+          "path": "/",
           "filename": "frog.jpg",
           "templateFile": "overleaf/frog.jpg"
         },
         {
-          "path": "/files",
+          "path": "/",
           "filename": "sample.bib",
           "templateFile": "overleaf/sample.bib"
         }
