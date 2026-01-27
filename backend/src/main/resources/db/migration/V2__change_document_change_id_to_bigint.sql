@@ -1,6 +1,6 @@
 -- Migration to change document_changes.id from UUID to BIGINT auto-increment
 -- This fixes the sorting issue where changes with the same timestamp had undefined order
--- SQLite doesn't support ALTER TABLE to modify column types, so we recreate the tables
+-- We recreate the tables to ensure proper ordering of existing data
 
 -- ============================================
 -- Step 1: Recreate document_changes table
@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS document_changes_new;
 
 -- Create new table with BIGINT auto-increment id
 CREATE TABLE document_changes_new (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGSERIAL PRIMARY KEY,
     file_id VARCHAR(36) NOT NULL,
     user_id BIGINT NOT NULL,
     session_id VARCHAR(255) NOT NULL,
