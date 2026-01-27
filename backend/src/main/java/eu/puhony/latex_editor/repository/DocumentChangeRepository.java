@@ -45,4 +45,7 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
     List<DocumentChange> findAllByProjectId(@Param("projectId") Long projectId);
+
+    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.createdAt > :afterTimestamp")
+    long countByProjectIdAfterTimestamp(@Param("projectId") Long projectId, @Param("afterTimestamp") java.time.LocalDateTime afterTimestamp);
 }

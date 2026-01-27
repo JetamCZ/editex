@@ -1,6 +1,6 @@
 import { useMemo, type ReactElement } from "react";
 import { Text, Badge, Button } from "@radix-ui/themes";
-import { GitBranch, GitMerge, Tag, PenLine, Undo2, Eye } from "lucide-react";
+import { GitBranch, GitMerge, Tag, PenLine, Undo2, Eye, Save } from "lucide-react";
 import type { Commit as ApiCommit, BranchPendingChanges } from "../../../types/commit";
 
 // Internal representation for rendering
@@ -11,7 +11,7 @@ interface TreeCommit {
     author: string;
     timestamp: Date;
     branch: string;
-    type: "commit" | "merge" | "split" | "uncommitted";
+    type: "commit" | "merge" | "split" | "autocommit" | "uncommitted";
     sourceBranch?: string;
     targetBranch?: string;
     pendingChangeCount?: number;
@@ -46,9 +46,10 @@ const getBranchColor = (branchName: string): string => {
 
 // Convert API commit to tree commit
 const toTreeCommit = (commit: ApiCommit): TreeCommit => {
-    let type: "commit" | "merge" | "split" | "uncommitted" = "commit";
+    let type: "commit" | "merge" | "split" | "autocommit" | "uncommitted" = "commit";
     if (commit.type === "MERGE") type = "merge";
     else if (commit.type === "SPLIT") type = "split";
+    else if (commit.type === "AUTOCOMMIT") type = "autocommit";
     else if (commit.type === "UNCOMMITTED") type = "uncommitted";
 
     return {
@@ -114,11 +115,13 @@ const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, onDisca
         let currentLane = 0;
         const activeLanes: Set<number> = new Set();
 
+        console.log(treeCommits)
+
         // Process in chronological order (oldest first) for lane calculation
         // Filter out uncommitted entries for lane calculation
         const chronological = [...treeCommits]
             .filter(c => c.type !== "uncommitted")
-            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+           // .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
         chronological.forEach((commit) => {
             if (!branches.has(commit.branch)) {
@@ -386,6 +389,25 @@ const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, onDisca
                             />
                         </g>
                     );
+                } else if (commit.type === "autocommit") {
+                    return (
+                        <g>
+                            <circle
+                                cx={x}
+                                cy={y}
+                                r={NODE_RADIUS + 1}
+                                fill="var(--gray-1)"
+                                stroke="var(--gray-8)"
+                                strokeWidth={3}
+                            />
+                            <Save
+                                x={x - 4}
+                                y={y - 4}
+                                size={8}
+                                color="var(--gray-8)"
+                            />
+                        </g>
+                    );
                 }
                 // Regular commit (user label)
                 return (
@@ -509,6 +531,9 @@ const VersionTree = ({ commits = [], pendingChanges = [], onCommitClick, onDisca
                                         )}
                                         {commit.type === "commit" && (
                                             <Badge size="1" color="green">version</Badge>
+                                        )}
+                                        {commit.type === "autocommit" && (
+                                            <Badge size="1" color="gray">auto-saved</Badge>
                                         )}
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>

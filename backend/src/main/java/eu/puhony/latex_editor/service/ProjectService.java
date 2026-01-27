@@ -68,7 +68,7 @@ public class ProjectService {
         Commit initCommit = new Commit();
         initCommit.setBaseProject(savedProject.getBaseProject());
         initCommit.setBranch("main");
-        initCommit.setType(Commit.Type.COMMIT);
+        initCommit.setType(Commit.Type.AUTOCOMMIT);
         initCommit.setMessage("Initial project setup");
         initCommit.setCreatedBy(owner);
         commitRepository.save(initCommit);
@@ -178,12 +178,61 @@ public class ProjectService {
             }
         }
 
-        // Create SPLIT commit to record branch creation
+        // Determine the current change state of the source branch
+        String currentChangeId = documentChangeRepository.findLatestByProjectId(sourceProject.getId())
+                .map(DocumentChange::getId)
+                .orElse(null);
+
+        // Get last commit to check if there are pending changes
+        List<Commit> lastCommits = commitRepository.findUserCommitsByBranch(baseProject, sourceBranch);
+        Commit lastCommit = lastCommits.isEmpty() ? null : lastCommits.get(0);
+        String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
+
+        // Check for pending changes
+        boolean hasPendingChanges;
+        if (currentChangeId == null) {
+            // No document changes exist at all
+            hasPendingChanges = false;
+        } else if (lastCommitChangeId != null) {
+            // Last commit tracked a specific change - check if there are newer changes
+            hasPendingChanges = !currentChangeId.equals(lastCommitChangeId);
+        } else if (lastCommit != null) {
+            // Last commit exists but has no lastChangeId (e.g., initial AUTOCOMMIT)
+            // Check if there are any changes created AFTER the commit's timestamp
+            long changesAfterCommit = documentChangeRepository.countByProjectIdAfterTimestamp(
+                    sourceProject.getId(), lastCommit.getCreatedAt());
+            hasPendingChanges = changesAfterCommit > 0;
+        } else {
+            // No commits exist yet but there are changes
+            hasPendingChanges = true;
+        }
+
+        // The changeId that represents the branch point
+        String branchPointChangeId = currentChangeId;
+
+        if (hasPendingChanges) {
+            // Create AUTOCOMMIT on the source branch first
+            Commit autoCommit = new Commit();
+            autoCommit.setBaseProject(baseProject);
+            autoCommit.setBranch(sourceBranch);
+            autoCommit.setType(Commit.Type.AUTOCOMMIT);
+            autoCommit.setMessage("Auto-saved before creating branch '" + newBranchName + "'");
+            autoCommit.setLastChangeId(currentChangeId);
+            autoCommit.setCreatedBy(user);
+            commitRepository.save(autoCommit);
+        } else {
+            // No pending changes, the branch point is at the last commit
+            branchPointChangeId = lastCommitChangeId;
+        }
+
+        // Create SPLIT commit to record branch creation (on new branch)
+        // Links to the source branch state via lastChangeId
         Commit splitCommit = new Commit();
         splitCommit.setBaseProject(baseProject);
         splitCommit.setBranch(newBranchName);
         splitCommit.setType(Commit.Type.SPLIT);
         splitCommit.setSourceBranch(sourceBranch);
+        splitCommit.setLastChangeId(branchPointChangeId);
         splitCommit.setMessage("Branch '" + newBranchName + "' created from '" + sourceBranch + "'");
         splitCommit.setCreatedBy(user);
         commitRepository.save(splitCommit);

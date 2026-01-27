@@ -14,9 +14,10 @@ import java.util.UUID;
 public class Commit {
 
     public enum Type {
-        SPLIT,   // Created when a branch is created
-        MERGE,   // Created when branches are merged
-        COMMIT   // User-created label/snapshot
+        SPLIT,      // Created when a branch is created (on new branch)
+        MERGE,      // Created when branches are merged
+        COMMIT,     // User-created label/snapshot
+        AUTOCOMMIT  // Auto-created commit (initial setup, before branch creation)
     }
 
     @Id
@@ -30,7 +31,7 @@ public class Commit {
     private String branch;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 10)
+    @Column(name = "type", nullable = false, length = 12)
     private Type type;
 
     @Column(name = "source_branch")

@@ -157,6 +157,70 @@ public class MergeService {
             }
         }
 
+        // Create AUTOCOMMIT on source branch before merge (only if there are pending changes)
+        String sourceCurrentChangeId = documentChangeRepository.findLatestByProjectId(sourceProject.getId())
+                .map(DocumentChange::getId)
+                .orElse(null);
+        List<Commit> sourceLastCommits = commitRepository.findUserCommitsByBranch(baseProject, sourceBranch);
+        Commit sourceLastCommit = sourceLastCommits.isEmpty() ? null : sourceLastCommits.get(0);
+        String sourceLastCommitChangeId = sourceLastCommit != null ? sourceLastCommit.getLastChangeId() : null;
+
+        boolean sourceHasPendingChanges;
+        if (sourceCurrentChangeId == null) {
+            sourceHasPendingChanges = false;
+        } else if (sourceLastCommitChangeId != null) {
+            sourceHasPendingChanges = !sourceCurrentChangeId.equals(sourceLastCommitChangeId);
+        } else if (sourceLastCommit != null) {
+            long changesAfterCommit = documentChangeRepository.countByProjectIdAfterTimestamp(
+                    sourceProject.getId(), sourceLastCommit.getCreatedAt());
+            sourceHasPendingChanges = changesAfterCommit > 0;
+        } else {
+            sourceHasPendingChanges = true;
+        }
+
+        if (sourceHasPendingChanges) {
+            Commit sourceAutoCommit = new Commit();
+            sourceAutoCommit.setBaseProject(baseProject);
+            sourceAutoCommit.setBranch(sourceBranch);
+            sourceAutoCommit.setType(Commit.Type.AUTOCOMMIT);
+            sourceAutoCommit.setMessage("Auto-saved before merging into '" + targetBranch + "'");
+            sourceAutoCommit.setLastChangeId(sourceCurrentChangeId);
+            sourceAutoCommit.setCreatedBy(user);
+            commitRepository.save(sourceAutoCommit);
+        }
+
+        // Create AUTOCOMMIT on target branch before merge (only if there are pending changes)
+        String targetCurrentChangeId = documentChangeRepository.findLatestByProjectId(targetProject.getId())
+                .map(DocumentChange::getId)
+                .orElse(null);
+        List<Commit> targetLastCommits = commitRepository.findUserCommitsByBranch(baseProject, targetBranch);
+        Commit targetLastCommit = targetLastCommits.isEmpty() ? null : targetLastCommits.get(0);
+        String targetLastCommitChangeId = targetLastCommit != null ? targetLastCommit.getLastChangeId() : null;
+
+        boolean targetHasPendingChanges;
+        if (targetCurrentChangeId == null) {
+            targetHasPendingChanges = false;
+        } else if (targetLastCommitChangeId != null) {
+            targetHasPendingChanges = !targetCurrentChangeId.equals(targetLastCommitChangeId);
+        } else if (targetLastCommit != null) {
+            long changesAfterCommit = documentChangeRepository.countByProjectIdAfterTimestamp(
+                    targetProject.getId(), targetLastCommit.getCreatedAt());
+            targetHasPendingChanges = changesAfterCommit > 0;
+        } else {
+            targetHasPendingChanges = true;
+        }
+
+        if (targetHasPendingChanges) {
+            Commit targetAutoCommit = new Commit();
+            targetAutoCommit.setBaseProject(baseProject);
+            targetAutoCommit.setBranch(targetBranch);
+            targetAutoCommit.setType(Commit.Type.AUTOCOMMIT);
+            targetAutoCommit.setMessage("Auto-saved before receiving merge from '" + sourceBranch + "'");
+            targetAutoCommit.setLastChangeId(targetCurrentChangeId);
+            targetAutoCommit.setCreatedBy(user);
+            commitRepository.save(targetAutoCommit);
+        }
+
         int added = 0, modified = 0, deleted = 0;
 
         try {

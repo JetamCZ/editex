@@ -12,10 +12,12 @@ import java.util.Optional;
 @Repository
 public interface CommitRepository extends JpaRepository<Commit, String> {
 
-    @Query("SELECT c FROM Commit c WHERE c.baseProject = :baseProject ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Commit c WHERE c.baseProject = :baseProject ORDER BY c.createdAt DESC, " +
+           "CASE c.type WHEN 'SPLIT' THEN 1 WHEN 'MERGE' THEN 2 WHEN 'COMMIT' THEN 3 WHEN 'AUTOCOMMIT' THEN 4 END ASC")
     List<Commit> findByBaseProjectOrderByCreatedAtDesc(@Param("baseProject") String baseProject);
 
-    @Query("SELECT c FROM Commit c WHERE c.baseProject = :baseProject AND c.branch = :branch ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Commit c WHERE c.baseProject = :baseProject AND c.branch = :branch ORDER BY c.createdAt DESC, " +
+           "CASE c.type WHEN 'SPLIT' THEN 1 WHEN 'MERGE' THEN 2 WHEN 'COMMIT' THEN 3 WHEN 'AUTOCOMMIT' THEN 4 END ASC")
     List<Commit> findByBaseProjectAndBranchOrderByCreatedAtDesc(
             @Param("baseProject") String baseProject,
             @Param("branch") String branch
@@ -30,7 +32,8 @@ public interface CommitRepository extends JpaRepository<Commit, String> {
             @Param("type") Commit.Type type
     );
 
-    @Query("SELECT c FROM Commit c WHERE c.baseProject = :baseProject AND c.branch = :branch AND c.type = 'COMMIT' ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Commit c WHERE c.baseProject = :baseProject AND c.branch = :branch AND (c.type = 'COMMIT' OR c.type = 'AUTOCOMMIT') ORDER BY c.createdAt DESC, " +
+           "CASE c.type WHEN 'COMMIT' THEN 1 WHEN 'AUTOCOMMIT' THEN 2 END ASC")
     List<Commit> findUserCommitsByBranch(
             @Param("baseProject") String baseProject,
             @Param("branch") String branch

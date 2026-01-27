@@ -147,12 +147,10 @@ public class CommitService {
             BranchPendingChanges pendingChanges = new BranchPendingChanges();
             pendingChanges.setBranch(branch.getBranch());
 
-            // Get the latest COMMIT type commit for this branch (user-created version label)
+            // Get the latest COMMIT or AUTOCOMMIT type commit for this branch
             List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch.getBranch());
-            String lastCommitChangeId = null;
-            if (!userCommits.isEmpty()) {
-                lastCommitChangeId = userCommits.get(0).getLastChangeId();
-            }
+            Commit lastCommit = userCommits.isEmpty() ? null : userCommits.get(0);
+            String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
             pendingChanges.setLastCommitChangeId(lastCommitChangeId);
 
             // Get the actual latest change for this branch
@@ -164,21 +162,30 @@ public class CommitService {
                 pendingChanges.setLastChangeAt(latest.getCreatedAt());
 
                 // Determine if there are pending changes
-                if (lastCommitChangeId == null) {
-                    // No commits yet - all changes are pending
+                if (lastCommitChangeId != null) {
+                    // Last commit tracked a specific change - check if there are newer changes
+                    if (!lastCommitChangeId.equals(latest.getId())) {
+                        long pendingCount = documentChangeRepository.countByProjectIdAfterChange(
+                                branch.getId(), lastCommitChangeId);
+                        pendingChanges.setHasPendingChanges(pendingCount > 0);
+                        pendingChanges.setPendingChangeCount((int) pendingCount);
+                    } else {
+                        // Last commit is up to date
+                        pendingChanges.setHasPendingChanges(false);
+                        pendingChanges.setPendingChangeCount(0);
+                    }
+                } else if (lastCommit != null) {
+                    // Commit exists but has no lastChangeId (e.g., initial AUTOCOMMIT)
+                    // Check if there are any changes created AFTER the commit's timestamp
+                    long changesAfterCommit = documentChangeRepository.countByProjectIdAfterTimestamp(
+                            branch.getId(), lastCommit.getCreatedAt());
+                    pendingChanges.setHasPendingChanges(changesAfterCommit > 0);
+                    pendingChanges.setPendingChangeCount((int) changesAfterCommit);
+                } else {
+                    // No commits at all - all changes are pending
                     long totalChanges = documentChangeRepository.countByProjectId(branch.getId());
                     pendingChanges.setHasPendingChanges(totalChanges > 0);
                     pendingChanges.setPendingChangeCount((int) totalChanges);
-                } else if (!lastCommitChangeId.equals(latest.getId())) {
-                    // There are changes after the last commit
-                    long pendingCount = documentChangeRepository.countByProjectIdAfterChange(
-                            branch.getId(), lastCommitChangeId);
-                    pendingChanges.setHasPendingChanges(pendingCount > 0);
-                    pendingChanges.setPendingChangeCount((int) pendingCount);
-                } else {
-                    // Last commit is up to date
-                    pendingChanges.setHasPendingChanges(false);
-                    pendingChanges.setPendingChangeCount(0);
                 }
             } else {
                 // No changes at all in this branch
@@ -204,10 +211,8 @@ public class CommitService {
 
         // Get the latest user commit for this branch
         List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch);
-        String lastCommitChangeId = null;
-        if (!userCommits.isEmpty()) {
-            lastCommitChangeId = userCommits.get(0).getLastChangeId();
-        }
+        Commit lastCommit = userCommits.isEmpty() ? null : userCommits.get(0);
+        String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
 
         List<FileDiff> diffs = new ArrayList<>();
 
@@ -243,8 +248,18 @@ public class CommitService {
                             uncommittedChanges.add(change);
                         }
                     }
+                } else if (lastCommit != null) {
+                    // Commit exists but has no lastChangeId (e.g., initial AUTOCOMMIT)
+                    // Only changes created AFTER the commit's timestamp are uncommitted
+                    for (DocumentChange change : allChanges) {
+                        if (change.getCreatedAt().isAfter(lastCommit.getCreatedAt())) {
+                            uncommittedChanges.add(change);
+                        } else {
+                            committedChanges.add(change);
+                        }
+                    }
                 } else {
-                    // No commits yet - all changes are uncommitted
+                    // No commits at all - all changes are uncommitted
                     uncommittedChanges.addAll(allChanges);
                 }
 
@@ -295,15 +310,19 @@ public class CommitService {
 
         // Get the latest user commit for this branch to find the boundary
         List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch);
-        String lastCommitChangeId = null;
-        if (!userCommits.isEmpty()) {
-            lastCommitChangeId = userCommits.get(0).getLastChangeId();
-        }
+        Commit lastCommit = userCommits.isEmpty() ? null : userCommits.get(0);
+        String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
 
         // Delete changes after the last commit (or all changes if no commits)
         List<DocumentChange> changesToDelete;
         if (lastCommitChangeId != null) {
             changesToDelete = documentChangeRepository.findByProjectIdAfterChange(project.getId(), lastCommitChangeId);
+        } else if (lastCommit != null) {
+            // Commit exists but has no lastChangeId - delete changes after commit timestamp
+            changesToDelete = documentChangeRepository.findAllByProjectId(project.getId())
+                    .stream()
+                    .filter(change -> change.getCreatedAt().isAfter(lastCommit.getCreatedAt()))
+                    .collect(Collectors.toList());
         } else {
             changesToDelete = documentChangeRepository.findAllByProjectId(project.getId());
         }

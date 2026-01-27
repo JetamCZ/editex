@@ -1,4 +1,4 @@
-export type CommitType = 'SPLIT' | 'MERGE' | 'COMMIT' | 'UNCOMMITTED';
+export type CommitType = 'SPLIT' | 'MERGE' | 'COMMIT' | 'AUTOCOMMIT' | 'UNCOMMITTED';
 
 export interface Commit {
     id: string;
