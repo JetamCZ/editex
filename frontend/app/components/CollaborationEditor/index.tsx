@@ -289,7 +289,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     }, [props.selectedFile.originalFileName])
 
 
-    const {content, refetch, lastChangeId, handleChanges: onChangesReceived} = useContent(
+    const {content, refetch, lastChangeId, setLastChangeId, handleChanges: onChangesReceived} = useContent(
         props.selectedFile.id,
         changeHistory,
         setChangeHistory,
@@ -360,7 +360,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
                 }))
             };
 
-            await axios.post(
+            const response = await axios.post<{ changes: Array<{ id: string }> }>(
                 `/api/files/${props.selectedFile.id}/changes`,
                 payload,
                 {
@@ -371,6 +371,13 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
                     baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
                 }
             );
+
+            // Update lastChangeId from response to avoid race conditions
+            const savedChanges = response.data.changes;
+            if (savedChanges && savedChanges.length > 0) {
+                const newLastChangeId = savedChanges[savedChanges.length - 1].id;
+                setLastChangeId(newLastChangeId);
+            }
 
             console.log(`Sent ${changeHistory.length} changes to server via HTTP`);
 
@@ -384,7 +391,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         } finally {
             setIsSending(false);
         }
-    }, [changeHistory, lastChangeId, bearerToken, props.selectedFile.id, resetTracking, isSending]);
+    }, [changeHistory, lastChangeId, bearerToken, props.selectedFile.id, resetTracking, isSending, setLastChangeId]);
 
     // Debounced auto-save: send changes 500ms after user stops typing
     useEffect(() => {

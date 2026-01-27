@@ -90,6 +90,7 @@ const useContent = (
         refetch,
         content,
         lastChangeId,
+        setLastChangeId,
         handleChanges
     }
 }

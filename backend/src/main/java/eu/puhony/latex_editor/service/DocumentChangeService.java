@@ -37,12 +37,21 @@ public class DocumentChangeService {
 
         projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
 
+        // Get intermediate changes that happened after baseChangeId (if any)
+        List<DocumentChange> intermediateChanges = Collections.emptyList();
+        if (baseChangeId != null && !baseChangeId.isEmpty()) {
+            intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
+        }
+
+        // Transform line number based on intermediate changes
+        int transformedLine = transformLineNumber(lineNumber, intermediateChanges);
+
         DocumentChange change = new DocumentChange();
         change.setFile(file);
         change.setUser(user);
         change.setSessionId(sessionId);
         change.setOperation(operation);
-        change.setLineNumber(lineNumber);
+        change.setLineNumber(transformedLine);
         change.setContent(content);
         change.setBaseChangeId(baseChangeId);
 
@@ -58,19 +67,80 @@ public class DocumentChangeService {
 
         projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
 
-        return changes.stream()
-                .map(changeData -> {
-                    DocumentChange change = new DocumentChange();
-                    change.setFile(file);
-                    change.setUser(user);
-                    change.setSessionId(sessionId);
-                    change.setOperation(changeData.getOperation());
-                    change.setLineNumber(changeData.getLine());
-                    change.setContent(changeData.getContent());
-                    change.setBaseChangeId(baseChangeId);
-                    return changeRepository.save(change);
-                })
-                .toList();
+        // Get intermediate changes that happened after baseChangeId (if any)
+        // These are changes from OTHER sessions that we need to transform against
+        List<DocumentChange> intermediateChanges = Collections.emptyList();
+        if (baseChangeId != null && !baseChangeId.isEmpty()) {
+            intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
+        }
+
+        // Transform and save each incoming change
+        // Note: We only transform based on intermediate changes from other sessions.
+        // Changes within the same request batch are already relative to each other
+        // (the client calculated them as a coherent set).
+        List<DocumentChange> savedChanges = new ArrayList<>();
+
+        for (ChangeData changeData : changes) {
+            // Transform line number based on intermediate changes from other sessions only
+            int transformedLine = transformLineNumber(
+                    changeData.getLine(),
+                    intermediateChanges
+            );
+
+            DocumentChange change = new DocumentChange();
+            change.setFile(file);
+            change.setUser(user);
+            change.setSessionId(sessionId);
+            change.setOperation(changeData.getOperation());
+            change.setLineNumber(transformedLine);
+            change.setContent(changeData.getContent());
+            change.setBaseChangeId(baseChangeId);
+
+            DocumentChange saved = changeRepository.save(change);
+            savedChanges.add(saved);
+        }
+
+        return savedChanges;
+    }
+
+    /**
+     * Transform a line number based on intermediate changes that happened after baseChangeId.
+     * - INSERT_AFTER at line X: lines > X shift down (+1)
+     * - DELETE at line X: lines > X shift up (-1)
+     * - MODIFY: no line number change
+     */
+    private int transformLineNumber(int originalLine, List<DocumentChange> intermediateChanges) {
+        int line = originalLine;
+
+        // Apply transformations from intermediate changes (from other sessions)
+        for (DocumentChange intermediate : intermediateChanges) {
+            line = applyTransformation(line, intermediate.getOperation(), intermediate.getLineNumber());
+        }
+
+        return Math.max(1, line); // Ensure line is at least 1
+    }
+
+    private int applyTransformation(int line, String operation, int opLine) {
+        switch (operation) {
+            case "INSERT_AFTER":
+                // Lines after the insertion point shift down
+                if (line > opLine) {
+                    return line + 1;
+                }
+                break;
+            case "DELETE":
+                // Lines after the deleted line shift up
+                if (line > opLine) {
+                    return line - 1;
+                }
+                // If targeting the deleted line itself, it's now pointing to the next line
+                // (which shifted up to take its place)
+                break;
+            case "MODIFY":
+                // No line number change for modifications
+                break;
+        }
+        return line;
     }
 
     public List<DocumentChange> getFileChanges(String fileId, Long userId) {
