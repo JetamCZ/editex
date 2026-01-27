@@ -158,12 +158,12 @@ public class MergeService {
         }
 
         // Create AUTOCOMMIT on source branch before merge (only if there are pending changes)
-        String sourceCurrentChangeId = documentChangeRepository.findLatestByProjectId(sourceProject.getId())
+        Long sourceCurrentChangeId = documentChangeRepository.findLatestByProjectId(sourceProject.getId())
                 .map(DocumentChange::getId)
                 .orElse(null);
         List<Commit> sourceLastCommits = commitRepository.findUserCommitsByBranch(baseProject, sourceBranch);
         Commit sourceLastCommit = sourceLastCommits.isEmpty() ? null : sourceLastCommits.get(0);
-        String sourceLastCommitChangeId = sourceLastCommit != null ? sourceLastCommit.getLastChangeId() : null;
+        Long sourceLastCommitChangeId = sourceLastCommit != null ? sourceLastCommit.getLastChangeId() : null;
 
         boolean sourceHasPendingChanges;
         if (sourceCurrentChangeId == null) {
@@ -190,12 +190,12 @@ public class MergeService {
         }
 
         // Create AUTOCOMMIT on target branch before merge (only if there are pending changes)
-        String targetCurrentChangeId = documentChangeRepository.findLatestByProjectId(targetProject.getId())
+        Long targetCurrentChangeId = documentChangeRepository.findLatestByProjectId(targetProject.getId())
                 .map(DocumentChange::getId)
                 .orElse(null);
         List<Commit> targetLastCommits = commitRepository.findUserCommitsByBranch(baseProject, targetBranch);
         Commit targetLastCommit = targetLastCommits.isEmpty() ? null : targetLastCommits.get(0);
-        String targetLastCommitChangeId = targetLastCommit != null ? targetLastCommit.getLastChangeId() : null;
+        Long targetLastCommitChangeId = targetLastCommit != null ? targetLastCommit.getLastChangeId() : null;
 
         boolean targetHasPendingChanges;
         if (targetCurrentChangeId == null) {

@@ -30,7 +30,7 @@ public class DocumentChangeService {
 
     @Transactional
     public DocumentChange saveChange(String fileId, String sessionId, String operation,
-                                     Integer lineNumber, String content, String baseChangeId,
+                                     Integer lineNumber, String content, Long baseChangeId,
                                      User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
@@ -39,7 +39,7 @@ public class DocumentChangeService {
 
         // Get intermediate changes that happened after baseChangeId (if any)
         List<DocumentChange> intermediateChanges = Collections.emptyList();
-        if (baseChangeId != null && !baseChangeId.isEmpty()) {
+        if (baseChangeId != null) {
             intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
         }
 
@@ -60,7 +60,7 @@ public class DocumentChangeService {
 
     @Transactional
     public List<DocumentChange> saveChanges(String fileId, String sessionId,
-                                           List<ChangeData> changes, String baseChangeId,
+                                           List<ChangeData> changes, Long baseChangeId,
                                            User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
@@ -70,7 +70,7 @@ public class DocumentChangeService {
         // Get intermediate changes that happened after baseChangeId (if any)
         // These are changes from OTHER sessions that we need to transform against
         List<DocumentChange> intermediateChanges = Collections.emptyList();
-        if (baseChangeId != null && !baseChangeId.isEmpty()) {
+        if (baseChangeId != null) {
             intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
         }
 
@@ -161,7 +161,7 @@ public class DocumentChangeService {
         return changeRepository.findLatestByFileId(fileId);
     }
 
-    public List<DocumentChange> getChangesAfter(String fileId, String afterChangeId, Long userId) {
+    public List<DocumentChange> getChangesAfter(String fileId, Long afterChangeId, Long userId) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
@@ -296,34 +296,53 @@ public class DocumentChangeService {
             java.util.Arrays.asList(originalContent.split("\n", -1))
         );
 
-        // Apply changes in chronological order
+        // Track offset for INSERT operations.
+        // Frontend sends INSERT_AFTER with 1-indexed target positions, but multiple inserts
+        // at the same position need to be placed sequentially (not all at the same spot).
+        // Each insert shifts subsequent positions by 1.
+        int insertOffset = 0;
+
         for (DocumentChange change : changes) {
-            int lineIndex = change.getLineNumber() - 1; // Convert to 0-based index
+            int lineNumber = change.getLineNumber();
+            int lineIndex = lineNumber - 1; // Convert to 0-based index
 
             switch (change.getOperation()) {
                 case "MODIFY":
-                    if (lineIndex >= 0 && lineIndex < lines.size()) {
+                    if (lineIndex >= 0) {
+                        // Expand lines list if needed to accommodate the line index
+                        while (lines.size() <= lineIndex) {
+                            lines.add("");
+                        }
                         lines.set(lineIndex, change.getContent() != null ? change.getContent() : "");
                     }
                     break;
 
                 case "INSERT_AFTER":
-                    // Insert after the specified line
-                    int insertIndex = lineIndex + 1;
-                    if (insertIndex >= 0 && insertIndex <= lines.size()) {
+                    // Frontend sends 1-indexed positions. Multiple inserts at the same position
+                    // need offset adjustment to maintain order.
+                    // Cap to current size - don't pad with empty lines, just append at end if beyond.
+                    int insertIndex = Math.min(lineIndex + insertOffset, lines.size());
+                    if (insertIndex >= 0) {
                         lines.add(insertIndex, change.getContent() != null ? change.getContent() : "");
+                        insertOffset++;
                     }
                     break;
 
                 case "DELETE":
+                    // Frontend already adjusted positions for previous deletes
                     if (lineIndex >= 0 && lineIndex < lines.size()) {
                         lines.remove(lineIndex);
                     }
                     break;
 
                 default:
-                    System.err.println("Unknown operation: " + change.getOperation());
+                    break;
             }
+        }
+
+        // Ensure at least one empty line (matching Monaco editor behavior)
+        if (lines.isEmpty()) {
+            lines.add("");
         }
 
         // Join lines back into content

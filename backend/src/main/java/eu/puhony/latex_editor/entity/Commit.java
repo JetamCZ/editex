@@ -44,7 +44,7 @@ public class Commit {
     private String message; // User-provided message for COMMIT type
 
     @Column(name = "last_change_id")
-    private String lastChangeId; // For COMMIT type: references the last DocumentChange at snapshot time
+    private Long lastChangeId; // For COMMIT type: references the last DocumentChange at snapshot time
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -119,11 +119,11 @@ public class Commit {
         this.message = message;
     }
 
-    public String getLastChangeId() {
+    public Long getLastChangeId() {
         return lastChangeId;
     }
 
-    public void setLastChangeId(String lastChangeId) {
+    public void setLastChangeId(Long lastChangeId) {
         this.lastChangeId = lastChangeId;
     }
 

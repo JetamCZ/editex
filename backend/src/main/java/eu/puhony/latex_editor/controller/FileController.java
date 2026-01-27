@@ -149,7 +149,7 @@ public class FileController {
                         String currentContent = documentChangeService.applyChangesToContent(originalContent, changes);
 
                         // Get last change ID
-                        String lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
+                        Long lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
                                 .map(eu.puhony.latex_editor.entity.DocumentChange::getId)
                                 .orElse(null);
 
@@ -240,13 +240,13 @@ public class FileController {
     // DTOs for changes endpoint
     public static class ChangesBatchRequest {
         private String sessionId;
-        private String baseChangeId;
+        private Long baseChangeId;
         private List<DocumentChangeService.ChangeData> changes;
 
         public String getSessionId() { return sessionId; }
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
-        public String getBaseChangeId() { return baseChangeId; }
-        public void setBaseChangeId(String baseChangeId) { this.baseChangeId = baseChangeId; }
+        public Long getBaseChangeId() { return baseChangeId; }
+        public void setBaseChangeId(Long baseChangeId) { this.baseChangeId = baseChangeId; }
         public List<DocumentChangeService.ChangeData> getChanges() { return changes; }
         public void setChanges(List<DocumentChangeService.ChangeData> changes) { this.changes = changes; }
     }
@@ -277,13 +277,13 @@ public class FileController {
     }
 
     public static class ChangeResponse {
-        private String id;
+        private Long id;
         private String operation;
         private Integer line;
         private String content;
 
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
         public String getOperation() { return operation; }
         public void setOperation(String operation) { this.operation = operation; }
         public Integer getLine() { return line; }
@@ -295,7 +295,7 @@ public class FileController {
     // DTO for file content response
     public static class FileContentResponse {
         private String content;
-        private String lastChangeId;
+        private Long lastChangeId;
         private String fileType;
         private String fileName;
 
@@ -307,11 +307,11 @@ public class FileController {
             this.content = content;
         }
 
-        public String getLastChangeId() {
+        public Long getLastChangeId() {
             return lastChangeId;
         }
 
-        public void setLastChangeId(String lastChangeId) {
+        public void setLastChangeId(Long lastChangeId) {
             this.lastChangeId = lastChangeId;
         }
 
@@ -360,7 +360,7 @@ public class FileController {
                 SecurityContextHolder.getContext().getAuthentication().getName()
         ).orElse(null);
 
-        String lastChangeId = null;
+        Long lastChangeId = null;
         if (currentUser != null) {
             lastChangeId = documentChangeService.getLatestChange(file.getId(), currentUser.getId())
                     .map(eu.puhony.latex_editor.entity.DocumentChange::getId)

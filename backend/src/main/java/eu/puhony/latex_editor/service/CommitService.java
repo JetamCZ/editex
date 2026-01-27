@@ -80,7 +80,7 @@ public class CommitService {
                 .orElseThrow(() -> new RuntimeException("Branch not found: " + request.getBranch()));
 
         // Get the latest change for this project (for snapshot reference)
-        String lastChangeId = documentChangeRepository.findLatestByProjectId(project.getId())
+        Long lastChangeId = documentChangeRepository.findLatestByProjectId(project.getId())
                 .map(DocumentChange::getId)
                 .orElse(null);
 
@@ -150,7 +150,7 @@ public class CommitService {
             // Get the latest COMMIT or AUTOCOMMIT type commit for this branch
             List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch.getBranch());
             Commit lastCommit = userCommits.isEmpty() ? null : userCommits.get(0);
-            String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
+            Long lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
             pendingChanges.setLastCommitChangeId(lastCommitChangeId);
 
             // Get the actual latest change for this branch
@@ -212,7 +212,7 @@ public class CommitService {
         // Get the latest user commit for this branch
         List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch);
         Commit lastCommit = userCommits.isEmpty() ? null : userCommits.get(0);
-        String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
+        Long lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
 
         List<FileDiff> diffs = new ArrayList<>();
 
@@ -311,7 +311,7 @@ public class CommitService {
         // Get the latest user commit for this branch to find the boundary
         List<Commit> userCommits = commitRepository.findUserCommitsByBranch(baseProject, branch);
         Commit lastCommit = userCommits.isEmpty() ? null : userCommits.get(0);
-        String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
+        Long lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
 
         // Delete changes after the last commit (or all changes if no commits)
         List<DocumentChange> changesToDelete;

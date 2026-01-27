@@ -103,7 +103,7 @@ public class DocumentChangeController {
     // DTOs
     public static class ChangesBatchRequest {
         private String sessionId;
-        private String baseChangeId;
+        private Long baseChangeId;
         private List<DocumentChangeService.ChangeData> changes;
 
         public String getSessionId() {
@@ -114,11 +114,11 @@ public class DocumentChangeController {
             this.sessionId = sessionId;
         }
 
-        public String getBaseChangeId() {
+        public Long getBaseChangeId() {
             return baseChangeId;
         }
 
-        public void setBaseChangeId(String baseChangeId) {
+        public void setBaseChangeId(Long baseChangeId) {
             this.baseChangeId = baseChangeId;
         }
 
@@ -198,16 +198,16 @@ public class DocumentChangeController {
     }
 
     public static class ChangeResponse {
-        private String id;
+        private Long id;
         private String operation;
         private Integer line;
         private String content;
 
-        public String getId() {
+        public Long getId() {
             return id;
         }
 
-        public void setId(String id) {
+        public void setId(Long id) {
             this.id = id;
         }
 
