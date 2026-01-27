@@ -136,25 +136,6 @@ export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpda
         }
     }, [sendCursorLeave]);
 
-    const sendChanges = useCallback((changes: ChangeOperation[], baseChangeId: string | null) => {
-        if (!clientRef.current?.connected || changes.length === 0) return;
-
-        const message = {
-            sessionId: sessionIdRef.current,
-            baseChangeId: baseChangeId,
-            changes: changes.map(change => ({
-                operation: change.operation,
-                line: change.line,
-                content: change.content
-            }))
-        };
-
-        clientRef.current.publish({
-            destination: `/app/document/${fileId}/changes`,
-            body: JSON.stringify(message)
-        });
-    }, [fileId]);
-
     const sendCursorPosition = useCallback((position: CursorPosition) => {
         if (!clientRef.current?.connected) return;
 
@@ -182,7 +163,6 @@ export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpda
     return {
         isConnected,
         sessionId: sessionIdRef.current,
-        sendChanges,
         sendCursorPosition,
         sendCursorLeave,
         connect,

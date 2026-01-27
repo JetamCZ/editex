@@ -10,6 +10,8 @@ import type {editor} from "monaco-editor";
 import {Tooltip, IconButton} from "@radix-ui/themes";
 import {FontBoldIcon, FontItalicIcon, QuoteIcon, ListBulletIcon, TableIcon, ImageIcon} from "@radix-ui/react-icons";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
+import useAuth from "~/hooks/useAuth";
+import axios from "axios";
 import type * as Monaco from "monaco-editor";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -41,7 +43,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     const decorationsRef = useRef<Map<string, string[]>>(new Map());
     const sessionIdRef = useRef<string>(uuidv4());
     const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
+    const [isSending, setIsSending] = useState(false);
 
+    const {bearerToken} = useAuth();
     const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, undo, redo} = useChangeTracking();
 
     // Wrap selected text with LaTeX command
@@ -326,7 +330,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         refetch();
     }, [refetch]);
 
-    const {isConnected, sendChanges, sendCursorPosition} = useWebSocket({
+    const {isConnected, sendCursorPosition} = useWebSocket({
         fileId: props.selectedFile.id,
         sessionId: sessionIdRef.current,
         onChangesReceived,
@@ -339,20 +343,48 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         console.log('Change History:', changeHistory);
     };
 
-    const handleSendChanges = useCallback(() => {
-        if (changeHistory.length > 0) {
-            sendChanges(changeHistory, lastChangeId!);
-            console.log(`Sent ${changeHistory.length} changes to server`);
+    const handleSendChanges = useCallback(async () => {
+        if (changeHistory.length === 0 || isSending) {
+            return;
+        }
+
+        setIsSending(true);
+        try {
+            const payload = {
+                sessionId: sessionIdRef.current,
+                baseChangeId: lastChangeId,
+                changes: changeHistory.map(change => ({
+                    operation: change.operation,
+                    line: change.line,
+                    content: change.content
+                }))
+            };
+
+            await axios.post(
+                `/api/files/${props.selectedFile.id}/changes`,
+                payload,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${bearerToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+                }
+            );
+
+            console.log(`Sent ${changeHistory.length} changes to server via HTTP`);
 
             // Clear the local changes history after successfully sending
             const model = editorRef.current?.getModel();
             if (model) {
                 resetTracking(model.getLinesContent());
             }
-        } else {
-            console.log('No changes to send');
+        } catch (error) {
+            console.error('Failed to send changes:', error);
+        } finally {
+            setIsSending(false);
         }
-    }, [changeHistory, lastChangeId, sendChanges, resetTracking]);
+    }, [changeHistory, lastChangeId, bearerToken, props.selectedFile.id, resetTracking, isSending]);
 
     // Debounced auto-save: send changes 500ms after user stops typing
     useEffect(() => {

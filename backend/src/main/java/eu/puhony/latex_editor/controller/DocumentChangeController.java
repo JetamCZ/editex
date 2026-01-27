@@ -137,6 +137,8 @@ public class DocumentChangeController {
         private Long userId;
         private String userName;
         private List<ChangeResponse> changes;
+        private Integer chunkIndex;
+        private Integer totalChunks;
 
         public String getFileId() {
             return fileId;
@@ -176,6 +178,22 @@ public class DocumentChangeController {
 
         public void setChanges(List<ChangeResponse> changes) {
             this.changes = changes;
+        }
+
+        public Integer getChunkIndex() {
+            return chunkIndex;
+        }
+
+        public void setChunkIndex(Integer chunkIndex) {
+            this.chunkIndex = chunkIndex;
+        }
+
+        public Integer getTotalChunks() {
+            return totalChunks;
+        }
+
+        public void setTotalChunks(Integer totalChunks) {
+            this.totalChunks = totalChunks;
         }
     }
 

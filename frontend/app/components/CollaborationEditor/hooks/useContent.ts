@@ -54,6 +54,15 @@ const useContent = (
     }, [fileId, refetch]);
 
     const handleChanges = useCallback((changes: ChangeOperation[], senderSessionId: string | null) => {
+        // Skip changes from our own session - we already applied them locally via HTTP
+        if (senderSessionId === localSessionId) {
+            // Just update the lastChangeId to stay in sync
+            if (changes.length > 0 && changes.at(-1)?.id) {
+                setLastChangeId(changes.at(-1)!.id!);
+            }
+            return;
+        }
+
         // Step 1: Apply remote changes to current content to get new server state
         const lines = contentRef.current.split('\n');
         const newServerContent = applyChanges(lines, changes);
@@ -71,10 +80,8 @@ const useContent = (
         setChangeHistory(transformedHistory);
 
         // Step 5: Update editor without triggering change detection
-        // Only pass changes for cursor transformation if they're from another user
-        const isRemoteChange = senderSessionId !== null && senderSessionId !== localSessionId;
         setIsApplyingRemoteChanges(true);
-        setEditorContent(finalContent.join('\n'), isRemoteChange ? changes : undefined);
+        setEditorContent(finalContent.join('\n'), changes);
         setIsApplyingRemoteChanges(false);
 
     }, [contentRef, changeHistoryRef, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges, localSessionId]);

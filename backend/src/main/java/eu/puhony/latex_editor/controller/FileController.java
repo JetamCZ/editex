@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +43,9 @@ public class FileController {
 
     @Autowired
     private MinioService minioService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FileUploadResponse> uploadFile(
@@ -166,6 +170,126 @@ public class FileController {
                     }
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    private static final int WS_CHUNK_SIZE = 100;
+
+    @PostMapping("/{fileId}/changes")
+    public ResponseEntity<ChangesBatchResponse> postChanges(
+            @PathVariable String fileId,
+            @RequestBody ChangesBatchRequest request,
+            Authentication authentication) {
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<DocumentChange> savedChanges = documentChangeService.saveChanges(
+                fileId,
+                request.getSessionId(),
+                request.getChanges(),
+                request.getBaseChangeId(),
+                user
+        );
+
+        // Convert to response format
+        List<ChangeResponse> changeResponses = savedChanges.stream()
+                .map(change -> {
+                    ChangeResponse changeResp = new ChangeResponse();
+                    changeResp.setId(change.getId());
+                    changeResp.setOperation(change.getOperation());
+                    changeResp.setLine(change.getLineNumber());
+                    changeResp.setContent(change.getContent());
+                    return changeResp;
+                })
+                .collect(Collectors.toList());
+
+        // Broadcast to WebSocket subscribers in chunks if needed
+        int totalChanges = changeResponses.size();
+        int totalChunks = (int) Math.ceil((double) totalChanges / WS_CHUNK_SIZE);
+
+        for (int i = 0; i < totalChunks; i++) {
+            int fromIndex = i * WS_CHUNK_SIZE;
+            int toIndex = Math.min(fromIndex + WS_CHUNK_SIZE, totalChanges);
+            List<ChangeResponse> chunk = changeResponses.subList(fromIndex, toIndex);
+
+            ChangesBatchResponse wsResponse = new ChangesBatchResponse();
+            wsResponse.setFileId(fileId);
+            wsResponse.setSessionId(request.getSessionId());
+            wsResponse.setUserId(user.getId());
+            wsResponse.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+            wsResponse.setChanges(chunk);
+            wsResponse.setChunkIndex(i);
+            wsResponse.setTotalChunks(totalChunks);
+
+            messagingTemplate.convertAndSend("/topic/document/" + fileId, wsResponse);
+        }
+
+        // Build full response for HTTP
+        ChangesBatchResponse response = new ChangesBatchResponse();
+        response.setFileId(fileId);
+        response.setSessionId(request.getSessionId());
+        response.setUserId(user.getId());
+        response.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+        response.setChanges(changeResponses);
+        response.setChunkIndex(0);
+        response.setTotalChunks(1);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // DTOs for changes endpoint
+    public static class ChangesBatchRequest {
+        private String sessionId;
+        private String baseChangeId;
+        private List<DocumentChangeService.ChangeData> changes;
+
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public String getBaseChangeId() { return baseChangeId; }
+        public void setBaseChangeId(String baseChangeId) { this.baseChangeId = baseChangeId; }
+        public List<DocumentChangeService.ChangeData> getChanges() { return changes; }
+        public void setChanges(List<DocumentChangeService.ChangeData> changes) { this.changes = changes; }
+    }
+
+    public static class ChangesBatchResponse {
+        private String fileId;
+        private String sessionId;
+        private Long userId;
+        private String userName;
+        private List<ChangeResponse> changes;
+        private Integer chunkIndex;
+        private Integer totalChunks;
+
+        public String getFileId() { return fileId; }
+        public void setFileId(String fileId) { this.fileId = fileId; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+        public List<ChangeResponse> getChanges() { return changes; }
+        public void setChanges(List<ChangeResponse> changes) { this.changes = changes; }
+        public Integer getChunkIndex() { return chunkIndex; }
+        public void setChunkIndex(Integer chunkIndex) { this.chunkIndex = chunkIndex; }
+        public Integer getTotalChunks() { return totalChunks; }
+        public void setTotalChunks(Integer totalChunks) { this.totalChunks = totalChunks; }
+    }
+
+    public static class ChangeResponse {
+        private String id;
+        private String operation;
+        private Integer line;
+        private String content;
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public String getOperation() { return operation; }
+        public void setOperation(String operation) { this.operation = operation; }
+        public Integer getLine() { return line; }
+        public void setLine(Integer line) { this.line = line; }
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
     }
 
     // DTO for file content response
