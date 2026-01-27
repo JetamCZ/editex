@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 public class BranchPendingChanges {
     private String branch;
     private boolean hasPendingChanges;
-    private String lastCommitChangeId;      // Last change ID from the most recent COMMIT
-    private String currentChangeId;          // Actual latest change ID in the branch
+    private Long lastCommitChangeId;         // Last change ID from the most recent COMMIT
+    private Long currentChangeId;            // Actual latest change ID in the branch
     private LocalDateTime lastChangeAt;      // When the last change was made
     private int pendingChangeCount;          // Approximate count of pending changes
 }

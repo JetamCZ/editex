@@ -156,7 +156,7 @@ public class ProjectController {
         List<ProjectFile> files = fileService.getProjectFiles(project.getId(), baseProject, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(file -> {
-                    String lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
+                    Long lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
                             .map(eu.puhony.latex_editor.entity.DocumentChange::getId)
                             .orElse(null);
 

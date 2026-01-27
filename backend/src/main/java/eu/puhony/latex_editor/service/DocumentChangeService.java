@@ -30,7 +30,7 @@ public class DocumentChangeService {
 
     @Transactional
     public DocumentChange saveChange(String fileId, String sessionId, String operation,
-                                     Integer lineNumber, String content, String baseChangeId,
+                                     Integer lineNumber, String content, Long baseChangeId,
                                      User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
@@ -39,7 +39,7 @@ public class DocumentChangeService {
 
         // Get intermediate changes that happened after baseChangeId (if any)
         List<DocumentChange> intermediateChanges = Collections.emptyList();
-        if (baseChangeId != null && !baseChangeId.isEmpty()) {
+        if (baseChangeId != null) {
             intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
         }
 
@@ -60,7 +60,7 @@ public class DocumentChangeService {
 
     @Transactional
     public List<DocumentChange> saveChanges(String fileId, String sessionId,
-                                           List<ChangeData> changes, String baseChangeId,
+                                           List<ChangeData> changes, Long baseChangeId,
                                            User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
@@ -70,7 +70,7 @@ public class DocumentChangeService {
         // Get intermediate changes that happened after baseChangeId (if any)
         // These are changes from OTHER sessions that we need to transform against
         List<DocumentChange> intermediateChanges = Collections.emptyList();
-        if (baseChangeId != null && !baseChangeId.isEmpty()) {
+        if (baseChangeId != null) {
             intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
         }
 
@@ -161,7 +161,7 @@ public class DocumentChangeService {
         return changeRepository.findLatestByFileId(fileId);
     }
 
-    public List<DocumentChange> getChangesAfter(String fileId, String afterChangeId, Long userId) {
+    public List<DocumentChange> getChangesAfter(String fileId, Long afterChangeId, Long userId) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
@@ -296,28 +296,53 @@ public class DocumentChangeService {
             java.util.Arrays.asList(originalContent.split("\n", -1))
         );
 
+        System.out.println("DEBUG: Starting with " + lines.size() + " lines from original content");
+        System.out.println("DEBUG: Applying " + changes.size() + " changes");
+
         // Apply changes in chronological order
         for (DocumentChange change : changes) {
             int lineIndex = change.getLineNumber() - 1; // Convert to 0-based index
 
+            System.out.println("DEBUG: Change id=" + change.getId() + " op=" + change.getOperation() +
+                             " line=" + change.getLineNumber() + " (index=" + lineIndex + ")" +
+                             " content=" + (change.getContent() != null ? change.getContent().substring(0, Math.min(50, change.getContent().length())) : "null") +
+                             " | lines.size()=" + lines.size());
+
             switch (change.getOperation()) {
                 case "MODIFY":
-                    if (lineIndex >= 0 && lineIndex < lines.size()) {
+                    if (lineIndex >= 0) {
+                        // Expand lines list if needed to accommodate the line index
+                        while (lines.size() <= lineIndex) {
+                            lines.add("");
+                        }
                         lines.set(lineIndex, change.getContent() != null ? change.getContent() : "");
+                        System.out.println("DEBUG: MODIFY applied (lines.size now=" + lines.size() + ")");
+                    } else {
+                        System.out.println("DEBUG: MODIFY SKIPPED - lineIndex " + lineIndex + " is negative");
                     }
                     break;
 
                 case "INSERT_AFTER":
                     // Insert after the specified line
                     int insertIndex = lineIndex + 1;
-                    if (insertIndex >= 0 && insertIndex <= lines.size()) {
+                    if (insertIndex >= 0) {
+                        // Expand lines list if needed to accommodate the insert position
+                        while (lines.size() < insertIndex) {
+                            lines.add("");
+                        }
                         lines.add(insertIndex, change.getContent() != null ? change.getContent() : "");
+                        System.out.println("DEBUG: INSERT_AFTER applied at index " + insertIndex + " (lines.size now=" + lines.size() + ")");
+                    } else {
+                        System.out.println("DEBUG: INSERT_AFTER SKIPPED - insertIndex " + insertIndex + " is negative");
                     }
                     break;
 
                 case "DELETE":
                     if (lineIndex >= 0 && lineIndex < lines.size()) {
                         lines.remove(lineIndex);
+                        System.out.println("DEBUG: DELETE applied");
+                    } else {
+                        System.out.println("DEBUG: DELETE SKIPPED - lineIndex " + lineIndex + " out of bounds [0, " + lines.size() + ")");
                     }
                     break;
 
@@ -325,6 +350,8 @@ public class DocumentChangeService {
                     System.err.println("Unknown operation: " + change.getOperation());
             }
         }
+
+        System.out.println("DEBUG: Final result has " + lines.size() + " lines");
 
         // Join lines back into content
         return String.join("\n", lines);

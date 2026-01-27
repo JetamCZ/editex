@@ -179,14 +179,14 @@ public class ProjectService {
         }
 
         // Determine the current change state of the source branch
-        String currentChangeId = documentChangeRepository.findLatestByProjectId(sourceProject.getId())
+        Long currentChangeId = documentChangeRepository.findLatestByProjectId(sourceProject.getId())
                 .map(DocumentChange::getId)
                 .orElse(null);
 
         // Get last commit to check if there are pending changes
         List<Commit> lastCommits = commitRepository.findUserCommitsByBranch(baseProject, sourceBranch);
         Commit lastCommit = lastCommits.isEmpty() ? null : lastCommits.get(0);
-        String lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
+        Long lastCommitChangeId = lastCommit != null ? lastCommit.getLastChangeId() : null;
 
         // Check for pending changes
         boolean hasPendingChanges;
@@ -208,7 +208,7 @@ public class ProjectService {
         }
 
         // The changeId that represents the branch point
-        String branchPointChangeId = currentChangeId;
+        Long branchPointChangeId = currentChangeId;
 
         if (hasPendingChanges) {
             // Create AUTOCOMMIT on the source branch first

@@ -2,7 +2,6 @@ package eu.puhony.latex_editor.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import org.hibernate.annotations.GenericGenerator;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,10 +12,9 @@ import java.time.LocalDateTime;
 public class DocumentChange {
 
     @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private String id;
+    private Long id;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -41,7 +39,7 @@ public class DocumentChange {
     private String content;
 
     @Column(name = "base_change_id")
-    private String baseChangeId; // Last change ID when this edit session started
+    private Long baseChangeId; // Last change ID when this edit session started
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -52,11 +50,11 @@ public class DocumentChange {
     }
 
     // Getters and Setters
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -108,11 +106,11 @@ public class DocumentChange {
         this.content = content;
     }
 
-    public String getBaseChangeId() {
+    public Long getBaseChangeId() {
         return baseChangeId;
     }
 
-    public void setBaseChangeId(String baseChangeId) {
+    public void setBaseChangeId(Long baseChangeId) {
         this.baseChangeId = baseChangeId;
     }
 

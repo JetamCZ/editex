@@ -18,7 +18,7 @@ public class CommitResponse {
     private String sourceBranch;
     private String targetBranch;
     private String message;
-    private String lastChangeId;
+    private Long lastChangeId;
     private String author;
     private Long authorId;
     private LocalDateTime createdAt;

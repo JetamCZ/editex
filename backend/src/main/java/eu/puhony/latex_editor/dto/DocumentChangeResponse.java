@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DocumentChangeResponse {
-    private String id;
+    private Long id;
     private String fileId;
     private String fileName;
     private String filePath;

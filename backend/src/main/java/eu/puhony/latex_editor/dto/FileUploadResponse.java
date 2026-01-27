@@ -20,5 +20,5 @@ public class FileUploadResponse {
     private String s3Url;
     private Long uploadedBy;
     private LocalDateTime createdAt;
-    private String lastChangeId;
+    private Long lastChangeId;
 }
