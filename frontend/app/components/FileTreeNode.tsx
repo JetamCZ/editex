@@ -32,7 +32,6 @@ export function FileTreeNode({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isSelected = selectedFileId === node.fileId;
   const isFolder = node.type === "folder";
-  const isMainTex = node.name.toLowerCase() === "main.tex";
 
   const handleClick = () => {
     if (isFolder) {
@@ -110,19 +109,15 @@ export function FileTreeNode({
                   <Download size={14} style={{ marginRight: 8 }} />
                   Download
                 </DropdownMenu.Item>
-                {!isMainTex && (
-                  <>
-                    <DropdownMenu.Item onSelect={handleMoveClick}>
-                      <FolderInput size={14} style={{ marginRight: 8 }} />
-                      Move to...
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Separator />
-                    <DropdownMenu.Item color="red" onSelect={handleDeleteClick}>
-                      <Trash2 size={14} style={{ marginRight: 8 }} />
-                      Delete
-                    </DropdownMenu.Item>
-                  </>
-                )}
+                <DropdownMenu.Item onSelect={handleMoveClick}>
+                  <FolderInput size={14} style={{ marginRight: 8 }} />
+                  Move to...
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item color="red" onSelect={handleDeleteClick}>
+                  <Trash2 size={14} style={{ marginRight: 8 }} />
+                  Delete
+                </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           </div>

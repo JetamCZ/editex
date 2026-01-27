@@ -28,6 +28,9 @@ RUN apt-get update && \
         texlive-fonts-recommended \
         texlive-fonts-extra \
         texlive-science \
+        texlive-pictures \
+        texlive-bibtex-extra \
+        texlive-lang-czechslovak \
         latexmk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

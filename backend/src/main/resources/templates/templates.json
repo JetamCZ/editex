@@ -55,6 +55,58 @@
           "templateFile": "overleaf/sample.bib"
         }
       ]
+    },
+    {
+      "id": "uhk",
+      "name": "UHK FIM Thesis",
+      "description": "Official thesis template for Faculty of Informatics and Management, University of Hradec Králové",
+      "files": [
+        {
+          "path": "/",
+          "filename": "main.tex",
+          "templateFile": "uhk/main.tex"
+        },
+        {
+          "path": "/",
+          "filename": "fim-uhk-thesis.cls",
+          "templateFile": "uhk/fim-uhk-thesis.cls"
+        },
+        {
+          "path": "/",
+          "filename": "iso690.bst",
+          "templateFile": "uhk/iso690.bst"
+        },
+        {
+          "path": "/",
+          "filename": "zadani.pdf",
+          "templateFile": "uhk/zadani.pdf"
+        },
+        {
+          "path": "/sections",
+          "filename": "text-01-kapitoly.tex",
+          "templateFile": "uhk/sections/text-01-kapitoly.tex"
+        },
+        {
+          "path": "/sections",
+          "filename": "text-02-literatura.bib",
+          "templateFile": "uhk/sections/text-02-literatura.bib"
+        },
+        {
+          "path": "/sections",
+          "filename": "text-03-zkratky.tex",
+          "templateFile": "uhk/sections/text-03-zkratky.tex"
+        },
+        {
+          "path": "/sections",
+          "filename": "text-04-prilohy.tex",
+          "templateFile": "uhk/sections/text-04-prilohy.tex"
+        },
+        {
+          "path": "/img",
+          "filename": "uhk.jpg",
+          "templateFile": "uhk/img/uhk.jpg"
+        }
+      ]
     }
   ]
 }
