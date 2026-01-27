@@ -58,11 +58,13 @@ export function computeMinimalChanges(previousLines: string[], currentLines: str
             });
             deleteOffset--;
         } else if (change.type === 'insert') {
-            // INSERT_AFTER uses the target position in the current array
-            // This equals the position in the working array after operations applied so far
+            // INSERT_AFTER line number: insert after line N (1-indexed)
+            // currIdx is 0-indexed position in target array
+            // To insert at position 0, we use INSERT_AFTER line 0 (insert after "line 0" = at beginning)
+            // To insert at position 1, we use INSERT_AFTER line 1 (insert after line 1)
             operations.push({
                 operation: "INSERT_AFTER",
-                line: change.currIdx!,
+                line: change.currIdx!, // 0-indexed: INSERT_AFTER 0 means insert at beginning
                 content: currentLines[change.currIdx!]
             });
         }
