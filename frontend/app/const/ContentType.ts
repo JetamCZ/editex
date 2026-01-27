@@ -25,8 +25,8 @@ export const typeMapping: Record<string, ContentTypeValue> = {
     "application/x-latex": ContentType.TEXT,
     // PDF
     "application/pdf": ContentType.PDF,
-    // Binary
-    "application/octet-stream": ContentType.BINARY,
+    // Note: application/octet-stream is intentionally NOT mapped here
+    // so that we fall back to file extension detection for unknown MIME types
 };
 
 // Helper to determine content type from file extension
