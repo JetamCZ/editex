@@ -296,15 +296,17 @@ public class DocumentChangeService {
             java.util.Arrays.asList(originalContent.split("\n", -1))
         );
 
-        // Track offset for INSERT operations.
-        // Frontend sends INSERT_AFTER with 1-indexed target positions, but multiple inserts
-        // at the same position need to be placed sequentially (not all at the same spot).
-        // Each insert shifts subsequent positions by 1.
-        int insertOffset = 0;
+        System.out.println("DEBUG: Starting with " + lines.size() + " lines from original content");
+        System.out.println("DEBUG: Applying " + changes.size() + " changes");
 
+        // Apply changes in chronological order
         for (DocumentChange change : changes) {
-            int lineNumber = change.getLineNumber();
-            int lineIndex = lineNumber - 1; // Convert to 0-based index
+            int lineIndex = change.getLineNumber() - 1; // Convert to 0-based index
+
+            System.out.println("DEBUG: Change id=" + change.getId() + " op=" + change.getOperation() +
+                             " line=" + change.getLineNumber() + " (index=" + lineIndex + ")" +
+                             " content=" + (change.getContent() != null ? change.getContent().substring(0, Math.min(50, change.getContent().length())) : "null") +
+                             " | lines.size()=" + lines.size());
 
             switch (change.getOperation()) {
                 case "MODIFY":
@@ -314,36 +316,42 @@ public class DocumentChangeService {
                             lines.add("");
                         }
                         lines.set(lineIndex, change.getContent() != null ? change.getContent() : "");
+                        System.out.println("DEBUG: MODIFY applied (lines.size now=" + lines.size() + ")");
+                    } else {
+                        System.out.println("DEBUG: MODIFY SKIPPED - lineIndex " + lineIndex + " is negative");
                     }
                     break;
 
                 case "INSERT_AFTER":
-                    // Frontend sends 1-indexed positions. Multiple inserts at the same position
-                    // need offset adjustment to maintain order.
-                    // Cap to current size - don't pad with empty lines, just append at end if beyond.
-                    int insertIndex = Math.min(lineIndex + insertOffset, lines.size());
+                    // Insert after the specified line
+                    int insertIndex = lineIndex + 1;
                     if (insertIndex >= 0) {
+                        // Expand lines list if needed to accommodate the insert position
+                        while (lines.size() < insertIndex) {
+                            lines.add("");
+                        }
                         lines.add(insertIndex, change.getContent() != null ? change.getContent() : "");
-                        insertOffset++;
+                        System.out.println("DEBUG: INSERT_AFTER applied at index " + insertIndex + " (lines.size now=" + lines.size() + ")");
+                    } else {
+                        System.out.println("DEBUG: INSERT_AFTER SKIPPED - insertIndex " + insertIndex + " is negative");
                     }
                     break;
 
                 case "DELETE":
-                    // Frontend already adjusted positions for previous deletes
                     if (lineIndex >= 0 && lineIndex < lines.size()) {
                         lines.remove(lineIndex);
+                        System.out.println("DEBUG: DELETE applied");
+                    } else {
+                        System.out.println("DEBUG: DELETE SKIPPED - lineIndex " + lineIndex + " out of bounds [0, " + lines.size() + ")");
                     }
                     break;
 
                 default:
-                    break;
+                    System.err.println("Unknown operation: " + change.getOperation());
             }
         }
 
-        // Ensure at least one empty line (matching Monaco editor behavior)
-        if (lines.isEmpty()) {
-            lines.add("");
-        }
+        System.out.println("DEBUG: Final result has " + lines.size() + " lines");
 
         // Join lines back into content
         return String.join("\n", lines);
