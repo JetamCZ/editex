@@ -7,6 +7,9 @@ import {
     ListBulletIcon,
     HeadingIcon,
     TableIcon,
+    PlusIcon,
+    MinusIcon,
+    TrashIcon,
 } from '@radix-ui/react-icons';
 
 interface Props {
@@ -15,6 +18,8 @@ interface Props {
 
 export default function WysiwygToolbar({editor}: Props) {
     if (!editor) return null;
+
+    const isInTable = editor.isActive('table');
 
     return (
         <div className="wysiwyg-toolbar">
@@ -125,6 +130,77 @@ export default function WysiwygToolbar({editor}: Props) {
                     <TableIcon width="16" height="16" />
                 </IconButton>
             </Tooltip>
+
+            {isInTable && (
+                <>
+                    <div className="wysiwyg-toolbar-separator" />
+
+                    <Tooltip content="Add column after">
+                        <IconButton
+                            size="1"
+                            variant="ghost"
+                            color="gray"
+                            onClick={() => editor.chain().focus().addColumnAfter().run()}
+                        >
+                            <span style={{display: 'flex', alignItems: 'center', fontSize: '11px', gap: '1px'}}>
+                                <PlusIcon width="12" height="12" />Col
+                            </span>
+                        </IconButton>
+                    </Tooltip>
+
+                    <Tooltip content="Remove column">
+                        <IconButton
+                            size="1"
+                            variant="ghost"
+                            color="red"
+                            onClick={() => editor.chain().focus().deleteColumn().run()}
+                        >
+                            <span style={{display: 'flex', alignItems: 'center', fontSize: '11px', gap: '1px'}}>
+                                <MinusIcon width="12" height="12" />Col
+                            </span>
+                        </IconButton>
+                    </Tooltip>
+
+                    <Tooltip content="Add row after">
+                        <IconButton
+                            size="1"
+                            variant="ghost"
+                            color="gray"
+                            onClick={() => editor.chain().focus().addRowAfter().run()}
+                        >
+                            <span style={{display: 'flex', alignItems: 'center', fontSize: '11px', gap: '1px'}}>
+                                <PlusIcon width="12" height="12" />Row
+                            </span>
+                        </IconButton>
+                    </Tooltip>
+
+                    <Tooltip content="Remove row">
+                        <IconButton
+                            size="1"
+                            variant="ghost"
+                            color="red"
+                            onClick={() => editor.chain().focus().deleteRow().run()}
+                        >
+                            <span style={{display: 'flex', alignItems: 'center', fontSize: '11px', gap: '1px'}}>
+                                <MinusIcon width="12" height="12" />Row
+                            </span>
+                        </IconButton>
+                    </Tooltip>
+
+                    <Tooltip content="Delete table">
+                        <IconButton
+                            size="1"
+                            variant="ghost"
+                            color="red"
+                            onClick={() => editor.chain().focus().deleteTable().run()}
+                        >
+                            <TrashIcon width="14" height="14" />
+                        </IconButton>
+                    </Tooltip>
+                </>
+            )}
+
+            <div className="wysiwyg-toolbar-separator" />
 
             <Tooltip content="Math equation">
                 <IconButton
