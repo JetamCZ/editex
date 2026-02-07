@@ -6,15 +6,21 @@
     overflow: hidden;
 }
 
-.wysiwyg-editor .tiptap {
+/* EditorContent wrapper needs to be a scrollable flex child */
+.wysiwyg-editor > .tiptap-wrapper {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
+}
+
+.wysiwyg-editor .tiptap {
     padding: 24px 32px;
     outline: none;
     font-family: 'Georgia', 'Times New Roman', serif;
     font-size: 16px;
     line-height: 1.7;
     color: #1a1a1a;
+    min-height: 100%;
 }
 
 .wysiwyg-editor .tiptap > * + * {

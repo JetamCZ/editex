@@ -190,7 +190,9 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
     return (
         <div className="wysiwyg-editor">
             <WysiwygToolbar editor={editor} />
-            <EditorContent editor={editor} />
+            <div className="tiptap-wrapper">
+                <EditorContent editor={editor} />
+            </div>
             {mathPopup && (
                 <MathPopup
                     latex={mathPopup.latex}
