@@ -26,6 +26,9 @@ export interface CollaborativeEditorRef {
     handleReloadFile: () => Promise<void>;
     handleShowChanges: () => void;
     handleSendChanges: () => void;
+    getContent: () => string;
+    replaceContent: (content: string) => void;
+    onContentChange: (cb: (content: string) => void) => () => void;
 }
 
 // Generate consistent color from user ID
@@ -409,6 +412,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         await refetch();
     };
 
+    // Content change listeners for WYSIWYG sync
+    const contentListenersRef = useRef<Set<(content: string) => void>>(new Set());
+
     // Expose methods and state to parent via ref
     useImperativeHandle(ref, () => ({
         changeHistory,
@@ -417,6 +423,27 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         handleReloadFile,
         handleShowChanges,
         handleSendChanges,
+        getContent: () => {
+            return editorRef.current?.getModel()?.getValue() || '';
+        },
+        replaceContent: (content: string) => {
+            const editor = editorRef.current;
+            if (!editor) return;
+            const model = editor.getModel();
+            if (!model) return;
+            const fullRange = model.getFullModelRange();
+            editor.executeEdits('wysiwyg-sync', [{
+                range: fullRange,
+                text: content,
+                forceMoveMarkers: true,
+            }]);
+        },
+        onContentChange: (cb: (content: string) => void) => {
+            contentListenersRef.current.add(cb);
+            return () => {
+                contentListenersRef.current.delete(cb);
+            };
+        },
     }));
 
     // Inject CSS for collaborator cursors (only once)
@@ -550,6 +577,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             const model = editor.getModel();
             if (model) {
                 detectChanges(e, model);
+                // Notify WYSIWYG content listeners
+                const value = model.getValue();
+                contentListenersRef.current.forEach(cb => cb(value));
             }
         });
 

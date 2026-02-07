@@ -1,7 +1,7 @@
 import {useNavigate, useParams, useOutletContext} from "react-router";
 import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
-import {useState, useEffect, useRef} from "react";
+import {useState, useEffect, useRef, useCallback} from "react";
 import {createPortal} from "react-dom";
 import {Box, Text, Button, Badge, Select} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
@@ -18,6 +18,8 @@ import {type CompilationResult, useLatexCompilation} from "~/hooks/useLatexCompi
 import EditorToolbar from "~/components/EditorToolbar";
 import {FileTextIcon, PlayIcon} from "@radix-ui/react-icons";
 import {Upload, GitBranch, Plus} from "lucide-react";
+import RightPanelToggle, {type RightPanelMode} from "~/components/RightPanelToggle";
+import WysiwygEditor from "~/components/WysiwygEditor";
 
 export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
     const parentData = matches.find(m => m.data?.project)?.data;
@@ -47,6 +49,8 @@ const EditorPage = () => {
         compilationLog: string | null;
     }>({ open: false, errorMessage: null, compilationLog: null });
     const [compileTarget, setCompileTarget] = useState<string>("main.tex");
+    const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('pdf');
+    const [wysiwygContent, setWysiwygContent] = useState<string>('');
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
     const [editorState, setEditorState] = useState<{
         changeHistory: any[];
@@ -181,6 +185,28 @@ const EditorPage = () => {
     const handleSendChanges = () => {
         editorRef.current?.handleSendChanges();
     };
+
+    // Sync Monaco content to WYSIWYG when panel becomes visible or content changes
+    useEffect(() => {
+        if (rightPanelMode !== 'wysiwyg' || !editorRef.current?.onContentChange) return;
+
+        // Get initial content
+        const initialContent = editorRef.current.getContent?.() || '';
+        if (initialContent) {
+            setWysiwygContent(initialContent);
+        }
+
+        // Subscribe to ongoing changes
+        const unsub = editorRef.current.onContentChange((content: string) => {
+            setWysiwygContent(content);
+        });
+
+        return unsub;
+    }, [rightPanelMode, selectedFileId]);
+
+    const handleWysiwygContentChange = useCallback((latex: string) => {
+        editorRef.current?.replaceContent?.(latex);
+    }, []);
 
     const handleBranchSwitch = (branchName: string) => {
         if (branchName !== project.branch) {
@@ -487,19 +513,32 @@ const EditorPage = () => {
                 </footer>
             </div>
 
-            {/* PDF Preview Panel */}
+            {/* Right Panel: PDF Preview or WYSIWYG Editor */}
             <Box style={{borderLeft: '1px solid var(--gray-6)', minWidth: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column'}}>
-                {currentPdfUrl ? (
-                    <PdfViewer
-                        pdfUrl={currentPdfUrl}
-                        fileName={selectedFile?.originalFileName.replace('.tex', '.pdf') || 'output.pdf'}
-                    />
+                {/* Panel toggle - only for .tex files */}
+                {selectedFile?.originalFileName.endsWith('.tex') && (
+                    <RightPanelToggle mode={rightPanelMode} onModeChange={setRightPanelMode} />
+                )}
+
+                {rightPanelMode === 'pdf' ? (
+                    currentPdfUrl ? (
+                        <PdfViewer
+                            pdfUrl={currentPdfUrl}
+                            fileName={selectedFile?.originalFileName.replace('.tex', '.pdf') || 'output.pdf'}
+                        />
+                    ) : (
+                        <Box p="4" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--gray-2)'}}>
+                            <Text color="gray" size="2" align="center">
+                                Click "Compile" to generate PDF preview
+                            </Text>
+                        </Box>
+                    )
                 ) : (
-                    <Box p="4" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--gray-2)'}}>
-                        <Text color="gray" size="2" align="center">
-                            Click "Compile" to generate PDF preview
-                        </Text>
-                    </Box>
+                    <WysiwygEditor
+                        content={wysiwygContent}
+                        onContentChange={handleWysiwygContentChange}
+                        visible={rightPanelMode === 'wysiwyg'}
+                    />
                 )}
             </Box>
 
