@@ -55,10 +55,16 @@
 }
 
 /* Lists */
-.wysiwyg-editor .tiptap ul,
+.wysiwyg-editor .tiptap ul {
+    padding-left: 24px;
+    margin: 0.5em 0;
+    list-style: disc;
+}
+
 .wysiwyg-editor .tiptap ol {
     padding-left: 24px;
     margin: 0.5em 0;
+    list-style: decimal;
 }
 
 .wysiwyg-editor .tiptap li {
