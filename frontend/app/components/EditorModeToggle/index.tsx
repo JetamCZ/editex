@@ -14,7 +14,7 @@ export default function EditorModeToggle({mode, onModeChange}: Props) {
             onValueChange={(value) => onModeChange(value as EditorMode)}
             size="2"
         >
-            <SegmentedControl.Item value="wysiwyg">WYSIWYG</SegmentedControl.Item>
+            <SegmentedControl.Item value="wysiwyg">Visual</SegmentedControl.Item>
             <SegmentedControl.Item value="latex">LaTeX Code</SegmentedControl.Item>
         </SegmentedControl.Root>
     );

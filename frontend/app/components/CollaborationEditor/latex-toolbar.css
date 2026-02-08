@@ -1,0 +1,50 @@
+.latex-toolbar {
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--gray-6, #e6e6e6);
+    display: flex;
+    gap: 1px;
+    align-items: center;
+    background-color: #fff;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.latex-toolbar-group {
+    display: flex;
+    gap: 1px;
+    align-items: center;
+}
+
+.latex-toolbar-btn {
+    cursor: pointer;
+    width: 24px !important;
+    height: 24px !important;
+}
+
+.latex-toolbar-separator {
+    width: 1px;
+    height: 18px;
+    background-color: var(--gray-5, #e0e0e0);
+    margin: 0 6px;
+    flex-shrink: 0;
+}
+
+.latex-toolbar-dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: var(--radius-1, 4px);
+    background: transparent;
+    color: var(--gray-11, #646464);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    transition: background-color 0.1s;
+    height: 24px;
+}
+
+.latex-toolbar-dropdown-trigger:hover {
+    background-color: var(--gray-4, #e8e8e8);
+}

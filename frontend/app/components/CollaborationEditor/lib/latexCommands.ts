@@ -202,3 +202,67 @@ export function insertQuote(editorInstance: editor.IStandaloneCodeEditor) {
 
     editorInstance.focus();
 }
+
+/**
+ * Insert a section/heading command at the current line.
+ * level: 1 = \section, 2 = \subsection, 3 = \subsubsection
+ */
+export function insertSection(editorInstance: editor.IStandaloneCodeEditor, level: number) {
+    const commands = ['\\section', '\\subsection', '\\subsubsection'];
+    const command = commands[level - 1] || commands[0];
+
+    const selection = editorInstance.getSelection();
+    if (!selection) return;
+
+    const model = editorInstance.getModel();
+    if (!model) return;
+
+    const selectedText = model.getValueInRange(selection);
+    const sectionText = `${command}{${selectedText}}`;
+
+    editorInstance.executeEdits('latex-section', [{
+        range: selection,
+        text: sectionText,
+        forceMoveMarkers: true
+    }]);
+
+    if (selectedText.length === 0) {
+        const newPosition = {
+            lineNumber: selection.startLineNumber,
+            column: selection.startColumn + command.length + 1
+        };
+        editorInstance.setPosition(newPosition);
+    }
+
+    editorInstance.focus();
+}
+
+/**
+ * Insert an \input{} command at the current cursor position.
+ */
+export function insertInput(editorInstance: editor.IStandaloneCodeEditor) {
+    const selection = editorInstance.getSelection();
+    if (!selection) return;
+
+    const model = editorInstance.getModel();
+    if (!model) return;
+
+    const selectedText = model.getValueInRange(selection);
+    const inputText = `\\input{${selectedText}}`;
+
+    editorInstance.executeEdits('latex-input', [{
+        range: selection,
+        text: inputText,
+        forceMoveMarkers: true
+    }]);
+
+    if (selectedText.length === 0) {
+        const newPosition = {
+            lineNumber: selection.startLineNumber,
+            column: selection.startColumn + 7 // after \input{
+        };
+        editorInstance.setPosition(newPosition);
+    }
+
+    editorInstance.focus();
+}

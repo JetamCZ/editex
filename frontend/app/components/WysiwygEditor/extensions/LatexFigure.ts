@@ -13,6 +13,12 @@ export const LatexFigure = Node.create({
         };
     },
 
+    addStorage() {
+        return {
+            resolveImageUrl: null as ((imagePath: string) => string | null) | null,
+        };
+    },
+
     parseHTML() {
         return [{tag: 'div[data-latex-figure]'}];
     },
@@ -25,7 +31,7 @@ export const LatexFigure = Node.create({
     },
 
     addNodeView() {
-        return ({node, getPos}) => {
+        return ({node, getPos, editor}) => {
             const dom = document.createElement('div');
             dom.className = 'latex-figure';
             dom.setAttribute('data-latex-figure', '');
@@ -46,20 +52,32 @@ export const LatexFigure = Node.create({
 
             const render = () => {
                 dom.innerHTML = '';
-                const placeholder = document.createElement('div');
-                placeholder.className = 'latex-figure-placeholder';
 
-                const icon = document.createElement('span');
-                icon.className = 'latex-figure-icon';
-                icon.textContent = '\u{1F5BC}'; // image icon
-                placeholder.appendChild(icon);
+                const resolveImageUrl = (editor.storage as any).latexFigure?.resolveImageUrl;
+                const imageUrl = resolveImageUrl ? resolveImageUrl(node.attrs.imagePath) : null;
 
-                const path = document.createElement('span');
-                path.className = 'latex-figure-path';
-                path.textContent = node.attrs.imagePath || 'image';
-                placeholder.appendChild(path);
+                if (imageUrl) {
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.alt = node.attrs.caption || node.attrs.imagePath || 'figure';
+                    img.className = 'latex-figure-img';
+                    dom.appendChild(img);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'latex-figure-placeholder';
 
-                dom.appendChild(placeholder);
+                    const icon = document.createElement('span');
+                    icon.className = 'latex-figure-icon';
+                    icon.textContent = '\u{1F5BC}';
+                    placeholder.appendChild(icon);
+
+                    const path = document.createElement('span');
+                    path.className = 'latex-figure-path';
+                    path.textContent = node.attrs.imagePath || 'image';
+                    placeholder.appendChild(path);
+
+                    dom.appendChild(placeholder);
+                }
 
                 if (node.attrs.caption) {
                     const caption = document.createElement('div');

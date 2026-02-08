@@ -1,101 +1,147 @@
-import {Tooltip, IconButton} from "@radix-ui/themes";
-import {FontBoldIcon, FontItalicIcon, QuoteIcon, ListBulletIcon, TableIcon, ImageIcon} from "@radix-ui/react-icons";
+import {Tooltip, IconButton, DropdownMenu} from "@radix-ui/themes";
+import {
+    Bold,
+    Italic,
+    Underline,
+    List,
+    ListOrdered,
+    Table,
+    Image,
+    Sigma,
+    ChevronDown,
+    Heading1,
+    Heading2,
+    Heading3,
+    FileInput,
+    type LucideIcon,
+} from "lucide-react";
 import type {ProjectFile} from "../../../types/file";
+import "./latex-toolbar.css";
 
 interface LatexToolbarProps {
     selectedFile: ProjectFile;
     onBold: () => void;
     onItalic: () => void;
+    onUnderline: () => void;
     onMath: () => void;
     onTable: () => void;
     onImage: () => void;
-    onQuote: () => void;
     onBulletList: () => void;
+    onOrderedList: () => void;
+    onSection: (level: number) => void;
+    onInput: () => void;
 }
 
-export default function LatexToolbar({selectedFile, onBold, onItalic, onMath, onTable, onImage, onQuote, onBulletList}: LatexToolbarProps) {
+function ToolbarButton({
+    tooltip,
+    icon: Icon,
+    onClick,
+    iconSize = 15,
+}: {
+    tooltip: string;
+    icon: LucideIcon;
+    onClick: () => void;
+    iconSize?: number;
+}) {
+    return (
+        <Tooltip content={tooltip}>
+            <IconButton
+                size="1"
+                variant="ghost"
+                color="gray"
+                onClick={onClick}
+                className="latex-toolbar-btn"
+            >
+                <Icon size={iconSize} strokeWidth={2} />
+            </IconButton>
+        </Tooltip>
+    );
+}
+
+function HeadingDropdown({onSection}: {onSection: (level: number) => void}) {
+    return (
+        <DropdownMenu.Root>
+            <Tooltip content="Sections">
+                <DropdownMenu.Trigger>
+                    <button className="latex-toolbar-dropdown-trigger">
+                        <Heading1 size={15} strokeWidth={2} />
+                        <ChevronDown size={10} strokeWidth={2} />
+                    </button>
+                </DropdownMenu.Trigger>
+            </Tooltip>
+            <DropdownMenu.Content size="1" variant="soft">
+                <DropdownMenu.Item onSelect={() => onSection(1)}>
+                    <Heading1 size={14} strokeWidth={2} />
+                    \section
+                </DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => onSection(2)}>
+                    <Heading2 size={14} strokeWidth={2} />
+                    \subsection
+                </DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => onSection(3)}>
+                    <Heading3 size={14} strokeWidth={2} />
+                    \subsubsection
+                </DropdownMenu.Item>
+            </DropdownMenu.Content>
+        </DropdownMenu.Root>
+    );
+}
+
+export default function LatexToolbar({
+    selectedFile,
+    onBold,
+    onItalic,
+    onUnderline,
+    onMath,
+    onTable,
+    onImage,
+    onBulletList,
+    onOrderedList,
+    onSection,
+    onInput,
+}: LatexToolbarProps) {
     return (
         <>
-            <div style={{
-                padding: '8px 16px',
-                borderBottom: '1px solid var(--gray-6)',
-                display: 'flex',
-                gap: '8px',
-                alignItems: 'center',
-                backgroundColor: '#fff'
-            }}>
-                <Tooltip content="Bold (Ctrl+B)">
-                    <IconButton
-                        onClick={onBold}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                    >
-                        <FontBoldIcon width="18" height="18" />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip content="Italic (Ctrl+I)">
-                    <IconButton
-                        onClick={onItalic}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                    >
-                        <FontItalicIcon width="18" height="18" />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip content="Math equation">
-                    <IconButton
-                        onClick={onMath}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                        style={{ fontSize: '18px', fontWeight: 'bold' }}
-                    >
-                        Σ
-                    </IconButton>
-                </Tooltip>
-                <Tooltip content="Insert table">
-                    <IconButton
-                        onClick={onTable}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                    >
-                        <TableIcon width="18" height="18" />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip content="Insert image">
-                    <IconButton
-                        onClick={onImage}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                    >
-                        <ImageIcon width="18" height="18" />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip content="Quote">
-                    <IconButton
-                        onClick={onQuote}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                    >
-                        <QuoteIcon width="18" height="18" />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip content="Bullet list (Ctrl+Shift+U)">
-                    <IconButton
-                        onClick={onBulletList}
-                        size="2"
-                        variant="ghost"
-                        color="gray"
-                    >
-                        <ListBulletIcon width="18" height="18" />
-                    </IconButton>
-                </Tooltip>
+            <div className="latex-toolbar">
+                {/* Text formatting */}
+                <div className="latex-toolbar-group">
+                    <ToolbarButton tooltip="Bold (\textbf)" icon={Bold} onClick={onBold} />
+                    <ToolbarButton tooltip="Italic (\textit)" icon={Italic} onClick={onItalic} />
+                    <ToolbarButton tooltip="Underline (\underline)" icon={Underline} onClick={onUnderline} />
+                </div>
+
+                <div className="latex-toolbar-separator" />
+
+                {/* Headings */}
+                <div className="latex-toolbar-group">
+                    <HeadingDropdown onSection={onSection} />
+                </div>
+
+                <div className="latex-toolbar-separator" />
+
+                {/* Lists */}
+                <div className="latex-toolbar-group">
+                    <ToolbarButton tooltip="Bullet list (itemize)" icon={List} onClick={onBulletList} />
+                    <ToolbarButton tooltip="Ordered list (enumerate)" icon={ListOrdered} onClick={onOrderedList} />
+                </div>
+
+                <div className="latex-toolbar-separator" />
+
+                {/* Table */}
+                <div className="latex-toolbar-group">
+                    <ToolbarButton tooltip="Insert table" icon={Table} onClick={onTable} />
+                </div>
+
+                <div className="latex-toolbar-separator" />
+
+                {/* Insert */}
+                <div className="latex-toolbar-group">
+                    <ToolbarButton tooltip="Insert figure" icon={Image} onClick={onImage} />
+                    <ToolbarButton tooltip="Math equation ($...$)" icon={Sigma} onClick={onMath} />
+                    <ToolbarButton tooltip="Input file (\input)" icon={FileInput} onClick={onInput} />
+                </div>
             </div>
+
             {/* File path breadcrumb */}
             <div style={{
                 padding: '8px 16px',

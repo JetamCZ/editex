@@ -10,7 +10,7 @@ import useContent from "~/components/CollaborationEditor/hooks/useContent";
 import useAuth from "~/hooks/useAuth";
 import type * as Monaco from "monaco-editor";
 import { v4 as uuidv4 } from 'uuid';
-import {wrapWithLatexCommand, insertListEnvironment, insertInlineMath, insertTable, insertImage, insertQuote} from "./lib/latexCommands";
+import {wrapWithLatexCommand, insertListEnvironment, insertInlineMath, insertTable, insertImage, insertQuote, insertSection, insertInput} from "./lib/latexCommands";
 import {useRemoteCursors} from "./hooks/useRemoteCursors";
 import {useChangeSubmission} from "./hooks/useChangeSubmission";
 import {useEditorSetup} from "./hooks/useEditorSetup";
@@ -218,11 +218,14 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
                 selectedFile={props.selectedFile}
                 onBold={() => editorRef.current && wrapWithLatexCommand(editorRef.current, '\\textbf')}
                 onItalic={() => editorRef.current && wrapWithLatexCommand(editorRef.current, '\\textit')}
+                onUnderline={() => editorRef.current && wrapWithLatexCommand(editorRef.current, '\\underline')}
                 onMath={() => editorRef.current && insertInlineMath(editorRef.current)}
                 onTable={() => editorRef.current && insertTable(editorRef.current)}
                 onImage={() => editorRef.current && insertImage(editorRef.current)}
-                onQuote={() => editorRef.current && insertQuote(editorRef.current)}
                 onBulletList={() => editorRef.current && insertListEnvironment(editorRef.current, 'itemize')}
+                onOrderedList={() => editorRef.current && insertListEnvironment(editorRef.current, 'enumerate')}
+                onSection={(level) => editorRef.current && insertSection(editorRef.current, level)}
+                onInput={() => editorRef.current && insertInput(editorRef.current)}
             />
         )}
 

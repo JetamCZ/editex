@@ -6,11 +6,14 @@ import {TableRow} from '@tiptap/extension-table-row';
 import {TableCell} from '@tiptap/extension-table-cell';
 import {TableHeader} from '@tiptap/extension-table-header';
 import {Placeholder} from '@tiptap/extension-placeholder';
-import {useEffect, useState, useCallback, useRef} from 'react';
+import {useEffect, useState, useCallback, useRef, useMemo} from 'react';
 import WysiwygToolbar from './WysiwygToolbar';
 import MathPopup from './MathPopup';
 import ImagePopup from './ImagePopup';
 import InputFilePopup from './InputFilePopup';
+import {useProjectFiles} from '~/hooks/useProjectFiles';
+import {getFileContentType, ContentType} from '~/const/ContentType';
+import type {ProjectFile} from '../../../types/file';
 import {
     LatexMathInline,
     LatexMathBlock,
@@ -125,6 +128,43 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             }, 150);
         },
     });
+
+    // Fetch project files for image resolution
+    const {data: projectFiles = []} = useProjectFiles({
+        baseProject: baseProject || '',
+        branch,
+        enabled: !!baseProject,
+    });
+
+    const imageFiles = useMemo(() => {
+        return projectFiles.filter((f: ProjectFile) =>
+            getFileContentType(f.fileType, f.originalFileName) === ContentType.IMAGE
+        );
+    }, [projectFiles]);
+
+    // Set image resolver on the editor storage so figure nodes can show previews
+    useEffect(() => {
+        if (!editor) return;
+
+        const resolveImageUrl = (imagePath: string): string | null => {
+            if (!imagePath) return null;
+            // Try to match by relative path (folder/filename) or just filename
+            const normalizedPath = imagePath.replace(/^\.\//, '');
+            for (const file of imageFiles) {
+                const folder = file.projectFolder?.replace(/^\/+/, '') || '';
+                const relativePath = folder ? `${folder}/${file.originalFileName}` : file.originalFileName;
+                if (relativePath === normalizedPath || file.originalFileName === normalizedPath) {
+                    return file.s3Url;
+                }
+            }
+            return null;
+        };
+
+        (editor.storage as any).latexFigure.resolveImageUrl = resolveImageUrl;
+
+        // Force re-render of all figure nodes so they pick up the resolver
+        editor.view.dispatch(editor.state.tr.setMeta('resolveImageUrl', true));
+    }, [editor, imageFiles]);
 
     // Listen for math click events
     useEffect(() => {
