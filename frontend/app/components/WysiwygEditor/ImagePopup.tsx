@@ -1,17 +1,34 @@
-import {useState, useEffect, useRef, useCallback} from 'react';
+import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {createPortal} from 'react-dom';
+import {useProjectFiles} from '~/hooks/useProjectFiles';
+import {getFileContentType, ContentType} from '~/const/ContentType';
+import type {ProjectFile} from '../../../types/file';
 
 interface ImagePopupProps {
     imagePath: string;
     caption: string;
     onSave: (imagePath: string, caption: string) => void;
     onCancel: () => void;
+    baseProject?: string;
+    branch?: string;
 }
 
-export default function ImagePopup({imagePath, caption, onSave, onCancel}: ImagePopupProps) {
+export default function ImagePopup({imagePath, caption, onSave, onCancel, baseProject, branch}: ImagePopupProps) {
     const [path, setPath] = useState(imagePath);
     const [cap, setCap] = useState(caption);
     const pathRef = useRef<HTMLInputElement>(null);
+
+    const {data: files = []} = useProjectFiles({
+        baseProject: baseProject || '',
+        branch,
+        enabled: !!baseProject,
+    });
+
+    const imageFiles = useMemo(() => {
+        return files.filter((f: ProjectFile) =>
+            getFileContentType(f.fileType, f.originalFileName) === ContentType.IMAGE
+        );
+    }, [files]);
 
     useEffect(() => {
         pathRef.current?.focus();
@@ -26,6 +43,20 @@ export default function ImagePopup({imagePath, caption, onSave, onCancel}: Image
         }
     }, [path, cap, onSave, onCancel]);
 
+    const handleImageSelect = useCallback((file: ProjectFile) => {
+        const relativePath = file.projectFolder
+            ? `${file.projectFolder}/${file.originalFileName}`
+            : file.originalFileName;
+        setPath(relativePath);
+    }, []);
+
+    const isSelected = useCallback((file: ProjectFile) => {
+        const relativePath = file.projectFolder
+            ? `${file.projectFolder}/${file.originalFileName}`
+            : file.originalFileName;
+        return path === relativePath;
+    }, [path]);
+
     return createPortal(
         <div className="math-popup-overlay" onClick={onCancel}>
             <div className="math-popup" onClick={e => e.stopPropagation()}>
@@ -36,7 +67,34 @@ export default function ImagePopup({imagePath, caption, onSave, onCancel}: Image
                     </span>
                 </div>
                 <div className="math-popup-body" onKeyDown={handleKeyDown}>
-                    <label className="image-popup-label">Image path</label>
+                    {imageFiles.length > 0 && (
+                        <>
+                            <label className="image-popup-label">Uploaded images</label>
+                            <div className="image-popup-grid">
+                                {imageFiles.map((file: ProjectFile) => (
+                                    <button
+                                        key={file.id}
+                                        type="button"
+                                        className={`image-popup-grid-item${isSelected(file) ? ' selected' : ''}`}
+                                        onClick={() => handleImageSelect(file)}
+                                        title={file.originalFileName}
+                                    >
+                                        <img
+                                            src={file.s3Url}
+                                            alt={file.originalFileName}
+                                            className="image-popup-grid-thumb"
+                                        />
+                                        <span className="image-popup-grid-name">
+                                            {file.originalFileName}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                    <label className="image-popup-label" style={imageFiles.length > 0 ? {marginTop: '12px'} : undefined}>
+                        Image path
+                    </label>
                     <input
                         ref={pathRef}
                         className="image-popup-input"

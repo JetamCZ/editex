@@ -601,6 +601,8 @@ const EditorPage = () => {
                         content={wysiwygContent}
                         onContentChange={handleWysiwygContentChange}
                         visible={rightPanelMode === 'wysiwyg'}
+                        baseProject={project.baseProject}
+                        branch={project.branch}
                     />
                 )}
             </Box>

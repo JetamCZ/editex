@@ -30,9 +30,13 @@ interface WysiwygEditorProps {
     onContentChange: (latex: string) => void;
     /** Whether this panel is currently visible */
     visible: boolean;
+    /** Base project identifier for fetching uploaded files */
+    baseProject?: string;
+    /** Branch name for fetching uploaded files */
+    branch?: string;
 }
 
-export default function WysiwygEditor({content, onContentChange, visible}: WysiwygEditorProps) {
+export default function WysiwygEditor({content, onContentChange, visible, baseProject, branch}: WysiwygEditorProps) {
     const [mathPopup, setMathPopup] = useState<{
         latex: string;
         pos: number;
@@ -256,6 +260,8 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
                     caption={imagePopup.caption}
                     onSave={handleImageSave}
                     onCancel={() => setImagePopup(null)}
+                    baseProject={baseProject}
+                    branch={branch}
                 />
             )}
         </div>
