@@ -57,6 +57,7 @@ const EditorPage = () => {
         isConnected: boolean;
         sessionId: string;
     }>({changeHistory: [], isConnected: false, sessionId: ''});
+    const [debugPanelOpen, setDebugPanelOpen] = useState(false);
 
     const [autoSave, setAutoSave] = useState<boolean>(true);
 
@@ -193,7 +194,7 @@ const EditorPage = () => {
     };
 
     const handleShowChanges = () => {
-        editorRef.current?.handleShowChanges();
+        setDebugPanelOpen(prev => !prev);
     };
 
     const handleSendChanges = () => {
@@ -392,7 +393,7 @@ const EditorPage = () => {
             </aside>
 
             {/* Editor Area */}
-            <div style={{flex: 1, display: "flex", flexDirection: "column", minWidth: 0}}>
+            <div style={{flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative"}}>
                 <Box style={{flex: 1, minWidth: 0, overflow: 'hidden'}}>
                     {!selectedFile ? (
                         <Box p="3">
@@ -528,6 +529,51 @@ const EditorPage = () => {
                         )}
                     </div>
                 </footer>
+
+                {/* Debug Panel */}
+                {debugPanelOpen && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '28px',
+                        left: '260px',
+                        right: 0,
+                        maxHeight: '300px',
+                        backgroundColor: '#1e1e1e',
+                        color: '#d4d4d4',
+                        borderTop: '2px solid var(--blue-9)',
+                        overflow: 'auto',
+                        zIndex: 50,
+                        fontFamily: 'monospace',
+                        fontSize: '12px',
+                    }}>
+                        <div style={{
+                            padding: '8px 12px',
+                            borderBottom: '1px solid #333',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            position: 'sticky',
+                            top: 0,
+                            backgroundColor: '#1e1e1e',
+                        }}>
+                            <span style={{fontWeight: 'bold', color: '#569cd6'}}>
+                                Debug: changeHistory ({editorState.changeHistory.length} ops)
+                            </span>
+                            <button
+                                onClick={() => setDebugPanelOpen(false)}
+                                style={{background: 'none', border: 'none', color: '#d4d4d4', cursor: 'pointer', fontSize: '14px'}}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <pre style={{margin: 0, padding: '8px 12px', whiteSpace: 'pre-wrap'}}>
+                            {editorState.changeHistory.length === 0
+                                ? '// No unsaved changes'
+                                : JSON.stringify(editorState.changeHistory, null, 2)
+                            }
+                        </pre>
+                    </div>
+                )}
             </div>
 
             {/* Right Panel: PDF Preview or WYSIWYG Editor */}
