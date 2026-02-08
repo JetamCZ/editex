@@ -18,6 +18,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -104,6 +106,59 @@ public class LatexCompilationService {
                 System.out.println("=== CLEANING UP TEMP DIRECTORY ===");
                 System.out.println("Location: " + workDir.getAbsolutePath());
                 cleanupDirectory(workDir);
+            }
+        }
+    }
+
+    public String downloadProjectAsZip(String baseProject, String branch, Long userId) throws Exception {
+        File workDir = null;
+
+        try {
+            projectMemberService.ensureCanRead(baseProject, userId);
+
+            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+                    .orElseThrow(() -> new RuntimeException("Project not found"));
+
+            workDir = createCompilationDirectory();
+
+            downloadProjectDependencies(project.getId(), workDir, userId);
+
+            // Create zip file
+            File zipFile = new File(workDir.getParentFile(), workDir.getName() + ".zip");
+            try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+                addDirectoryToZip(workDir, workDir, zos);
+            }
+
+            // Upload zip to S3
+            String s3Folder = baseProject + "/" + branch + "/downloads";
+            String zipFileName = "project.zip";
+            String zipUrl = minioService.uploadFileWithName(zipFile, s3Folder, zipFileName, "application/zip");
+
+            // Cleanup zip file
+            zipFile.delete();
+
+            return zipUrl;
+        } finally {
+            if (workDir != null) {
+                cleanupDirectory(workDir);
+            }
+        }
+    }
+
+    private void addDirectoryToZip(File rootDir, File currentDir, ZipOutputStream zos) throws IOException {
+        File[] files = currentDir.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            String relativePath = rootDir.toPath().relativize(file.toPath()).toString();
+            if (file.isDirectory()) {
+                zos.putNextEntry(new ZipEntry(relativePath + "/"));
+                zos.closeEntry();
+                addDirectoryToZip(rootDir, file, zos);
+            } else {
+                zos.putNextEntry(new ZipEntry(relativePath));
+                Files.copy(file.toPath(), zos);
+                zos.closeEntry();
             }
         }
     }

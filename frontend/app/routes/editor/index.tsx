@@ -15,8 +15,9 @@ import CreateFileModal from "~/components/CreateFileModal";
 import CreateBranchDialog from "~/components/CreateBranchDialog";
 import CompilationErrorDialog from "~/components/CompilationErrorDialog";
 import {type CompilationResult, useLatexCompilation} from "~/hooks/useLatexCompilation";
+import {useProjectDownload} from "~/hooks/useProjectDownload";
 import EditorToolbar from "~/components/EditorToolbar";
-import {FileTextIcon, PlayIcon} from "@radix-ui/react-icons";
+import {FileTextIcon, PlayIcon, DownloadIcon} from "@radix-ui/react-icons";
 import {Upload, GitBranch, Plus} from "lucide-react";
 import RightPanelToggle, {type RightPanelMode} from "~/components/RightPanelToggle";
 import WysiwygEditor from "~/components/WysiwygEditor";
@@ -85,6 +86,7 @@ const EditorPage = () => {
     });
 
     const compilationMutation = useLatexCompilation();
+    const downloadMutation = useProjectDownload();
 
     // Derive list of .tex files for compilation target dropdown
     const texFiles = uploadedFiles.filter(f =>
@@ -189,6 +191,25 @@ const EditorPage = () => {
         );
     };
 
+    const handleDownload = () => {
+        downloadMutation.mutate(
+            {baseProject: project.baseProject, branch: project.branch},
+            {
+                onSuccess: (result) => {
+                    const link = document.createElement('a');
+                    link.href = result.zipUrl;
+                    link.download = 'project.zip';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+                onError: (error) => {
+                    console.error("Download failed:", error);
+                }
+            }
+        );
+    };
+
     const handleReload = () => {
         editorRef.current?.handleReloadFile();
     };
@@ -269,6 +290,15 @@ const EditorPage = () => {
                 loading={compilationMutation.isPending}
             >
                 <PlayIcon /> Compile
+            </Button>
+            <Button
+                size="2"
+                variant="outline"
+                onClick={handleDownload}
+                disabled={downloadMutation.isPending}
+                loading={downloadMutation.isPending}
+            >
+                <DownloadIcon /> Download
             </Button>
         </>,
         headerActionsContainer

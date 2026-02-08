@@ -2,6 +2,7 @@ package eu.puhony.latex_editor.controller;
 
 import eu.puhony.latex_editor.dto.CompilationRequest;
 import eu.puhony.latex_editor.dto.CompilationResult;
+import eu.puhony.latex_editor.dto.DownloadRequest;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.LatexCompilationService;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/latex")
@@ -39,6 +42,27 @@ public class LatexCompilationController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
+        }
+    }
+
+    @PostMapping("/download")
+    public ResponseEntity<Map<String, String>> downloadProject(
+            @Valid @RequestBody DownloadRequest request,
+            Authentication authentication) {
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            String branch = request.getBranch() != null ? request.getBranch() : "main";
+            String zipUrl = compilationService.downloadProjectAsZip(
+                request.getBaseProject(),
+                branch,
+                user.getId()
+            );
+            return ResponseEntity.ok(Map.of("zipUrl", zipUrl));
+        } catch (Exception e) {
+            throw new RuntimeException("Download failed: " + e.getMessage(), e);
         }
     }
 }
