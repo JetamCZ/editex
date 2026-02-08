@@ -1,0 +1,683 @@
+import {type Token, TokenType, type TipTapNode, type TipTapMark, type TipTapDoc} from './types';
+
+const SECTION_COMMANDS: Record<string, number> = {
+    section: 1,
+    subsection: 2,
+    subsubsection: 3,
+};
+
+const FORMATTING_COMMANDS: Record<string, string> = {
+    textbf: 'bold',
+    textit: 'italic',
+    emph: 'italic',
+    underline: 'underline',
+};
+
+const LIST_ENVIRONMENTS = new Set(['itemize', 'enumerate']);
+
+export function parse(tokens: Token[]): TipTapDoc {
+    const ctx = new ParserContext(tokens);
+    const content = ctx.parseDocument();
+    return {type: 'doc', content};
+}
+
+class ParserContext {
+    private tokens: Token[];
+    private pos: number;
+    private rawStartPos: number;
+
+    constructor(tokens: Token[]) {
+        this.tokens = tokens;
+        this.pos = 0;
+        this.rawStartPos = 0;
+    }
+
+    private peek(): Token {
+        return this.tokens[this.pos] || {type: TokenType.EOF, value: '', raw: '', pos: -1};
+    }
+
+    private advance(): Token {
+        const tok = this.tokens[this.pos];
+        this.pos++;
+        return tok;
+    }
+
+    private consume(type: TokenType): Token {
+        const tok = this.peek();
+        if (tok.type !== type) {
+            // Don't throw — be lenient. Return a dummy.
+            return {type, value: '', raw: '', pos: tok.pos};
+        }
+        return this.advance();
+    }
+
+    /** Read tokens until we find a CLOSE_BRACE at the same nesting depth */
+    private readBraceGroup(): Token[] {
+        this.consume(TokenType.OPEN_BRACE);
+        const result: Token[] = [];
+        let depth = 1;
+        while (depth > 0 && this.peek().type !== TokenType.EOF) {
+            const tok = this.advance();
+            if (tok.type === TokenType.OPEN_BRACE) depth++;
+            else if (tok.type === TokenType.CLOSE_BRACE) {
+                depth--;
+                if (depth === 0) break;
+            }
+            result.push(tok);
+        }
+        return result;
+    }
+
+    /** Read the text content of a brace group (flattened) */
+    private readBraceGroupText(): string {
+        const tokens = this.readBraceGroup();
+        return tokens.map(t => t.raw).join('');
+    }
+
+    /** Read raw tokens of a brace group for further parsing */
+    private readBraceGroupTokens(): Token[] {
+        return this.readBraceGroup();
+    }
+
+    /** Skip optional argument [...]  */
+    private skipOptionalArg(): string | null {
+        if (this.peek().type === TokenType.OPEN_BRACKET) {
+            this.advance();
+            let content = '';
+            while (this.peek().type !== TokenType.CLOSE_BRACKET && this.peek().type !== TokenType.EOF) {
+                content += this.advance().raw;
+            }
+            this.consume(TokenType.CLOSE_BRACKET);
+            return content;
+        }
+        return null;
+    }
+
+    /** Collect raw source from all tokens between two indices */
+    private rawBetween(startTokIdx: number, endTokIdx: number): string {
+        let raw = '';
+        for (let i = startTokIdx; i < endTokIdx && i < this.tokens.length; i++) {
+            raw += this.tokens[i].raw;
+        }
+        return raw;
+    }
+
+    /** Read everything until \end{envName}, returning raw LaTeX */
+    private readUntilEnd(envName: string): string {
+        let raw = '';
+        let depth = 1;
+        while (this.peek().type !== TokenType.EOF) {
+            // Check for \begin{same} (nested)
+            if (this.peek().type === TokenType.COMMAND && this.peek().value === 'begin') {
+                const savedPos = this.pos;
+                this.advance(); // skip \begin
+                if (this.peek().type === TokenType.OPEN_BRACE) {
+                    const name = this.readBraceGroupText();
+                    if (name === envName) depth++;
+                    raw += `\\begin{${name}}`;
+                    continue;
+                }
+                this.pos = savedPos;
+            }
+            // Check for \end{...}
+            if (this.peek().type === TokenType.COMMAND && this.peek().value === 'end') {
+                const savedPos = this.pos;
+                this.advance(); // skip \end
+                if (this.peek().type === TokenType.OPEN_BRACE) {
+                    const name = this.readBraceGroupText();
+                    if (name === envName) {
+                        depth--;
+                        if (depth === 0) {
+                            return raw;
+                        }
+                    }
+                    raw += `\\end{${name}}`;
+                    continue;
+                }
+                this.pos = savedPos;
+            }
+            raw += this.advance().raw;
+        }
+        return raw;
+    }
+
+    parseDocument(): TipTapNode[] {
+        const nodes: TipTapNode[] = [];
+        let currentParagraphInlines: TipTapNode[] = [];
+
+        const flushParagraph = () => {
+            if (currentParagraphInlines.length > 0) {
+                // Trim trailing/leading whitespace-only text nodes
+                nodes.push({type: 'paragraph', content: currentParagraphInlines});
+                currentParagraphInlines = [];
+            }
+        };
+
+        while (this.peek().type !== TokenType.EOF) {
+            const tok = this.peek();
+
+            // Blank line = paragraph break
+            if (tok.type === TokenType.NEWLINE) {
+                this.advance();
+                // Check for double newline (blank line)
+                if (this.peek().type === TokenType.NEWLINE) {
+                    while (this.peek().type === TokenType.NEWLINE) this.advance();
+                    flushParagraph();
+                } else {
+                    // Single newline → space in the current paragraph
+                    if (currentParagraphInlines.length > 0) {
+                        currentParagraphInlines.push({type: 'text', text: ' '});
+                    }
+                }
+                continue;
+            }
+
+            // Comments: preserve in raw
+            if (tok.type === TokenType.COMMENT) {
+                const comment = this.advance();
+                currentParagraphInlines.push({
+                    type: 'text',
+                    text: comment.value,
+                    marks: [{type: 'code'}],
+                });
+                continue;
+            }
+
+            // Display math
+            if (tok.type === TokenType.MATH_DISPLAY) {
+                flushParagraph();
+                const mathTok = this.advance();
+                nodes.push({
+                    type: 'latexMathBlock',
+                    attrs: {latex: mathTok.value, rawLatex: mathTok.raw},
+                });
+                continue;
+            }
+
+            // Inline math
+            if (tok.type === TokenType.MATH_INLINE) {
+                const mathTok = this.advance();
+                currentParagraphInlines.push({
+                    type: 'latexMathInline',
+                    attrs: {latex: mathTok.value, rawLatex: mathTok.raw},
+                });
+                continue;
+            }
+
+            // Commands
+            if (tok.type === TokenType.COMMAND) {
+                const cmdName = tok.value;
+
+                // \begin{...}
+                if (cmdName === 'begin') {
+                    flushParagraph();
+                    const beginTokIdx = this.pos;
+                    this.advance(); // skip \begin
+                    const envName = this.readBraceGroupText();
+
+                    if (LIST_ENVIRONMENTS.has(envName)) {
+                        nodes.push(this.parseListEnvironment(envName));
+                    } else if (envName === 'figure') {
+                        nodes.push(this.parseFigureEnvironment());
+                    } else if (envName === 'table' || envName === 'tabular') {
+                        nodes.push(this.parseTableEnvironment(envName));
+                    } else if (envName === 'equation' || envName === 'align' || envName === 'equation*' || envName === 'align*') {
+                        const content = this.readUntilEnd(envName);
+                        const rawLatex = `\\begin{${envName}}${content}\\end{${envName}}`;
+                        nodes.push({
+                            type: 'latexMathBlock',
+                            attrs: {latex: content.trim(), rawLatex},
+                        });
+                    } else if (envName === 'document') {
+                        // Just parse the contents, skip the environment wrapper
+                        // (will be reconstructed on serialization based on rawLatex of preamble)
+                        continue;
+                    } else {
+                        // Unknown environment → raw block
+                        const content = this.readUntilEnd(envName);
+                        const rawLatex = `\\begin{${envName}}${content}\\end{${envName}}`;
+                        nodes.push({
+                            type: 'latexRawBlock',
+                            attrs: {content: rawLatex, rawLatex},
+                        });
+                    }
+                    continue;
+                }
+
+                // \end{...} — stray ends (e.g., \end{document})
+                if (cmdName === 'end') {
+                    this.advance();
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        this.readBraceGroupText();
+                    }
+                    continue;
+                }
+
+                // Section commands
+                if (cmdName in SECTION_COMMANDS) {
+                    flushParagraph();
+                    this.advance(); // skip command
+                    const level = SECTION_COMMANDS[cmdName];
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        const titleTokens = this.readBraceGroupTokens();
+                        const inlines = new ParserContext(titleTokens).parseInlines();
+                        nodes.push({
+                            type: 'heading',
+                            attrs: {level},
+                            content: inlines.length > 0 ? inlines : [{type: 'text', text: ' '}],
+                        });
+                    }
+                    continue;
+                }
+
+                // Formatting commands
+                if (cmdName in FORMATTING_COMMANDS) {
+                    this.advance(); // skip command
+                    const markType = FORMATTING_COMMANDS[cmdName];
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        const innerTokens = this.readBraceGroupTokens();
+                        const inlines = new ParserContext(innerTokens).parseInlines();
+                        // Apply mark to all inline nodes
+                        for (const node of inlines) {
+                            if (node.type === 'text') {
+                                node.marks = [...(node.marks || []), {type: markType}];
+                            }
+                        }
+                        currentParagraphInlines.push(...inlines);
+                    }
+                    continue;
+                }
+
+                // \item — should only appear inside lists, but handle gracefully
+                if (cmdName === 'item') {
+                    this.advance();
+                    continue;
+                }
+
+                // \label, \ref, \cite — inline raw
+                if (['label', 'ref', 'cite', 'href', 'url', 'footnote', 'caption'].includes(cmdName)) {
+                    const startIdx = this.pos;
+                    this.advance();
+                    let raw = `\\${cmdName}`;
+                    if (this.peek().type === TokenType.OPEN_BRACKET) {
+                        raw += '[' + (this.skipOptionalArg() || '') + ']';
+                    }
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        raw += '{' + this.readBraceGroupText() + '}';
+                    }
+                    currentParagraphInlines.push({
+                        type: 'latexRawInline',
+                        attrs: {content: raw, rawLatex: raw},
+                    });
+                    continue;
+                }
+
+                // Preamble commands — raw block
+                if (['documentclass', 'usepackage', 'title', 'author', 'date', 'maketitle',
+                     'tableofcontents', 'newcommand', 'renewcommand', 'setlength',
+                     'pagestyle', 'thispagestyle', 'bibliographystyle', 'bibliography',
+                     'input', 'include'].includes(cmdName)) {
+                    flushParagraph();
+                    this.advance();
+                    let raw = `\\${cmdName}`;
+                    // Consume optional args
+                    if (this.peek().type === TokenType.OPEN_BRACKET) {
+                        raw += '[' + (this.skipOptionalArg() || '') + ']';
+                    }
+                    // Consume required args (could be multiple)
+                    while (this.peek().type === TokenType.OPEN_BRACE) {
+                        raw += '{' + this.readBraceGroupText() + '}';
+                    }
+                    nodes.push({
+                        type: 'latexRawBlock',
+                        attrs: {content: raw, rawLatex: raw},
+                    });
+                    continue;
+                }
+
+                // Other unknown commands → raw inline
+                this.advance();
+                let raw = `\\${cmdName}`;
+                if (this.peek().type === TokenType.OPEN_BRACKET) {
+                    raw += '[' + (this.skipOptionalArg() || '') + ']';
+                }
+                if (this.peek().type === TokenType.OPEN_BRACE) {
+                    raw += '{' + this.readBraceGroupText() + '}';
+                }
+                currentParagraphInlines.push({
+                    type: 'latexRawInline',
+                    attrs: {content: raw, rawLatex: raw},
+                });
+                continue;
+            }
+
+            // Plain text
+            if (tok.type === TokenType.TEXT) {
+                const textTok = this.advance();
+                currentParagraphInlines.push({type: 'text', text: textTok.value});
+                continue;
+            }
+
+            // Stray braces, brackets, ampersands, double backslash — text
+            if ([TokenType.OPEN_BRACE, TokenType.CLOSE_BRACE, TokenType.OPEN_BRACKET,
+                 TokenType.CLOSE_BRACKET, TokenType.AMPERSAND, TokenType.DOUBLE_BACKSLASH].includes(tok.type)) {
+                const t = this.advance();
+                currentParagraphInlines.push({type: 'text', text: t.value});
+                continue;
+            }
+
+            // Fallback
+            this.advance();
+        }
+
+        flushParagraph();
+        return nodes;
+    }
+
+    /** Parse inline content (inside brace groups, headings, etc.) */
+    parseInlines(): TipTapNode[] {
+        const inlines: TipTapNode[] = [];
+
+        while (this.peek().type !== TokenType.EOF) {
+            const tok = this.peek();
+
+            if (tok.type === TokenType.TEXT) {
+                inlines.push({type: 'text', text: this.advance().value});
+                continue;
+            }
+
+            if (tok.type === TokenType.MATH_INLINE) {
+                const mathTok = this.advance();
+                inlines.push({
+                    type: 'latexMathInline',
+                    attrs: {latex: mathTok.value, rawLatex: mathTok.raw},
+                });
+                continue;
+            }
+
+            if (tok.type === TokenType.COMMAND) {
+                const cmdName = tok.value;
+
+                if (cmdName in FORMATTING_COMMANDS) {
+                    this.advance();
+                    const markType = FORMATTING_COMMANDS[cmdName];
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        const innerTokens = this.readBraceGroupTokens();
+                        const nested = new ParserContext(innerTokens).parseInlines();
+                        for (const node of nested) {
+                            if (node.type === 'text') {
+                                node.marks = [...(node.marks || []), {type: markType}];
+                            }
+                        }
+                        inlines.push(...nested);
+                    }
+                    continue;
+                }
+
+                // Other commands → raw inline
+                this.advance();
+                let raw = `\\${cmdName}`;
+                if (this.peek().type === TokenType.OPEN_BRACKET) {
+                    raw += '[' + (this.skipOptionalArg() || '') + ']';
+                }
+                if (this.peek().type === TokenType.OPEN_BRACE) {
+                    raw += '{' + this.readBraceGroupText() + '}';
+                }
+                inlines.push({
+                    type: 'latexRawInline',
+                    attrs: {content: raw, rawLatex: raw},
+                });
+                continue;
+            }
+
+            if (tok.type === TokenType.NEWLINE) {
+                this.advance();
+                inlines.push({type: 'text', text: ' '});
+                continue;
+            }
+
+            // Anything else → text
+            inlines.push({type: 'text', text: this.advance().raw});
+        }
+
+        return inlines;
+    }
+
+    /** Parse \begin{itemize} or \begin{enumerate} */
+    private parseListEnvironment(envName: string): TipTapNode {
+        this.skipOptionalArg(); // skip optional placement arg
+        const listType = envName === 'enumerate' ? 'orderedList' : 'bulletList';
+        const items: TipTapNode[] = [];
+
+        // Collect raw for the environment
+        const rawParts: string[] = [`\\begin{${envName}}`];
+
+        while (this.peek().type !== TokenType.EOF) {
+            // Check for \end{envName}
+            if (this.peek().type === TokenType.COMMAND && this.peek().value === 'end') {
+                const savedPos = this.pos;
+                this.advance();
+                if (this.peek().type === TokenType.OPEN_BRACE) {
+                    const name = this.readBraceGroupText();
+                    if (name === envName) {
+                        break;
+                    }
+                    // Not our end, restore
+                    this.pos = savedPos;
+                }
+            }
+
+            // \item starts a list item
+            if (this.peek().type === TokenType.COMMAND && this.peek().value === 'item') {
+                this.advance();
+                this.skipOptionalArg(); // skip optional label
+
+                // Collect inline content until next \item or \end
+                const itemInlines: TipTapNode[] = [];
+                while (this.peek().type !== TokenType.EOF) {
+                    if (this.peek().type === TokenType.COMMAND &&
+                        (this.peek().value === 'item' || this.peek().value === 'end')) {
+                        break;
+                    }
+
+                    const tok = this.peek();
+                    if (tok.type === TokenType.NEWLINE) {
+                        this.advance();
+                        if (itemInlines.length > 0) {
+                            itemInlines.push({type: 'text', text: ' '});
+                        }
+                        continue;
+                    }
+                    if (tok.type === TokenType.TEXT) {
+                        itemInlines.push({type: 'text', text: this.advance().value});
+                        continue;
+                    }
+                    if (tok.type === TokenType.MATH_INLINE) {
+                        const m = this.advance();
+                        itemInlines.push({type: 'latexMathInline', attrs: {latex: m.value, rawLatex: m.raw}});
+                        continue;
+                    }
+                    if (tok.type === TokenType.COMMAND) {
+                        const cmdName = tok.value;
+                        if (cmdName in FORMATTING_COMMANDS) {
+                            this.advance();
+                            const markType = FORMATTING_COMMANDS[cmdName];
+                            if (this.peek().type === TokenType.OPEN_BRACE) {
+                                const innerTokens = this.readBraceGroupTokens();
+                                const nested = new ParserContext(innerTokens).parseInlines();
+                                for (const node of nested) {
+                                    if (node.type === 'text') {
+                                        node.marks = [...(node.marks || []), {type: markType}];
+                                    }
+                                }
+                                itemInlines.push(...nested);
+                            }
+                            continue;
+                        }
+                        // Nested list
+                        if (cmdName === 'begin') {
+                            const savedPos = this.pos;
+                            this.advance();
+                            if (this.peek().type === TokenType.OPEN_BRACE) {
+                                const innerEnvName = this.readBraceGroupText();
+                                if (LIST_ENVIRONMENTS.has(innerEnvName)) {
+                                    // Flush current item, parse nested list
+                                    if (itemInlines.length > 0) {
+                                        items.push({
+                                            type: 'listItem',
+                                            content: [{type: 'paragraph', content: [...itemInlines]}],
+                                        });
+                                        itemInlines.length = 0;
+                                    }
+                                    const nestedList = this.parseListEnvironment(innerEnvName);
+                                    // Add nested list to current item or as new item
+                                    if (items.length > 0) {
+                                        items[items.length - 1].content!.push(nestedList);
+                                    } else {
+                                        items.push({type: 'listItem', content: [nestedList]});
+                                    }
+                                    continue;
+                                }
+                                this.pos = savedPos;
+                            } else {
+                                this.pos = savedPos;
+                            }
+                        }
+                        // Unknown command → raw inline
+                        this.advance();
+                        let raw = `\\${cmdName}`;
+                        if (this.peek().type === TokenType.OPEN_BRACE) {
+                            raw += '{' + this.readBraceGroupText() + '}';
+                        }
+                        itemInlines.push({type: 'latexRawInline', attrs: {content: raw, rawLatex: raw}});
+                        continue;
+                    }
+                    // Other tokens
+                    itemInlines.push({type: 'text', text: this.advance().raw});
+                }
+
+                // Trim trailing whitespace
+                while (itemInlines.length > 0 && itemInlines[itemInlines.length - 1].text?.trim() === '') {
+                    itemInlines.pop();
+                }
+
+                if (itemInlines.length > 0) {
+                    items.push({
+                        type: 'listItem',
+                        content: [{type: 'paragraph', content: itemInlines}],
+                    });
+                }
+                continue;
+            }
+
+            // Skip whitespace between items
+            if (this.peek().type === TokenType.NEWLINE || this.peek().type === TokenType.TEXT) {
+                if (this.peek().type === TokenType.TEXT && this.peek().value.trim() === '') {
+                    this.advance();
+                    continue;
+                }
+                if (this.peek().type === TokenType.NEWLINE) {
+                    this.advance();
+                    continue;
+                }
+            }
+
+            // Unexpected tokens — skip
+            this.advance();
+        }
+
+        return {
+            type: listType,
+            content: items.length > 0 ? items : [{type: 'listItem', content: [{type: 'paragraph', content: [{type: 'text', text: ' '}]}]}],
+        };
+    }
+
+    /** Parse \begin{figure} */
+    private parseFigureEnvironment(): TipTapNode {
+        this.skipOptionalArg(); // [h], [t], etc.
+        const content = this.readUntilEnd('figure');
+        const rawLatex = `\\begin{figure}${content}\\end{figure}`;
+
+        // Try to extract caption and image path
+        let caption = '';
+        let imagePath = '';
+        const captionMatch = content.match(/\\caption\{([^}]*)}/);
+        if (captionMatch) caption = captionMatch[1];
+        const imgMatch = content.match(/\\includegraphics(?:\[[^\]]*])?\{([^}]*)}/);
+        if (imgMatch) imagePath = imgMatch[1];
+
+        return {
+            type: 'latexFigure',
+            attrs: {caption, imagePath, rawLatex},
+        };
+    }
+
+    /** Parse \begin{table} or \begin{tabular} */
+    private parseTableEnvironment(envName: string): TipTapNode {
+        this.skipOptionalArg(); // [h], [t], etc.
+        const content = this.readUntilEnd(envName);
+        const rawLatex = `\\begin{${envName}}${content}\\end{${envName}}`;
+
+        // For simple tabular environments, try to parse into table structure
+        // Extract the tabular content
+        let tabularContent = content;
+        let colSpec = '';
+
+        if (envName === 'table') {
+            // Find inner tabular
+            const tabularMatch = content.match(/\\begin\{tabular}\{([^}]*)}/);
+            if (tabularMatch) {
+                colSpec = tabularMatch[1];
+                const innerStart = content.indexOf('\\begin{tabular}');
+                const innerEnd = content.indexOf('\\end{tabular}');
+                if (innerStart !== -1 && innerEnd !== -1) {
+                    tabularContent = content.slice(innerStart + `\\begin{tabular}{${colSpec}}`.length, innerEnd);
+                }
+            }
+        } else {
+            // Direct tabular — column spec like {|c|c|} is already inside `content`
+            // since readUntilEnd consumed everything between \begin{tabular} and \end{tabular}.
+            // Extract it from the raw content string rather than reading from the token stream.
+            const colMatch = content.match(/^\{([^}]*)}/);
+            if (colMatch) {
+                colSpec = colMatch[1];
+                tabularContent = content.slice(colMatch[0].length);
+            }
+        }
+
+        // Parse tabular rows (split by \\ and rows by &)
+        const rows: TipTapNode[] = [];
+        const rowStrings = tabularContent.split('\\\\').filter(r => r.trim());
+
+        for (let ri = 0; ri < rowStrings.length; ri++) {
+            const rowStr = rowStrings[ri].replace(/\\hline/g, '').trim();
+            if (!rowStr) continue;
+            const cells = rowStr.split('&');
+            const cellNodes: TipTapNode[] = cells.map(cellText => ({
+                type: ri === 0 ? 'tableHeader' : 'tableCell',
+                content: [{
+                    type: 'paragraph',
+                    content: [{type: 'text', text: cellText.trim() || ' '}],
+                }],
+            }));
+            rows.push({
+                type: 'tableRow',
+                content: cellNodes,
+            });
+        }
+
+        if (rows.length === 0) {
+            // Fallback: raw block
+            return {
+                type: 'latexRawBlock',
+                attrs: {content: rawLatex, rawLatex},
+            };
+        }
+
+        return {
+            type: 'table',
+            attrs: {rawLatex},
+            content: rows,
+        };
+    }
+}

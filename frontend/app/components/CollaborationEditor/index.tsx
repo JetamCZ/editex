@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
     selectedFile: ProjectFile;
+    autoSave?: boolean;
 }
 
 export interface CollaborativeEditorRef {
@@ -26,6 +27,9 @@ export interface CollaborativeEditorRef {
     handleReloadFile: () => Promise<void>;
     handleShowChanges: () => void;
     handleSendChanges: () => void;
+    getContent: () => string;
+    replaceContent: (content: string) => void;
+    onContentChange: (cb: (content: string) => void) => () => void;
 }
 
 // Generate consistent color from user ID
@@ -395,6 +399,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
 
     // Debounced auto-save: send changes 500ms after user stops typing
     useEffect(() => {
+        if (props.autoSave === false) return;
         if (changeHistory.length === 0) return;
 
         const timeoutId = setTimeout(() => {
@@ -402,12 +407,15 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [changeHistory, handleSendChanges]);
+    }, [changeHistory, handleSendChanges, props.autoSave]);
 
     const handleReloadFile = async () => {
         console.log('Reloading file from server...');
         await refetch();
     };
+
+    // Content change listeners for WYSIWYG sync
+    const contentListenersRef = useRef<Set<(content: string) => void>>(new Set());
 
     // Expose methods and state to parent via ref
     useImperativeHandle(ref, () => ({
@@ -417,6 +425,71 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         handleReloadFile,
         handleShowChanges,
         handleSendChanges,
+        getContent: () => {
+            return editorRef.current?.getModel()?.getValue() || '';
+        },
+        replaceContent: (content: string) => {
+            const editor = editorRef.current;
+            const monaco = monacoRef.current;
+            if (!editor || !monaco) return;
+            const model = editor.getModel();
+            if (!model) return;
+
+            const oldLines = model.getLinesContent();
+            const newLines = content.split('\n');
+
+            // Compute per-line edits so change tracking sees MODIFYs, not DELETE+INSERT
+            const edits: {range: InstanceType<typeof monaco.Range>; text: string}[] = [];
+
+            const minLen = Math.min(oldLines.length, newLines.length);
+
+            // 1. Modify changed lines in the common range
+            for (let i = 0; i < minLen; i++) {
+                if (oldLines[i] !== newLines[i]) {
+                    edits.push({
+                        range: new monaco.Range(i + 1, 1, i + 1, oldLines[i].length + 1),
+                        text: newLines[i],
+                    });
+                }
+            }
+
+            // 2. Extra new lines → insert after the last old line
+            if (newLines.length > oldLines.length) {
+                const insertText = '\n' + newLines.slice(oldLines.length).join('\n');
+                const lastLine = oldLines.length;
+                const lastCol = (oldLines[lastLine - 1]?.length ?? 0) + 1;
+                edits.push({
+                    range: new monaco.Range(lastLine, lastCol, lastLine, lastCol),
+                    text: insertText,
+                });
+            }
+
+            // 3. Excess old lines → delete them
+            if (oldLines.length > newLines.length) {
+                const firstRemoveLine = newLines.length + 1;
+                const lastRemoveLine = oldLines.length;
+                // Delete from end of last kept line to end of last removed line
+                const lastKeptCol = (newLines[newLines.length - 1]?.length ?? 0) + 1;
+                edits.push({
+                    range: new monaco.Range(newLines.length, lastKeptCol, lastRemoveLine, oldLines[lastRemoveLine - 1].length + 1),
+                    text: '',
+                });
+            }
+
+            if (edits.length > 0) {
+                editor.executeEdits('wysiwyg-sync', edits.map(e => ({
+                    range: e.range,
+                    text: e.text,
+                    forceMoveMarkers: true,
+                })));
+            }
+        },
+        onContentChange: (cb: (content: string) => void) => {
+            contentListenersRef.current.add(cb);
+            return () => {
+                contentListenersRef.current.delete(cb);
+            };
+        },
     }));
 
     // Inject CSS for collaborator cursors (only once)
@@ -550,6 +623,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             const model = editor.getModel();
             if (model) {
                 detectChanges(e, model);
+                // Notify WYSIWYG content listeners
+                const value = model.getValue();
+                contentListenersRef.current.forEach(cb => cb(value));
             }
         });
 
