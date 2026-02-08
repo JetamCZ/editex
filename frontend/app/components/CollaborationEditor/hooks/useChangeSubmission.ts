@@ -80,14 +80,15 @@ export function useChangeSubmission({
         }
     }, [changeHistory, lastChangeId, bearerToken, fileId, resetTracking, isSending, setLastChangeId, sessionId, editorRef]);
 
-    // Debounced auto-save: send changes 500ms after user stops typing
+    // Debounced auto-save: send changes after user stops typing
+    const autoSaveDebounce = Number(import.meta.env.VITE_AUTOSAVE_DEBOUNCE_MS) || 1000;
     useEffect(() => {
         if (autoSave === false) return;
         if (changeHistory.length === 0) return;
 
         const timeoutId = setTimeout(() => {
             handleSendChanges();
-        }, 500);
+        }, autoSaveDebounce);
 
         return () => clearTimeout(timeoutId);
     }, [changeHistory, handleSendChanges, autoSave]);

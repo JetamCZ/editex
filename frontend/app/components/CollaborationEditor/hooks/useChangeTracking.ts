@@ -49,18 +49,27 @@ export const useChangeTracking = () => {
         const linesDeleted = change.range.endLineNumber - change.range.startLineNumber;
         const linesAdded = change.text.split('\n').length - 1;
 
-        if (e.changes.length === 1 && linesDeleted === 0 && linesAdded === 0) {
-            // Simple modification within a single line
-            const lineNum = change.range.startLineNumber;
-            const currentContent = model.getLineContent(lineNum);
-            const previousContent = previousLines[lineNum - 1] || '';
+        // Check if ALL changes are single-line modifications (no lines added/deleted)
+        const allSingleLineModify = e.changes.every(c => {
+            const ld = c.range.endLineNumber - c.range.startLineNumber;
+            const la = c.text.split('\n').length - 1;
+            return ld === 0 && la === 0;
+        });
 
-            if (currentContent !== previousContent) {
-                newOperations.push({
-                    operation: "MODIFY",
-                    line: lineNum,
-                    content: currentContent
-                });
+        if (allSingleLineModify) {
+            // Each change is a simple line modification
+            for (const c of e.changes) {
+                const lineNum = c.range.startLineNumber;
+                const currentContent = model.getLineContent(lineNum);
+                const previousContent = previousLines[lineNum - 1] || '';
+
+                if (currentContent !== previousContent) {
+                    newOperations.push({
+                        operation: "MODIFY",
+                        line: lineNum,
+                        content: currentContent
+                    });
+                }
             }
         } else if (e.changes.length === 1 && linesAdded > 0 && linesDeleted === 0) {
             // Line insertion (e.g., pressing Enter)
@@ -93,7 +102,7 @@ export const useChangeTracking = () => {
         }
 
         if (newOperations.length > 0) {
-            console.log('[Change Detection] Generated operations:', newOperations);
+            //console.log('[Change Detection] Generated operations:', newOperations);
             setChangeHistory(prev => squashOperations(prev, newOperations));
         }
 

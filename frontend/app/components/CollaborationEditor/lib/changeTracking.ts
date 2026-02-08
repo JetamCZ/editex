@@ -44,12 +44,35 @@ export function computeMinimalChanges(previousLines: string[], currentLines: str
         }
     }
 
+    // Merge adjacent delete+insert pairs into 'modify' entries
+    const merged: { type: 'keep' | 'delete' | 'insert' | 'modify', prevIdx?: number, currIdx?: number }[] = [];
+    let ci = 0;
+    while (ci < changes.length) {
+        if (ci + 1 < changes.length &&
+            changes[ci].type === 'delete' &&
+            changes[ci + 1].type === 'insert') {
+            merged.push({ type: 'modify', prevIdx: changes[ci].prevIdx, currIdx: changes[ci + 1].currIdx });
+            ci += 2;
+        } else {
+            merged.push(changes[ci]);
+            ci++;
+        }
+    }
+
     // Convert diff to operations
     // Track line offset for DELETE operations (as lines are removed, positions shift)
     let deleteOffset = 0;
 
-    for (const change of changes) {
-        if (change.type === 'delete') {
+    for (const change of merged) {
+        if (change.type === 'modify') {
+            // Line was replaced — emit MODIFY using the working line number
+            const lineNum = change.prevIdx! + 1 + deleteOffset;
+            operations.push({
+                operation: "MODIFY",
+                line: lineNum,
+                content: currentLines[change.currIdx!]
+            });
+        } else if (change.type === 'delete') {
             // DELETE line number is the original position adjusted for previous deletes
             const lineNum = change.prevIdx! + 1 + deleteOffset;
             operations.push({

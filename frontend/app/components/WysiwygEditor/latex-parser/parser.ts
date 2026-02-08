@@ -490,7 +490,15 @@ class ParserContext {
                         continue;
                     }
                     if (tok.type === TokenType.TEXT) {
-                        itemInlines.push({type: 'text', text: this.advance().value});
+                        let text = this.advance().value;
+                        // Trim leading whitespace from first text in list item —
+                        // the serializer adds its own space after \item
+                        if (itemInlines.length === 0) {
+                            text = text.trimStart();
+                        }
+                        if (text) {
+                            itemInlines.push({type: 'text', text});
+                        }
                         continue;
                     }
                     if (tok.type === TokenType.MATH_INLINE) {
