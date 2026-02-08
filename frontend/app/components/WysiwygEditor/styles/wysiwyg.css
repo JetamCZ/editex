@@ -471,6 +471,125 @@
     height: 0;
 }
 
+/* \input node */
+.latex-input {
+    border: 1px solid #d4d4f7;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    background-color: #f8f8ff;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.latex-input:hover {
+    background-color: #eef0ff;
+    border-color: #a5a5e8;
+}
+
+.latex-input-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.latex-input-icon {
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6366f1;
+    background-color: #e8e8fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.latex-input-path {
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+    color: #555;
+}
+
+/* Preamble (hidden) */
+.latex-preamble {
+    display: none;
+}
+
+/* Input file popup */
+.input-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    background-color: #fafafa;
+}
+
+.input-file-list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background-color 0.15s;
+    font-size: 13px;
+}
+
+.input-file-list-item:hover {
+    border-color: #c0d4f0;
+    background-color: #f8faff;
+}
+
+.input-file-list-item.selected {
+    border-color: #6366f1;
+    background-color: #f0f0ff;
+}
+
+.input-file-list-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e8e8fd;
+    color: #6366f1;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+}
+
+.input-file-list-name {
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    color: #444;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.input-file-preview {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.input-file-preview-code {
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 13px;
+    color: #6366f1;
+}
+
 /* KaTeX overrides for inline display */
 .latex-math-inline .katex {
     font-size: 1em;

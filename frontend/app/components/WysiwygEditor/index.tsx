@@ -10,12 +10,15 @@ import {useEffect, useState, useCallback, useRef} from 'react';
 import WysiwygToolbar from './WysiwygToolbar';
 import MathPopup from './MathPopup';
 import ImagePopup from './ImagePopup';
+import InputFilePopup from './InputFilePopup';
 import {
     LatexMathInline,
     LatexMathBlock,
     LatexFigure,
     LatexRawInline,
     LatexRawBlock,
+    LatexInput,
+    LatexPreamble,
 } from './extensions';
 import {parseLatex} from './latex-parser';
 import {serializeToLatex} from './latex-serializer';
@@ -46,6 +49,11 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
     const [imagePopup, setImagePopup] = useState<{
         imagePath: string;
         caption: string;
+        pos: number;
+    } | null>(null);
+
+    const [inputFilePopup, setInputFilePopup] = useState<{
+        filePath: string;
         pos: number;
     } | null>(null);
 
@@ -82,6 +90,8 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             LatexFigure,
             LatexRawInline,
             LatexRawBlock,
+            LatexInput,
+            LatexPreamble,
         ],
         editorProps: {
             attributes: {
@@ -142,12 +152,24 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             }
         };
 
+        const handleInputClick = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail) {
+                setInputFilePopup({
+                    filePath: detail.filePath || '',
+                    pos: detail.pos,
+                });
+            }
+        };
+
         const editorElement = editor.view.dom;
         editorElement.addEventListener('latex-math-click', handleMathClick);
         editorElement.addEventListener('latex-figure-click', handleFigureClick);
+        editorElement.addEventListener('latex-input-click', handleInputClick);
         return () => {
             editorElement.removeEventListener('latex-math-click', handleMathClick);
             editorElement.removeEventListener('latex-figure-click', handleFigureClick);
+            editorElement.removeEventListener('latex-input-click', handleInputClick);
         };
     }, [editor]);
 
@@ -238,6 +260,23 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
         setImagePopup(null);
     }, [editor, imagePopup]);
 
+    const handleInputSave = useCallback((filePath: string) => {
+        if (!editor || !inputFilePopup) return;
+
+        const pos = inputFilePopup.pos;
+        const tr = editor.state.tr;
+        const node = tr.doc.nodeAt(pos);
+        if (node && node.type.name === 'latexInput') {
+            tr.setNodeMarkup(pos, undefined, {
+                filePath,
+                rawLatex: null,
+            });
+            editor.view.dispatch(tr);
+        }
+
+        setInputFilePopup(null);
+    }, [editor, inputFilePopup]);
+
     if (!visible) return null;
 
     return (
@@ -260,6 +299,15 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
                     caption={imagePopup.caption}
                     onSave={handleImageSave}
                     onCancel={() => setImagePopup(null)}
+                    baseProject={baseProject}
+                    branch={branch}
+                />
+            )}
+            {inputFilePopup && (
+                <InputFilePopup
+                    filePath={inputFilePopup.filePath}
+                    onSave={handleInputSave}
+                    onCancel={() => setInputFilePopup(null)}
                     baseProject={baseProject}
                     branch={branch}
                 />

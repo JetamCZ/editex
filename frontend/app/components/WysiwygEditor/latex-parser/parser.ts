@@ -231,9 +231,9 @@ class ParserContext {
                             attrs: {latex: content.trim(), rawLatex},
                         });
                     } else if (envName === 'document') {
-                        // Preserve \begin{document} as a raw block so it survives round-trip
+                        // Hidden preamble node — preserved for round-trip but not rendered
                         nodes.push({
-                            type: 'latexRawBlock',
+                            type: 'latexPreamble',
                             attrs: {content: '\\begin{document}', rawLatex: '\\begin{document}'},
                         });
                         continue;
@@ -257,7 +257,7 @@ class ParserContext {
                         if (endEnvName === 'document') {
                             flushParagraph();
                             nodes.push({
-                                type: 'latexRawBlock',
+                                type: 'latexPreamble',
                                 attrs: {content: `\\end{document}`, rawLatex: `\\end{document}`},
                             });
                         }
@@ -324,19 +324,51 @@ class ParserContext {
                     continue;
                 }
 
-                // Preamble commands — raw block
-                if (['documentclass', 'usepackage', 'title', 'author', 'date', 'maketitle',
-                     'tableofcontents', 'newcommand', 'renewcommand', 'setlength',
-                     'pagestyle', 'thispagestyle', 'bibliographystyle', 'bibliography',
-                     'input', 'include'].includes(cmdName)) {
+                // \input / \include — dedicated node with file path
+                if (cmdName === 'input' || cmdName === 'include') {
+                    flushParagraph();
+                    this.advance();
+                    let filePath = '';
+                    let raw = `\\${cmdName}`;
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        filePath = this.readBraceGroupText();
+                        raw += `{${filePath}}`;
+                    }
+                    nodes.push({
+                        type: 'latexInput',
+                        attrs: {filePath, rawLatex: raw},
+                    });
+                    continue;
+                }
+
+                // Preamble commands — hidden (documentclass, usepackage, etc.)
+                if (['documentclass', 'usepackage'].includes(cmdName)) {
                     flushParagraph();
                     this.advance();
                     let raw = `\\${cmdName}`;
-                    // Consume optional args
                     if (this.peek().type === TokenType.OPEN_BRACKET) {
                         raw += '[' + (this.skipOptionalArg() || '') + ']';
                     }
-                    // Consume required args (could be multiple)
+                    while (this.peek().type === TokenType.OPEN_BRACE) {
+                        raw += '{' + this.readBraceGroupText() + '}';
+                    }
+                    nodes.push({
+                        type: 'latexPreamble',
+                        attrs: {content: raw, rawLatex: raw},
+                    });
+                    continue;
+                }
+
+                // Other preamble-like commands — raw block
+                if (['title', 'author', 'date', 'maketitle',
+                     'tableofcontents', 'newcommand', 'renewcommand', 'setlength',
+                     'pagestyle', 'thispagestyle', 'bibliographystyle', 'bibliography'].includes(cmdName)) {
+                    flushParagraph();
+                    this.advance();
+                    let raw = `\\${cmdName}`;
+                    if (this.peek().type === TokenType.OPEN_BRACKET) {
+                        raw += '[' + (this.skipOptionalArg() || '') + ']';
+                    }
                     while (this.peek().type === TokenType.OPEN_BRACE) {
                         raw += '{' + this.readBraceGroupText() + '}';
                     }

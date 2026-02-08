@@ -17,6 +17,7 @@ import {
     Heading3,
     Plus,
     Minus,
+    FileInput,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -224,6 +225,16 @@ export default function WysiwygToolbar({editor}: Props) {
                         editor.chain().focus().insertContent({
                             type: 'latexMathInline',
                             attrs: {latex: 'x^2', rawLatex: null},
+                        }).run();
+                    }}
+                />
+                <ToolbarButton
+                    tooltip="Input file (\\input)"
+                    icon={FileInput}
+                    onClick={() => {
+                        editor.chain().focus().insertContent({
+                            type: 'latexInput',
+                            attrs: {filePath: 'file', rawLatex: null},
                         }).run();
                     }}
                 />

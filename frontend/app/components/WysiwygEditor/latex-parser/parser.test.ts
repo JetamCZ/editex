@@ -355,15 +355,15 @@ This paragraph comes after the table.`;
     });
 
     describe('raw blocks and inlines', () => {
-        it('should parse preamble commands as raw blocks', () => {
+        it('should parse preamble commands as hidden preamble nodes', () => {
             const doc = parseLatex('\\documentclass{article}');
-            expect(doc.content[0].type).toBe('latexRawBlock');
+            expect(doc.content[0].type).toBe('latexPreamble');
             expect(doc.content[0].attrs?.content).toBe('\\documentclass{article}');
         });
 
-        it('should parse \\usepackage as raw block', () => {
+        it('should parse \\usepackage as hidden preamble node', () => {
             const doc = parseLatex('\\usepackage{amsmath}');
-            expect(doc.content[0].type).toBe('latexRawBlock');
+            expect(doc.content[0].type).toBe('latexPreamble');
         });
 
         it('should parse unknown commands as raw inline', () => {

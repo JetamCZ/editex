@@ -62,6 +62,12 @@ function serializeNode(node: TipTapNode, state: SerializerState): void {
         case 'latexRawInline':
             serializeRawInline(node, state);
             break;
+        case 'latexInput':
+            serializeInput(node, state);
+            break;
+        case 'latexPreamble':
+            serializePreamble(node, state);
+            break;
         case 'table':
             serializeTable(node, state);
             break;
@@ -245,6 +251,25 @@ function serializeTable(node: TipTapNode, state: SerializerState): void {
             }
         }
         state.output += `\\end{table}`;
+    }
+}
+
+function serializeInput(node: TipTapNode, state: SerializerState): void {
+    const rawLatex = node.attrs?.rawLatex as string | undefined;
+    if (rawLatex) {
+        state.output += rawLatex;
+    } else {
+        const filePath = node.attrs?.filePath as string || '';
+        state.output += `\\input{${filePath}}`;
+    }
+}
+
+function serializePreamble(node: TipTapNode, state: SerializerState): void {
+    const rawLatex = node.attrs?.rawLatex as string | undefined;
+    if (rawLatex) {
+        state.output += rawLatex;
+    } else {
+        state.output += node.attrs?.content as string || '';
     }
 }
 
