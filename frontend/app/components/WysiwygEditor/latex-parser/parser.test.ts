@@ -178,6 +178,16 @@ describe('parser', () => {
             const texts = paragraph.content!.map(n => n.text?.trim()).filter(Boolean).join(' ');
             expect(texts).toContain('Hello world');
         });
+
+        it('should trim leading whitespace from item content', () => {
+            const doc = parseLatex('\\begin{itemize}\n    \\item A\n    \\item B\n\\end{itemize}');
+            const items = doc.content[0].content!;
+            // First text node in each item should not have a leading space
+            const firstItemText = items[0].content![0].content![0].text;
+            const secondItemText = items[1].content![0].content![0].text;
+            expect(firstItemText).toBe('A');
+            expect(secondItemText).toBe('B');
+        });
     });
 
     describe('math', () => {

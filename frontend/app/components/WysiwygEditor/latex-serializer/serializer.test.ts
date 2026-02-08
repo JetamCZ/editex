@@ -199,6 +199,19 @@ describe('round-trip', () => {
         expect(result).toContain('Beta');
     });
 
+    it('should round-trip list items without adding extra spaces', () => {
+        const input = '\\begin{itemize}\n    \\item A\n    \\item B\n    \\item C\n\\end{itemize}';
+        const result = roundTrip(input);
+        // Each item line should have exactly one space between \item and content
+        expect(result).toContain('\\item A\n');
+        expect(result).toContain('\\item B\n');
+        expect(result).toContain('\\item C\n');
+        // Should NOT have double spaces
+        expect(result).not.toContain('\\item  A');
+        expect(result).not.toContain('\\item  B');
+        expect(result).not.toContain('\\item  C');
+    });
+
     it('should preserve raw block content', () => {
         const result = roundTrip('\\documentclass[12pt]{article}');
         expect(result).toContain('\\documentclass[12pt]{article}');

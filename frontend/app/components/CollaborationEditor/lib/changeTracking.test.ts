@@ -9,10 +9,8 @@ describe('computeMinimalChanges', () => {
 
             const ops = computeMinimalChanges(previous, current);
 
-            expect(ops).toHaveLength(2); // DELETE old line 2, INSERT new line 2
-            // The algorithm produces DELETE then INSERT for a modification
-            expect(ops).toContainEqual({ operation: 'DELETE', line: 2 });
-            expect(ops).toContainEqual({ operation: 'INSERT_AFTER', line: 1, content: 'modified' });
+            expect(ops).toHaveLength(1);
+            expect(ops[0]).toEqual({ operation: 'MODIFY', line: 2, content: 'modified' });
         });
 
         it('should return empty array when no changes', () => {
@@ -112,16 +110,15 @@ describe('computeMinimalChanges', () => {
     });
 
     describe('mixed operations', () => {
-        it('should handle insert and delete together', () => {
+        it('should handle insert and delete together as MODIFY', () => {
             const previous = ['A', 'B', 'C'];
             const current = ['A', 'X', 'C'];
 
             const ops = computeMinimalChanges(previous, current);
 
-            // Should delete B and insert X
-            expect(ops).toHaveLength(2);
-            expect(ops).toContainEqual({ operation: 'DELETE', line: 2 });
-            expect(ops).toContainEqual({ operation: 'INSERT_AFTER', line: 1, content: 'X' });
+            // Adjacent delete+insert is merged into a MODIFY
+            expect(ops).toHaveLength(1);
+            expect(ops[0]).toEqual({ operation: 'MODIFY', line: 2, content: 'X' });
         });
 
         it('should handle complete replacement', () => {
@@ -130,9 +127,66 @@ describe('computeMinimalChanges', () => {
 
             const ops = computeMinimalChanges(previous, current);
 
-            // All old lines deleted, all new lines inserted
-            expect(ops.filter(op => op.operation === 'DELETE')).toHaveLength(2);
-            expect(ops.filter(op => op.operation === 'INSERT_AFTER')).toHaveLength(3);
+            // One delete+insert pair is merged into MODIFY, remaining are pure inserts/deletes
+            expect(ops.filter(op => op.operation === 'DELETE')).toHaveLength(1);
+            expect(ops.filter(op => op.operation === 'MODIFY')).toHaveLength(1);
+            expect(ops.filter(op => op.operation === 'INSERT_AFTER')).toHaveLength(2);
+        });
+    });
+
+    describe('modifications (delete+insert merge)', () => {
+        it('should produce MODIFY when possible for multiple changed lines', () => {
+            const previous = ['A', 'B', 'C', 'D'];
+            const current = ['A', 'X', 'Y', 'D'];
+
+            const ops = computeMinimalChanges(previous, current);
+
+            // LCS produces delete-delete-insert-insert; one pair merges to MODIFY
+            expect(ops).toHaveLength(3);
+            expect(ops.filter(op => op.operation === 'MODIFY')).toHaveLength(1);
+            expect(ops.filter(op => op.operation === 'DELETE')).toHaveLength(1);
+            expect(ops.filter(op => op.operation === 'INSERT_AFTER')).toHaveLength(1);
+        });
+
+        it('should produce MODIFY for single line change at end', () => {
+            const previous = ['A', 'B', 'C'];
+            const current = ['A', 'B', 'Z'];
+
+            const ops = computeMinimalChanges(previous, current);
+
+            expect(ops).toHaveLength(1);
+            expect(ops[0]).toEqual({ operation: 'MODIFY', line: 3, content: 'Z' });
+        });
+
+        it('should produce MODIFY for single line change at start', () => {
+            const previous = ['A', 'B', 'C'];
+            const current = ['Z', 'B', 'C'];
+
+            const ops = computeMinimalChanges(previous, current);
+
+            expect(ops).toHaveLength(1);
+            expect(ops[0]).toEqual({ operation: 'MODIFY', line: 1, content: 'Z' });
+        });
+
+        it('should handle mixed MODIFY and INSERT', () => {
+            const previous = ['A', 'B'];
+            const current = ['X', 'B', 'C'];
+
+            const ops = computeMinimalChanges(previous, current);
+
+            expect(ops.filter(op => op.operation === 'MODIFY')).toHaveLength(1);
+            expect(ops.filter(op => op.operation === 'INSERT_AFTER')).toHaveLength(1);
+        });
+
+        it('should handle mixed MODIFY and DELETE', () => {
+            const previous = ['A', 'B', 'C'];
+            const current = ['X', 'C'];
+
+            const ops = computeMinimalChanges(previous, current);
+
+            // 'A' is deleted+inserted as 'X' → MODIFY, 'B' is deleted, 'C' kept
+            expect(ops.filter(op => op.operation === 'MODIFY')).toHaveLength(1);
+            expect(ops.filter(op => op.operation === 'DELETE')).toHaveLength(1);
         });
     });
 
@@ -165,9 +219,8 @@ describe('computeMinimalChanges', () => {
 
             const ops = computeMinimalChanges(previous, current);
 
-            expect(ops).toHaveLength(2);
-            expect(ops).toContainEqual({ operation: 'DELETE', line: 1 });
-            expect(ops).toContainEqual({ operation: 'INSERT_AFTER', line: 0, content: 'changed line' });
+            expect(ops).toHaveLength(1);
+            expect(ops[0]).toEqual({ operation: 'MODIFY', line: 1, content: 'changed line' });
         });
     });
 });
