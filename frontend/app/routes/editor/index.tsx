@@ -3,7 +3,7 @@ import type {Project} from "../../../types/project";
 import type {ProjectMember} from "../../../types/member";
 import {useState, useEffect, useRef, useCallback} from "react";
 import {createPortal} from "react-dom";
-import {Box, Text, Button, Badge, Select} from "@radix-ui/themes";
+import {Box, Text, Button, Badge, Select, Tooltip, IconButton} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import {useBranches} from "~/hooks/useBranches";
 import ProjectFiles from "./ProjectFiles";
@@ -288,38 +288,59 @@ const EditorPage = () => {
                     onAutoSaveChange={handleAutoSaveChange}
                 />
             )}
-            <Select.Root
-                value={compileTarget}
-                onValueChange={setCompileTarget}
-                disabled={texFiles.length === 0}
-            >
-                <Select.Trigger style={{minWidth: "140px"}} />
-                <Select.Content>
-                    {texFiles.map(file => (
-                        <Select.Item key={file.id} value={file.originalFileName}>
-                            {file.originalFileName}
-                        </Select.Item>
-                    ))}
-                </Select.Content>
-            </Select.Root>
-            <Button
-                size="2"
-                style={{backgroundColor: "var(--blue-9)"}}
-                onClick={handleCompile}
-                disabled={texFiles.length === 0 || compilationMutation.isPending}
-                loading={compilationMutation.isPending}
-            >
-                <PlayIcon /> Compile
-            </Button>
-            <Button
-                size="2"
-                variant="outline"
-                onClick={handleDownload}
-                disabled={downloadMutation.isPending}
-                loading={downloadMutation.isPending}
-            >
-                <DownloadIcon /> Download
-            </Button>
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: 'var(--gray-3)',
+                borderRadius: '8px',
+                padding: '0 8px',
+                height: '36px',
+                gap: '6px',
+                overflow: 'hidden',
+            }}>
+                <Select.Root
+                    value={compileTarget}
+                    onValueChange={setCompileTarget}
+                    disabled={texFiles.length === 0}
+                >
+                    <Select.Trigger variant="ghost" style={{minWidth: "120px", height: '100%', borderRadius: 0}} />
+                    <Select.Content>
+                        {texFiles.map(file => (
+                            <Select.Item key={file.id} value={file.originalFileName}>
+                                {file.originalFileName}
+                            </Select.Item>
+                        ))}
+                    </Select.Content>
+                </Select.Root>
+                <div style={{width: '1px', height: '20px', backgroundColor: 'var(--gray-6)'}} />
+                <Tooltip content="Compile">
+                    <IconButton
+                        size="2"
+                        variant="ghost"
+                        color="gray"
+                        onClick={handleCompile}
+                        disabled={texFiles.length === 0 || compilationMutation.isPending}
+                        loading={compilationMutation.isPending}
+                        style={{width: '32px', height: '32px'}}
+                    >
+                        <PlayIcon />
+                    </IconButton>
+                </Tooltip>
+                <div style={{width: '1px', height: '20px', backgroundColor: 'var(--gray-6)'}} />
+                <Tooltip content="Download">
+                    <IconButton
+                        size="2"
+                        variant="ghost"
+                        color="gray"
+                        onClick={handleDownload}
+                        disabled={downloadMutation.isPending}
+                        loading={downloadMutation.isPending}
+                        style={{width: '32px', height: '32px'}}
+                    >
+                        <DownloadIcon />
+                    </IconButton>
+                </Tooltip>
+            </div>
         </>,
         headerActionsContainer
     );
