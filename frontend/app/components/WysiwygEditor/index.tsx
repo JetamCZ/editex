@@ -9,6 +9,7 @@ import {Placeholder} from '@tiptap/extension-placeholder';
 import {useEffect, useState, useCallback, useRef} from 'react';
 import WysiwygToolbar from './WysiwygToolbar';
 import MathPopup from './MathPopup';
+import ImagePopup from './ImagePopup';
 import {
     LatexMathInline,
     LatexMathBlock,
@@ -36,6 +37,12 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
         latex: string;
         pos: number;
         isBlock: boolean;
+    } | null>(null);
+
+    const [imagePopup, setImagePopup] = useState<{
+        imagePath: string;
+        caption: string;
+        pos: number;
     } | null>(null);
 
     const syncDirectionRef = useRef<'none' | 'monaco-to-tiptap' | 'tiptap-to-monaco'>('none');
@@ -109,10 +116,23 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
             }
         };
 
+        const handleFigureClick = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail) {
+                setImagePopup({
+                    imagePath: detail.imagePath || '',
+                    caption: detail.caption || '',
+                    pos: detail.pos,
+                });
+            }
+        };
+
         const editorElement = editor.view.dom;
         editorElement.addEventListener('latex-math-click', handleMathClick);
+        editorElement.addEventListener('latex-figure-click', handleFigureClick);
         return () => {
             editorElement.removeEventListener('latex-math-click', handleMathClick);
+            editorElement.removeEventListener('latex-figure-click', handleFigureClick);
         };
     }, [editor]);
 
@@ -185,6 +205,24 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
         setMathPopup(null);
     }, [editor, mathPopup]);
 
+    const handleImageSave = useCallback((imagePath: string, caption: string) => {
+        if (!editor || !imagePopup) return;
+
+        const pos = imagePopup.pos;
+        const tr = editor.state.tr;
+        const node = tr.doc.nodeAt(pos);
+        if (node && node.type.name === 'latexFigure') {
+            tr.setNodeMarkup(pos, undefined, {
+                imagePath,
+                caption,
+                rawLatex: null,
+            });
+            editor.view.dispatch(tr);
+        }
+
+        setImagePopup(null);
+    }, [editor, imagePopup]);
+
     if (!visible) return null;
 
     return (
@@ -199,6 +237,14 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
                     isBlock={mathPopup.isBlock}
                     onSave={handleMathSave}
                     onCancel={() => setMathPopup(null)}
+                />
+            )}
+            {imagePopup && (
+                <ImagePopup
+                    imagePath={imagePopup.imagePath}
+                    caption={imagePopup.caption}
+                    onSave={handleImageSave}
+                    onCancel={() => setImagePopup(null)}
                 />
             )}
         </div>

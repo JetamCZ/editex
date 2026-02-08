@@ -10,6 +10,7 @@ import {
     PlusIcon,
     MinusIcon,
     TrashIcon,
+    ImageIcon,
 } from '@radix-ui/react-icons';
 
 interface Props {
@@ -201,6 +202,22 @@ export default function WysiwygToolbar({editor}: Props) {
             )}
 
             <div className="wysiwyg-toolbar-separator" />
+
+            <Tooltip content="Insert Figure">
+                <IconButton
+                    size="1"
+                    variant="ghost"
+                    color="gray"
+                    onClick={() => {
+                        editor.chain().focus().insertContent({
+                            type: 'latexFigure',
+                            attrs: {imagePath: 'image.png', caption: '', rawLatex: null},
+                        }).run();
+                    }}
+                >
+                    <ImageIcon width="16" height="16" />
+                </IconButton>
+            </Tooltip>
 
             <Tooltip content="Math equation">
                 <IconButton

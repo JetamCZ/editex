@@ -137,6 +137,12 @@
     margin: 12px 0;
     text-align: center;
     background-color: #fafafa;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.latex-figure:hover {
+    background-color: #f0f4f8;
 }
 
 .latex-figure-placeholder {
@@ -294,6 +300,49 @@
 
 .math-popup-btn-primary:hover {
     background: #3b7de8;
+}
+
+/* Image popup */
+.image-popup-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.image-popup-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.image-popup-input:focus {
+    border-color: #4f8ff7;
+    box-shadow: 0 0 0 2px rgba(79, 143, 247, 0.15);
+}
+
+.image-popup-preview {
+    margin-top: 12px;
+    padding: 16px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.image-popup-preview-caption {
+    font-size: 13px;
+    color: #555;
+    font-style: italic;
+    margin-top: 4px;
 }
 
 /* Toolbar */

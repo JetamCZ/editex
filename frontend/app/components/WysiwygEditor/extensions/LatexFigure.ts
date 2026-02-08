@@ -25,11 +25,24 @@ export const LatexFigure = Node.create({
     },
 
     addNodeView() {
-        return ({node}) => {
+        return ({node, getPos}) => {
             const dom = document.createElement('div');
             dom.className = 'latex-figure';
             dom.setAttribute('data-latex-figure', '');
             dom.contentEditable = 'false';
+
+            dom.addEventListener('click', () => {
+                const pos = typeof getPos === 'function' ? getPos() : null;
+                if (pos == null) return;
+                dom.dispatchEvent(new CustomEvent('latex-figure-click', {
+                    bubbles: true,
+                    detail: {
+                        imagePath: node.attrs.imagePath,
+                        caption: node.attrs.caption,
+                        pos,
+                    },
+                }));
+            });
 
             const render = () => {
                 dom.innerHTML = '';
