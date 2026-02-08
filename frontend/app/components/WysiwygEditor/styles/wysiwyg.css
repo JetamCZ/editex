@@ -410,11 +410,12 @@
 
 /* Toolbar */
 .wysiwyg-toolbar {
-    padding: 4px 8px;
+    padding: 6px 16px;
     border-bottom: 1px solid var(--gray-6, #e6e6e6);
     display: flex;
-    gap: 1px;
+    gap: 2px;
     align-items: center;
+    justify-content: center;
     background-color: var(--gray-1, #fcfcfc);
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -422,19 +423,21 @@
 
 .wysiwyg-toolbar-group {
     display: flex;
-    gap: 1px;
+    gap: 2px;
     align-items: center;
 }
 
 .wysiwyg-toolbar-btn {
     cursor: pointer;
+    width: 32px !important;
+    height: 32px !important;
 }
 
 .wysiwyg-toolbar-separator {
     width: 1px;
-    height: 20px;
+    height: 24px;
     background-color: var(--gray-5, #e0e0e0);
-    margin: 0 4px;
+    margin: 0 8px;
     flex-shrink: 0;
 }
 
@@ -442,17 +445,17 @@
 .wysiwyg-toolbar-dropdown-trigger {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 4px 6px;
+    gap: 4px;
+    padding: 6px 8px;
     border: none;
-    border-radius: var(--radius-1, 4px);
+    border-radius: var(--radius-2, 6px);
     background: transparent;
     color: var(--gray-11, #646464);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1;
     transition: background-color 0.1s;
-    height: 24px;
+    height: 32px;
 }
 
 .wysiwyg-toolbar-dropdown-trigger:hover {

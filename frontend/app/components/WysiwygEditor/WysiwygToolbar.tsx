@@ -31,7 +31,7 @@ function ToolbarButton({
     isActive,
     onClick,
     color,
-    iconSize = 15,
+    iconSize = 18,
 }: {
     tooltip: string;
     icon: LucideIcon;
@@ -43,7 +43,7 @@ function ToolbarButton({
     return (
         <Tooltip content={tooltip}>
             <IconButton
-                size="1"
+                size="2"
                 variant={isActive ? 'solid' : 'ghost'}
                 color={color ?? 'gray'}
                 onClick={onClick}
@@ -65,8 +65,8 @@ function HeadingDropdown({editor}: {editor: Editor}) {
             <Tooltip content="Headings">
                 <DropdownMenu.Trigger>
                     <button className={`wysiwyg-toolbar-dropdown-trigger ${activeLevel ? 'active' : ''}`}>
-                        <ActiveIcon size={15} strokeWidth={2} />
-                        <ChevronDown size={10} strokeWidth={2} />
+                        <ActiveIcon size={18} strokeWidth={2} />
+                        <ChevronDown size={12} strokeWidth={2} />
                     </button>
                 </DropdownMenu.Trigger>
             </Tooltip>
@@ -103,8 +103,8 @@ function TableDropdown({editor}: {editor: Editor}) {
             <Tooltip content="Table options">
                 <DropdownMenu.Trigger>
                     <button className="wysiwyg-toolbar-dropdown-trigger">
-                        <TableCellsMerge size={15} strokeWidth={2} />
-                        <ChevronDown size={10} strokeWidth={2} />
+                        <TableCellsMerge size={18} strokeWidth={2} />
+                        <ChevronDown size={12} strokeWidth={2} />
                     </button>
                 </DropdownMenu.Trigger>
             </Tooltip>
