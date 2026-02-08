@@ -19,7 +19,7 @@ import {useProjectDownload} from "~/hooks/useProjectDownload";
 import EditorToolbar from "~/components/EditorToolbar";
 import {FileTextIcon, PlayIcon, DownloadIcon} from "@radix-ui/react-icons";
 import {Upload, GitBranch, Plus} from "lucide-react";
-import RightPanelToggle, {type RightPanelMode} from "~/components/RightPanelToggle";
+import EditorModeToggle, {type EditorMode} from "~/components/EditorModeToggle";
 import WysiwygEditor from "~/components/WysiwygEditor";
 
 export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
@@ -50,7 +50,7 @@ const EditorPage = () => {
         compilationLog: string | null;
     }>({ open: false, errorMessage: null, compilationLog: null });
     const [compileTarget, setCompileTarget] = useState<string>("main.tex");
-    const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('pdf');
+    const [editorMode, setEditorMode] = useState<EditorMode>('latex');
     const [wysiwygContent, setWysiwygContent] = useState<string>('');
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
     const [editorState, setEditorState] = useState<{
@@ -72,6 +72,11 @@ const EditorPage = () => {
     const handleAutoSaveChange = useCallback((value: boolean) => {
         setAutoSave(value);
         localStorage.setItem('autoSave', String(value));
+    }, []);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('editorMode');
+        if (stored === 'wysiwyg' || stored === 'latex') setEditorMode(stored);
     }, []);
 
     const editorRef = useRef<CollaborativeEditorRef>(null);
@@ -156,6 +161,18 @@ const EditorPage = () => {
     const isTextFile = fileContentType === ContentType.TEXT;
     const isImageFile = fileContentType === ContentType.IMAGE;
     const isPdfFile = fileContentType === ContentType.PDF;
+    const isTexFileSelected = selectedFile?.originalFileName.endsWith('.tex') ?? false;
+    const effectiveMode: EditorMode = isTexFileSelected ? editorMode : 'latex';
+
+    const handleEditorModeChange = useCallback((mode: EditorMode) => {
+        setEditorMode(mode);
+        localStorage.setItem('editorMode', mode);
+        if (mode === 'latex') {
+            requestAnimationFrame(() => {
+                editorRef.current?.triggerLayout();
+            });
+        }
+    }, []);
 
     const handleCompilationResult = (result: CompilationResult) => {
         if (result.success && result.pdfUrl) {
@@ -222,9 +239,9 @@ const EditorPage = () => {
         editorRef.current?.handleSendChanges();
     };
 
-    // Sync Monaco content to WYSIWYG when panel becomes visible or content changes
+    // Sync Monaco content to WYSIWYG when mode becomes visible or content changes
     useEffect(() => {
-        if (rightPanelMode !== 'wysiwyg' || !editorRef.current?.onContentChange) return;
+        if (effectiveMode !== 'wysiwyg' || !editorRef.current?.onContentChange) return;
 
         // Get initial content
         const initialContent = editorRef.current.getContent?.() || '';
@@ -238,7 +255,7 @@ const EditorPage = () => {
         });
 
         return unsub;
-    }, [rightPanelMode, selectedFileId]);
+    }, [effectiveMode, selectedFileId]);
 
     const handleWysiwygContentChange = useCallback((latex: string) => {
         editorRef.current?.replaceContent?.(latex);
@@ -257,6 +274,9 @@ const EditorPage = () => {
     // Header actions rendered via portal
     const headerActions = headerActionsContainer && createPortal(
         <>
+            {selectedFile && isTexFileSelected && (
+                <EditorModeToggle mode={editorMode} onModeChange={handleEditorModeChange} />
+            )}
             {selectedFile && isTextFile && (
                 <EditorToolbar
                     changeHistory={editorState.changeHistory}
@@ -422,23 +442,59 @@ const EditorPage = () => {
                 </div>
             </aside>
 
-            {/* Editor Area */}
+            {/* Editor Area + Content */}
             <div style={{flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative"}}>
-                <Box style={{flex: 1, minWidth: 0, overflow: 'hidden'}}>
+                <div style={{flex: 1, display: "flex", minHeight: 0}}>
+                    {/* CollaborativeEditor — always mounted for text files, hidden in WYSIWYG mode */}
+                    {selectedFile && isTextFile && (
+                        <div style={effectiveMode === 'wysiwyg' ? {
+                            position: 'absolute',
+                            width: 0,
+                            height: 0,
+                            overflow: 'hidden',
+                            visibility: 'hidden' as const,
+                        } : {
+                            flex: 1,
+                            minWidth: 0,
+                            display: 'flex',
+                            flexDirection: 'column' as const,
+                        }}>
+                            <CollaborativeEditor
+                                ref={editorRef}
+                                selectedFile={selectedFile}
+                                autoSave={autoSave}
+                            />
+                        </div>
+                    )}
+
+                    {/* WYSIWYG Editor — shown in WYSIWYG mode for .tex files */}
+                    {selectedFile && isTextFile && isTexFileSelected && (
+                        <div style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: effectiveMode === 'wysiwyg' ? 'flex' : 'none',
+                            flexDirection: 'column',
+                        }}>
+                            <WysiwygEditor
+                                content={wysiwygContent}
+                                onContentChange={handleWysiwygContentChange}
+                                visible={effectiveMode === 'wysiwyg'}
+                                baseProject={project.baseProject}
+                                branch={project.branch}
+                            />
+                        </div>
+                    )}
+
+                    {/* Non-text file viewers */}
                     {!selectedFile ? (
-                        <Box p="3">
+                        <Box p="3" style={{flex: 1}}>
                             <Text color="gray">Select a file from the tree to start editing</Text>
                         </Box>
-                    ) : isTextFile ? (
-                        <CollaborativeEditor
-                            ref={editorRef}
-                            selectedFile={selectedFile}
-                            autoSave={autoSave}
-                        />
-                    ) : isImageFile ? (
+                    ) : !isTextFile && isImageFile ? (
                         <Box
                             p="4"
                             style={{
+                                flex: 1,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -475,9 +531,10 @@ const EditorPage = () => {
                                 Download {selectedFile.originalFileName}
                             </a>
                         </Box>
-                    ) : isPdfFile ? (
+                    ) : !isTextFile && isPdfFile ? (
                         <Box
                             style={{
+                                flex: 1,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column'
@@ -493,10 +550,11 @@ const EditorPage = () => {
                                 title={selectedFile.originalFileName}
                             />
                         </Box>
-                    ) : (
+                    ) : !isTextFile ? (
                         <Box
                             p="4"
                             style={{
+                                flex: 1,
                                 height: '100%',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -508,8 +566,26 @@ const EditorPage = () => {
                                 Cannot preview this file type. <a href={selectedFile.s3Url} download>Download file</a>
                             </Text>
                         </Box>
+                    ) : null}
+
+                    {/* Right Panel: PDF Preview — only in LaTeX Code mode for .tex files */}
+                    {effectiveMode === 'latex' && isTexFileSelected && (
+                        <Box style={{borderLeft: '1px solid var(--gray-6)', minWidth: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column'}}>
+                            {currentPdfUrl ? (
+                                <PdfViewer
+                                    pdfUrl={currentPdfUrl}
+                                    fileName={selectedFile?.originalFileName.replace('.tex', '.pdf') || 'output.pdf'}
+                                />
+                            ) : (
+                                <Box p="4" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--gray-2)'}}>
+                                    <Text color="gray" size="2" align="center">
+                                        Click "Compile" to generate PDF preview
+                                    </Text>
+                                </Box>
+                            )}
+                        </Box>
                     )}
-                </Box>
+                </div>
 
                 {/* Status Bar */}
                 <footer style={{
@@ -605,37 +681,6 @@ const EditorPage = () => {
                     </div>
                 )}
             </div>
-
-            {/* Right Panel: PDF Preview or WYSIWYG Editor */}
-            <Box style={{borderLeft: '1px solid var(--gray-6)', minWidth: 0, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column'}}>
-                {/* Panel toggle - only for .tex files */}
-                {selectedFile?.originalFileName.endsWith('.tex') && (
-                    <RightPanelToggle mode={rightPanelMode} onModeChange={setRightPanelMode} />
-                )}
-
-                {rightPanelMode === 'pdf' ? (
-                    currentPdfUrl ? (
-                        <PdfViewer
-                            pdfUrl={currentPdfUrl}
-                            fileName={selectedFile?.originalFileName.replace('.tex', '.pdf') || 'output.pdf'}
-                        />
-                    ) : (
-                        <Box p="4" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--gray-2)'}}>
-                            <Text color="gray" size="2" align="center">
-                                Click "Compile" to generate PDF preview
-                            </Text>
-                        </Box>
-                    )
-                ) : (
-                    <WysiwygEditor
-                        content={wysiwygContent}
-                        onContentChange={handleWysiwygContentChange}
-                        visible={rightPanelMode === 'wysiwyg'}
-                        baseProject={project.baseProject}
-                        branch={project.branch}
-                    />
-                )}
-            </Box>
 
             {/* File Upload Modal */}
             <FileUploadModal

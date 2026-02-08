@@ -31,6 +31,7 @@ export interface CollaborativeEditorRef {
     getContent: () => string;
     replaceContent: (content: string) => void;
     onContentChange: (cb: (content: string) => void) => () => void;
+    triggerLayout: () => void;
 }
 
 const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, ref) => {
@@ -203,6 +204,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             return () => {
                 contentListenersRef.current.delete(cb);
             };
+        },
+        triggerLayout: () => {
+            editorRef.current?.layout();
         },
     }));
 
