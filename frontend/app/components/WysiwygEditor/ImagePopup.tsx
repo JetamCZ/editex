@@ -43,19 +43,18 @@ export default function ImagePopup({imagePath, caption, onSave, onCancel, basePr
         }
     }, [path, cap, onSave, onCancel]);
 
-    const handleImageSelect = useCallback((file: ProjectFile) => {
-        const relativePath = file.projectFolder
-            ? `${file.projectFolder}/${file.originalFileName}`
-            : file.originalFileName;
-        setPath(relativePath);
+    const buildRelativePath = useCallback((file: ProjectFile) => {
+        const folder = file.projectFolder?.replace(/^\/+/, '') || '';
+        return folder ? `${folder}/${file.originalFileName}` : file.originalFileName;
     }, []);
 
+    const handleImageSelect = useCallback((file: ProjectFile) => {
+        setPath(buildRelativePath(file));
+    }, [buildRelativePath]);
+
     const isSelected = useCallback((file: ProjectFile) => {
-        const relativePath = file.projectFolder
-            ? `${file.projectFolder}/${file.originalFileName}`
-            : file.originalFileName;
-        return path === relativePath;
-    }, [path]);
+        return path === buildRelativePath(file);
+    }, [path, buildRelativePath]);
 
     return createPortal(
         <div className="math-popup-overlay" onClick={onCancel}>
