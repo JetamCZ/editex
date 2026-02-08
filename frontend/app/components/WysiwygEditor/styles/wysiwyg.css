@@ -403,20 +403,63 @@
 
 /* Toolbar */
 .wysiwyg-toolbar {
-    padding: 6px 12px;
+    padding: 4px 8px;
     border-bottom: 1px solid var(--gray-6, #e6e6e6);
     display: flex;
-    gap: 2px;
+    gap: 1px;
     align-items: center;
-    background-color: #fff;
+    background-color: var(--gray-1, #fcfcfc);
     flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.wysiwyg-toolbar-group {
+    display: flex;
+    gap: 1px;
+    align-items: center;
+}
+
+.wysiwyg-toolbar-btn {
+    cursor: pointer;
 }
 
 .wysiwyg-toolbar-separator {
     width: 1px;
     height: 20px;
-    background-color: #e0e0e0;
-    margin: 0 6px;
+    background-color: var(--gray-5, #e0e0e0);
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+/* Dropdown trigger button for toolbar */
+.wysiwyg-toolbar-dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: var(--radius-1, 4px);
+    background: transparent;
+    color: var(--gray-11, #646464);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    transition: background-color 0.1s;
+    height: 24px;
+}
+
+.wysiwyg-toolbar-dropdown-trigger:hover {
+    background-color: var(--gray-4, #e8e8e8);
+}
+
+.wysiwyg-toolbar-dropdown-trigger.active {
+    background-color: var(--gray-12, #202020);
+    color: white;
+}
+
+/* Active item indicator inside dropdown */
+.wysiwyg-dropdown-active {
+    font-weight: 600;
 }
 
 /* Placeholder */
