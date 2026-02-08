@@ -1,4 +1,4 @@
-import { Button } from "@radix-ui/themes";
+import { Button, Text, Switch } from "@radix-ui/themes";
 
 interface EditorToolbarProps {
     changeHistory: any[];
@@ -6,6 +6,8 @@ interface EditorToolbarProps {
     onReload: () => void;
     onShowChanges: () => void;
     onSendChanges: () => void;
+    autoSave: boolean;
+    onAutoSaveChange: (value: boolean) => void;
 }
 
 const EditorToolbar = (props: EditorToolbarProps) => {
@@ -29,6 +31,14 @@ const EditorToolbar = (props: EditorToolbarProps) => {
                     {props.changeHistory.length} unsaved
                 </span>
             )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px', cursor: 'pointer' }}>
+                <Switch
+                    size="1"
+                    checked={props.autoSave}
+                    onCheckedChange={props.onAutoSaveChange}
+                />
+                <Text size="2" style={{ color: 'var(--gray-11)', userSelect: 'none' }}>Autosave</Text>
+            </label>
         </div>
     );
 };

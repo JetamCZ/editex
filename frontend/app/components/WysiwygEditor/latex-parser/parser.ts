@@ -119,15 +119,17 @@ class ParserContext {
                 }
                 this.pos = savedPos;
             }
-            // Check for \end{envName}
+            // Check for \end{...}
             if (this.peek().type === TokenType.COMMAND && this.peek().value === 'end') {
                 const savedPos = this.pos;
                 this.advance(); // skip \end
                 if (this.peek().type === TokenType.OPEN_BRACE) {
                     const name = this.readBraceGroupText();
-                    depth--;
-                    if (depth === 0 && name === envName) {
-                        return raw;
+                    if (name === envName) {
+                        depth--;
+                        if (depth === 0) {
+                            return raw;
+                        }
                     }
                     raw += `\\end{${name}}`;
                     continue;
@@ -633,9 +635,13 @@ class ParserContext {
                 }
             }
         } else {
-            // Direct tabular
-            if (this.peek().type === TokenType.OPEN_BRACE) {
-                colSpec = this.readBraceGroupText();
+            // Direct tabular — column spec like {|c|c|} is already inside `content`
+            // since readUntilEnd consumed everything between \begin{tabular} and \end{tabular}.
+            // Extract it from the raw content string rather than reading from the token stream.
+            const colMatch = content.match(/^\{([^}]*)}/);
+            if (colMatch) {
+                colSpec = colMatch[1];
+                tabularContent = content.slice(colMatch[0].length);
             }
         }
 

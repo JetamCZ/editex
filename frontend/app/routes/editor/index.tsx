@@ -58,6 +58,20 @@ const EditorPage = () => {
         sessionId: string;
     }>({changeHistory: [], isConnected: false, sessionId: ''});
 
+    const [autoSave, setAutoSave] = useState<boolean>(true);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('autoSave');
+        if (stored !== null) {
+            setAutoSave(stored === 'true');
+        }
+    }, []);
+
+    const handleAutoSaveChange = useCallback((value: boolean) => {
+        setAutoSave(value);
+        localStorage.setItem('autoSave', String(value));
+    }, []);
+
     const editorRef = useRef<CollaborativeEditorRef>(null);
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
@@ -228,6 +242,8 @@ const EditorPage = () => {
                     onReload={handleReload}
                     onShowChanges={handleShowChanges}
                     onSendChanges={handleSendChanges}
+                    autoSave={autoSave}
+                    onAutoSaveChange={handleAutoSaveChange}
                 />
             )}
             <Select.Root
@@ -386,6 +402,7 @@ const EditorPage = () => {
                         <CollaborativeEditor
                             ref={editorRef}
                             selectedFile={selectedFile}
+                            autoSave={autoSave}
                         />
                     ) : isImageFile ? (
                         <Box
