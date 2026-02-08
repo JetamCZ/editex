@@ -1,4 +1,5 @@
 import {type Token, TokenType, type TipTapNode, type TipTapMark, type TipTapDoc} from './types';
+import {tokenize} from './tokenizer';
 
 const SECTION_COMMANDS: Record<string, number> = {
     section: 1,
@@ -623,30 +624,34 @@ class ParserContext {
 
     /** Parse \begin{table} or \begin{tabular} */
     private parseTableEnvironment(envName: string): TipTapNode {
-        this.skipOptionalArg(); // [h], [t], etc.
+        const placement = this.skipOptionalArg() || ''; // [h], [t], etc.
         const content = this.readUntilEnd(envName);
-        const rawLatex = `\\begin{${envName}}${content}\\end{${envName}}`;
 
-        // For simple tabular environments, try to parse into table structure
-        // Extract the tabular content
         let tabularContent = content;
         let colSpec = '';
+        let rawBeforeTabular = '';
+        let rawAfterTabular = '';
+        const isTableEnv = envName === 'table';
 
-        if (envName === 'table') {
-            // Find inner tabular
-            const tabularMatch = content.match(/\\begin\{tabular}\{([^}]*)}/);
+        if (isTableEnv) {
+            // Find inner \begin{tabular}{colSpec}
+            const tabularMatch = content.match(/\\begin\{tabular\}\s*\{([^}]*)\}/);
             if (tabularMatch) {
                 colSpec = tabularMatch[1];
-                const innerStart = content.indexOf('\\begin{tabular}');
+                const tabularHeaderEnd = tabularMatch.index! + tabularMatch[0].length;
                 const innerEnd = content.indexOf('\\end{tabular}');
-                if (innerStart !== -1 && innerEnd !== -1) {
-                    tabularContent = content.slice(innerStart + `\\begin{tabular}{${colSpec}}`.length, innerEnd);
+                if (innerEnd !== -1) {
+                    rawBeforeTabular = content.slice(0, tabularMatch.index!).trim();
+                    rawAfterTabular = content.slice(innerEnd + '\\end{tabular}'.length).trim();
+                    tabularContent = content.slice(tabularHeaderEnd, innerEnd);
                 }
+            } else {
+                // No inner tabular found — fall back to raw block
+                const rawLatex = `\\begin{table}${placement ? `[${placement}]` : ''}${content}\\end{table}`;
+                return {type: 'latexRawBlock', attrs: {content: rawLatex, rawLatex}};
             }
         } else {
-            // Direct tabular — column spec like {|c|c|} is already inside `content`
-            // since readUntilEnd consumed everything between \begin{tabular} and \end{tabular}.
-            // Extract it from the raw content string rather than reading from the token stream.
+            // Direct tabular — column spec like {|c|c|} is at the start of content
             const colMatch = content.match(/^\{([^}]*)}/);
             if (colMatch) {
                 colSpec = colMatch[1];
@@ -662,13 +667,23 @@ class ParserContext {
             const rowStr = rowStrings[ri].replace(/\\hline/g, '').trim();
             if (!rowStr) continue;
             const cells = rowStr.split('&');
-            const cellNodes: TipTapNode[] = cells.map(cellText => ({
-                type: ri === 0 ? 'tableHeader' : 'tableCell',
-                content: [{
-                    type: 'paragraph',
-                    content: [{type: 'text', text: cellText.trim() || ' '}],
-                }],
-            }));
+            const cellNodes: TipTapNode[] = cells.map(cellText => {
+                const trimmed = cellText.trim();
+                let cellContent: TipTapNode[];
+                if (trimmed) {
+                    // Parse cell content through tokenizer + inline parser
+                    // to handle formatting, math, and unknown commands
+                    const cellTokens = tokenize(trimmed);
+                    const inlines = new ParserContext(cellTokens).parseInlines();
+                    cellContent = inlines.length > 0 ? inlines : [{type: 'text', text: ' '}];
+                } else {
+                    cellContent = [{type: 'text', text: ' '}];
+                }
+                return {
+                    type: ri === 0 ? 'tableHeader' : 'tableCell',
+                    content: [{type: 'paragraph', content: cellContent}],
+                };
+            });
             rows.push({
                 type: 'tableRow',
                 content: cellNodes,
@@ -677,6 +692,7 @@ class ParserContext {
 
         if (rows.length === 0) {
             // Fallback: raw block
+            const rawLatex = `\\begin{${envName}}${content}\\end{${envName}}`;
             return {
                 type: 'latexRawBlock',
                 attrs: {content: rawLatex, rawLatex},
@@ -685,7 +701,13 @@ class ParserContext {
 
         return {
             type: 'table',
-            attrs: {rawLatex},
+            attrs: {
+                colSpec,
+                placement,
+                rawBeforeTabular,
+                rawAfterTabular,
+                isTableEnv,
+            },
             content: rows,
         };
     }

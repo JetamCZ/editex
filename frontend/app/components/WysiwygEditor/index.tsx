@@ -57,7 +57,18 @@ export default function WysiwygEditor({content, onContentChange, visible}: Wysiw
                 codeBlock: false,
             }),
             Underline,
-            Table.configure({resizable: true}),
+            Table.extend({
+                addAttributes() {
+                    return {
+                        ...(this.parent?.() || {}),
+                        colSpec: {default: ''},
+                        placement: {default: ''},
+                        rawBeforeTabular: {default: ''},
+                        rawAfterTabular: {default: ''},
+                        isTableEnv: {default: true},
+                    };
+                },
+            }).configure({resizable: true}),
             TableRow,
             TableCell,
             TableHeader,

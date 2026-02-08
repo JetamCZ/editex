@@ -139,7 +139,7 @@ describe('serializer', () => {
     });
 
     describe('tables', () => {
-        it('should serialize tables via rawLatex', () => {
+        it('should serialize table with preserved metadata', () => {
             const latex = `\\begin{table}[h]
     \\centering
     \\begin{tabular}{|c|c|}
@@ -152,8 +152,45 @@ describe('serializer', () => {
 \\end{table}`;
             const doc = parseLatex(latex);
             const result = serializeToLatex(doc);
-            expect(result).toContain('\\begin{table}');
+            expect(result).toContain('\\begin{table}[h]');
+            expect(result).toContain('\\centering');
+            expect(result).toContain('\\begin{tabular}{|c|c|}');
+            expect(result).toContain('\\end{tabular}');
             expect(result).toContain('\\end{table}');
+            expect(result).toContain('A & B');
+            expect(result).toContain('1 & 2');
+        });
+
+        it('should serialize table with caption and label', () => {
+            const latex = `\\begin{table}[h]
+    \\centering
+    \\caption{My Table}
+    \\label{tab:mytable}
+    \\begin{tabular}{|c|c|}
+        \\hline
+        A & B \\\\
+        \\hline
+    \\end{tabular}
+\\end{table}`;
+            const doc = parseLatex(latex);
+            const result = serializeToLatex(doc);
+            expect(result).toContain('\\caption{My Table}');
+            expect(result).toContain('\\label{tab:mytable}');
+            expect(result).toContain('\\centering');
+        });
+
+        it('should serialize standalone tabular without table wrapper', () => {
+            const latex = `\\begin{tabular}{|c|c|}
+        \\hline
+        A & B \\\\
+        \\hline
+\\end{tabular}`;
+            const doc = parseLatex(latex);
+            const result = serializeToLatex(doc);
+            expect(result).toContain('\\begin{tabular}{|c|c|}');
+            expect(result).toContain('\\end{tabular}');
+            expect(result).not.toContain('\\begin{table}');
+            expect(result).not.toContain('\\end{table}');
         });
     });
 });
@@ -248,5 +285,56 @@ A & B \\\\
 After table text.`;
         const result = roundTrip(input);
         expect(result).toContain('After table text');
+    });
+
+    it('should round-trip table caption and label', () => {
+        const input = `\\begin{table}[h]
+\\centering
+\\caption{Results}
+\\label{tab:results}
+\\begin{tabular}{|c|c|c|}
+\\hline
+X & Y & Z \\\\
+\\hline
+1 & 2 & 3 \\\\
+\\hline
+\\end{tabular}
+\\end{table}`;
+        const result = roundTrip(input);
+        expect(result).toContain('\\caption{Results}');
+        expect(result).toContain('\\label{tab:results}');
+        expect(result).toContain('\\centering');
+        expect(result).toContain('\\begin{table}[h]');
+        expect(result).toContain('\\begin{tabular}{|c|c|c|}');
+        expect(result).toContain('X & Y & Z');
+        expect(result).toContain('1 & 2 & 3');
+    });
+
+    it('should round-trip table with caption after tabular', () => {
+        const input = `\\begin{table}[ht]
+\\centering
+\\begin{tabular}{cc}
+\\hline
+A & B \\\\
+\\hline
+\\end{tabular}
+\\caption{After}
+\\label{tab:after}
+\\end{table}`;
+        const result = roundTrip(input);
+        expect(result).toContain('\\caption{After}');
+        expect(result).toContain('\\label{tab:after}');
+        expect(result).toContain('\\begin{table}[ht]');
+    });
+
+    it('should round-trip table cell formatting', () => {
+        const input = `\\begin{tabular}{|c|c|}
+\\hline
+\\textbf{Bold} & $x^2$ \\\\
+\\hline
+\\end{tabular}`;
+        const result = roundTrip(input);
+        expect(result).toContain('\\textbf{Bold}');
+        expect(result).toContain('$x^2$');
     });
 });

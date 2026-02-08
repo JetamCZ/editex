@@ -179,19 +179,39 @@ function serializeRawInline(node: TipTapNode, state: SerializerState): void {
 }
 
 function serializeTable(node: TipTapNode, state: SerializerState): void {
-    const rawLatex = node.attrs?.rawLatex as string | undefined;
-    if (rawLatex) {
-        state.output += rawLatex;
-        return;
-    }
-
-    // Reconstruct tabular from nodes
     if (!node.content) return;
 
-    const numCols = node.content[0]?.content?.length || 2;
-    const colSpec = Array(numCols).fill('c').join('|');
+    const colSpec = node.attrs?.colSpec as string || '';
+    const placement = node.attrs?.placement as string || '';
+    const rawBeforeTabular = node.attrs?.rawBeforeTabular as string || '';
+    const rawAfterTabular = node.attrs?.rawAfterTabular as string || '';
+    const isTableEnv = node.attrs?.isTableEnv as boolean ?? true;
 
-    state.output += `\\begin{table}[h]\n    \\centering\n    \\begin{tabular}{|${colSpec}|}\n        \\hline\n`;
+    const numCols = node.content[0]?.content?.length || 2;
+    const effectiveColSpec = colSpec || `|${Array(numCols).fill('c').join('|')}|`;
+
+    if (isTableEnv) {
+        state.output += `\\begin{table}`;
+        if (placement) state.output += `[${placement}]`;
+        state.output += '\n';
+        if (rawBeforeTabular) {
+            const lines = rawBeforeTabular.split('\n');
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine) {
+                    state.output += `    ${trimmedLine}\n`;
+                }
+            }
+        } else {
+            state.output += '    \\centering\n';
+        }
+    }
+
+    const indent = isTableEnv ? '    ' : '';
+    const cellIndent = isTableEnv ? '        ' : '    ';
+
+    state.output += `${indent}\\begin{tabular}{${effectiveColSpec}}\n`;
+    state.output += `${cellIndent}\\hline\n`;
 
     for (const row of node.content) {
         if (row.type === 'tableRow' && row.content) {
@@ -207,11 +227,25 @@ function serializeTable(node: TipTapNode, state: SerializerState): void {
                 }
                 return '';
             });
-            state.output += `        ${cells.join(' & ')} \\\\\n        \\hline\n`;
+            state.output += `${cellIndent}${cells.join(' & ')} \\\\\n${cellIndent}\\hline\n`;
         }
     }
 
-    state.output += `    \\end{tabular}\n\\end{table}`;
+    state.output += `${indent}\\end{tabular}`;
+
+    if (isTableEnv) {
+        state.output += '\n';
+        if (rawAfterTabular) {
+            const lines = rawAfterTabular.split('\n');
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine) {
+                    state.output += `    ${trimmedLine}\n`;
+                }
+            }
+        }
+        state.output += `\\end{table}`;
+    }
 }
 
 function serializeInline(node: TipTapNode, state: SerializerState): void {

@@ -243,6 +243,97 @@ describe('parser', () => {
             expect(doc.content[0].content![0].type).toBe('tableRow');
         });
 
+        it('should store table metadata as attributes', () => {
+            const latex = `\\begin{table}[h]
+    \\centering
+    \\begin{tabular}{|c|c|}
+        \\hline
+        A & B \\\\
+        \\hline
+    \\end{tabular}
+\\end{table}`;
+            const doc = parseLatex(latex);
+            const table = doc.content[0];
+            expect(table.attrs?.colSpec).toBe('|c|c|');
+            expect(table.attrs?.placement).toBe('h');
+            expect(table.attrs?.isTableEnv).toBe(true);
+        });
+
+        it('should preserve caption and label in rawBeforeTabular', () => {
+            const latex = `\\begin{table}[h]
+    \\centering
+    \\caption{My Table}
+    \\label{tab:mytable}
+    \\begin{tabular}{|c|c|}
+        \\hline
+        A & B \\\\
+        \\hline
+    \\end{tabular}
+\\end{table}`;
+            const doc = parseLatex(latex);
+            const table = doc.content[0];
+            expect(table.attrs?.rawBeforeTabular).toContain('\\caption{My Table}');
+            expect(table.attrs?.rawBeforeTabular).toContain('\\label{tab:mytable}');
+            expect(table.attrs?.rawBeforeTabular).toContain('\\centering');
+        });
+
+        it('should preserve caption after tabular in rawAfterTabular', () => {
+            const latex = `\\begin{table}[h]
+    \\centering
+    \\begin{tabular}{|c|c|}
+        \\hline
+        A & B \\\\
+        \\hline
+    \\end{tabular}
+    \\caption{After caption}
+    \\label{tab:after}
+\\end{table}`;
+            const doc = parseLatex(latex);
+            const table = doc.content[0];
+            expect(table.attrs?.rawAfterTabular).toContain('\\caption{After caption}');
+            expect(table.attrs?.rawAfterTabular).toContain('\\label{tab:after}');
+        });
+
+        it('should parse cell content with formatting', () => {
+            const latex = `\\begin{tabular}{|c|c|}
+        \\hline
+        \\textbf{Header} & Normal \\\\
+        \\hline
+\\end{tabular}`;
+            const doc = parseLatex(latex);
+            const table = doc.content[0];
+            const firstCell = table.content![0].content![0]; // first row, first cell
+            const paragraph = firstCell.content![0];
+            const textNode = paragraph.content![0];
+            expect(textNode.text).toBe('Header');
+            expect(textNode.marks).toContainEqual({type: 'bold'});
+        });
+
+        it('should parse cell content with math', () => {
+            const latex = `\\begin{tabular}{|c|c|}
+        \\hline
+        $x^2$ & Normal \\\\
+        \\hline
+\\end{tabular}`;
+            const doc = parseLatex(latex);
+            const table = doc.content[0];
+            const firstCell = table.content![0].content![0];
+            const paragraph = firstCell.content![0];
+            const mathNode = paragraph.content![0];
+            expect(mathNode.type).toBe('latexMathInline');
+            expect(mathNode.attrs?.latex).toBe('x^2');
+        });
+
+        it('should set isTableEnv=false for standalone tabular', () => {
+            const latex = `\\begin{tabular}{|c|c|}
+        \\hline
+        A & B \\\\
+        \\hline
+\\end{tabular}`;
+            const doc = parseLatex(latex);
+            expect(doc.content[0].attrs?.isTableEnv).toBe(false);
+        });
+
         it('should not consume content after the table', () => {
             const latex = `\\begin{table}[h]
     \\centering
