@@ -337,4 +337,22 @@ A & B \\\\
         expect(result).toContain('\\textbf{Bold}');
         expect(result).toContain('$x^2$');
     });
+
+    it('should round-trip \\begin{document} and \\end{document}', () => {
+        const input = `\\documentclass{article}
+\\usepackage{amsmath}
+
+\\begin{document}
+
+\\section{Introduction}
+
+Some content here.
+
+\\end{document}`;
+        const result = roundTrip(input);
+        expect(result).toContain('\\begin{document}');
+        expect(result).toContain('\\end{document}');
+        expect(result).toContain('\\documentclass{article}');
+        expect(result).toContain('\\section{Introduction}');
+    });
 });

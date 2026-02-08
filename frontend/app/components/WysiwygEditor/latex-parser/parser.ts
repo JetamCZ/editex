@@ -231,8 +231,11 @@ class ParserContext {
                             attrs: {latex: content.trim(), rawLatex},
                         });
                     } else if (envName === 'document') {
-                        // Just parse the contents, skip the environment wrapper
-                        // (will be reconstructed on serialization based on rawLatex of preamble)
+                        // Preserve \begin{document} as a raw block so it survives round-trip
+                        nodes.push({
+                            type: 'latexRawBlock',
+                            attrs: {content: '\\begin{document}', rawLatex: '\\begin{document}'},
+                        });
                         continue;
                     } else {
                         // Unknown environment → raw block
@@ -250,7 +253,14 @@ class ParserContext {
                 if (cmdName === 'end') {
                     this.advance();
                     if (this.peek().type === TokenType.OPEN_BRACE) {
-                        this.readBraceGroupText();
+                        const endEnvName = this.readBraceGroupText();
+                        if (endEnvName === 'document') {
+                            flushParagraph();
+                            nodes.push({
+                                type: 'latexRawBlock',
+                                attrs: {content: `\\end{document}`, rawLatex: `\\end{document}`},
+                            });
+                        }
                     }
                     continue;
                 }
