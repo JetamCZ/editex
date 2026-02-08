@@ -23,7 +23,14 @@ export function serializeDoc(doc: {type: string; content?: TipTapNode[]}): strin
         }
     }
 
-    return state.output.replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+    let result = state.output.replace(/\n{3,}/g, '\n\n');
+    // Only ensure the output ends with a single newline.
+    // Don't use trimEnd() — it strips trailing \n\n that represents
+    // empty paragraphs at the end of the document (e.g. user pressed Enter).
+    if (!result.endsWith('\n')) {
+        result += '\n';
+    }
+    return result;
 }
 
 function serializeNode(node: TipTapNode, state: SerializerState): void {

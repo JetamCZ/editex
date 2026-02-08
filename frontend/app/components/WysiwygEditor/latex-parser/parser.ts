@@ -165,7 +165,8 @@ class ParserContext {
                     flushParagraph();
                 } else {
                     // Single newline → space in the current paragraph
-                    if (currentParagraphInlines.length > 0) {
+                    // But not when the newline is just before EOF (trailing newline)
+                    if (currentParagraphInlines.length > 0 && this.peek().type !== TokenType.EOF) {
                         currentParagraphInlines.push({type: 'text', text: ' '});
                     }
                 }

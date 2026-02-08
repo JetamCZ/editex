@@ -58,6 +58,7 @@
 /* Paragraphs */
 .wysiwyg-editor .tiptap p {
     margin: 0;
+    margin-bottom: 0.6em;
 }
 
 /* Lists */
