@@ -117,7 +117,7 @@ public class DocumentChangeService {
             line = applyTransformation(line, intermediate.getOperation(), intermediate.getLineNumber());
         }
 
-        return Math.max(1, line); // Ensure line is at least 1
+        return Math.max(0, line); // Ensure line is non-negative (0 is valid for INSERT_AFTER)
     }
 
     private int applyTransformation(int line, String operation, int opLine) {
