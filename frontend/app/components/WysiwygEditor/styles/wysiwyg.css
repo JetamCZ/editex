@@ -610,6 +610,60 @@
     color: #6366f1;
 }
 
+/* Href/URL links */
+.latex-href {
+    color: #2563eb;
+    text-decoration: underline;
+    text-decoration-color: #93b4f5;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.latex-href:hover {
+    color: #1d4ed8;
+    text-decoration-color: #2563eb;
+}
+
+.href-popup-preview {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    text-align: center;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 16px;
+}
+
+/* Title / Author / Date */
+.latex-title {
+    text-align: center;
+    margin: 4px 0;
+}
+
+.latex-title-title {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #111;
+    margin-top: 0.6em;
+    margin-bottom: 0.2em;
+}
+
+.latex-title-author {
+    font-size: 1.15em;
+    color: #444;
+}
+
+.latex-title-date {
+    font-size: 1em;
+    color: #666;
+}
+
+/* Comments (hidden) */
+.latex-comment {
+    display: none;
+}
+
 /* KaTeX overrides for inline display */
 .latex-math-inline .katex {
     font-size: 1em;

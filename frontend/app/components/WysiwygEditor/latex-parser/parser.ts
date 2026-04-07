@@ -14,6 +14,13 @@ const FORMATTING_COMMANDS: Record<string, string> = {
     underline: 'underline',
 };
 
+const SYMBOL_COMMANDS: Record<string, string> = {
+    dots: '\u2026',
+    ldots: '\u2026',
+    textendash: '\u2013',
+    textemdash: '\u2014',
+};
+
 const LIST_ENVIRONMENTS = new Set(['itemize', 'enumerate']);
 
 export function parse(tokens: Token[]): TipTapDoc {
@@ -174,13 +181,12 @@ class ParserContext {
                 continue;
             }
 
-            // Comments: preserve in raw
+            // Comments: hidden but preserved
             if (tok.type === TokenType.COMMENT) {
                 const comment = this.advance();
                 currentParagraphInlines.push({
-                    type: 'text',
-                    text: comment.value,
-                    marks: [{type: 'code'}],
+                    type: 'latexComment',
+                    attrs: {content: comment.value, rawLatex: comment.value},
                 });
                 continue;
             }
@@ -306,8 +312,52 @@ class ParserContext {
                     continue;
                 }
 
+                // Symbol commands (\dots, \ldots, etc.)
+                if (cmdName in SYMBOL_COMMANDS) {
+                    this.advance();
+                    currentParagraphInlines.push({
+                        type: 'latexRawInline',
+                        attrs: {content: SYMBOL_COMMANDS[cmdName], rawLatex: `\\${cmdName}`},
+                    });
+                    continue;
+                }
+
+                // \href{url}{text}
+                if (cmdName === 'href') {
+                    this.advance();
+                    let url = '';
+                    let text = '';
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        url = this.readBraceGroupText();
+                    }
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        text = this.readBraceGroupText();
+                    }
+                    const rawLatex = `\\href{${url}}{${text}}`;
+                    currentParagraphInlines.push({
+                        type: 'latexHref',
+                        attrs: {url, text, rawLatex, isUrl: false},
+                    });
+                    continue;
+                }
+
+                // \url{address}
+                if (cmdName === 'url') {
+                    this.advance();
+                    let url = '';
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        url = this.readBraceGroupText();
+                    }
+                    const rawLatex = `\\url{${url}}`;
+                    currentParagraphInlines.push({
+                        type: 'latexHref',
+                        attrs: {url, text: url, rawLatex, isUrl: true},
+                    });
+                    continue;
+                }
+
                 // \label, \ref, \cite — inline raw
-                if (['label', 'ref', 'cite', 'href', 'url', 'footnote', 'caption'].includes(cmdName)) {
+                if (['label', 'ref', 'cite', 'footnote', 'caption'].includes(cmdName)) {
                     const startIdx = this.pos;
                     this.advance();
                     let raw = `\\${cmdName}`;
@@ -359,9 +409,36 @@ class ParserContext {
                     continue;
                 }
 
+                // \title{...}, \author{...}, \date{...} — rendered title block
+                if (cmdName === 'title' || cmdName === 'author' || cmdName === 'date') {
+                    flushParagraph();
+                    this.advance();
+                    let text = '';
+                    let raw = `\\${cmdName}`;
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        text = this.readBraceGroupText();
+                        raw += `{${text}}`;
+                    }
+                    nodes.push({
+                        type: 'latexTitle',
+                        attrs: {text, kind: cmdName, rawLatex: raw},
+                    });
+                    continue;
+                }
+
+                // \maketitle — hidden (title/author/date already shown)
+                if (cmdName === 'maketitle') {
+                    flushParagraph();
+                    this.advance();
+                    nodes.push({
+                        type: 'latexPreamble',
+                        attrs: {content: '\\maketitle', rawLatex: '\\maketitle'},
+                    });
+                    continue;
+                }
+
                 // Other preamble-like commands — raw block
-                if (['title', 'author', 'date', 'maketitle',
-                     'tableofcontents', 'newcommand', 'renewcommand', 'setlength',
+                if (['tableofcontents', 'newcommand', 'renewcommand', 'setlength',
                      'pagestyle', 'thispagestyle', 'bibliographystyle', 'bibliography'].includes(cmdName)) {
                     flushParagraph();
                     this.advance();
@@ -455,6 +532,50 @@ class ParserContext {
                         }
                         inlines.push(...nested);
                     }
+                    continue;
+                }
+
+                // Symbol commands (\dots, \ldots, etc.)
+                if (cmdName in SYMBOL_COMMANDS) {
+                    this.advance();
+                    inlines.push({
+                        type: 'latexRawInline',
+                        attrs: {content: SYMBOL_COMMANDS[cmdName], rawLatex: `\\${cmdName}`},
+                    });
+                    continue;
+                }
+
+                // \href{url}{text}
+                if (cmdName === 'href') {
+                    this.advance();
+                    let url = '';
+                    let text = '';
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        url = this.readBraceGroupText();
+                    }
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        text = this.readBraceGroupText();
+                    }
+                    const rawLatex = `\\href{${url}}{${text}}`;
+                    inlines.push({
+                        type: 'latexHref',
+                        attrs: {url, text, rawLatex, isUrl: false},
+                    });
+                    continue;
+                }
+
+                // \url{address}
+                if (cmdName === 'url') {
+                    this.advance();
+                    let url = '';
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        url = this.readBraceGroupText();
+                    }
+                    const rawLatex = `\\url{${url}}`;
+                    inlines.push({
+                        type: 'latexHref',
+                        attrs: {url, text: url, rawLatex, isUrl: true},
+                    });
                     continue;
                 }
 
@@ -594,6 +715,47 @@ class ParserContext {
                             } else {
                                 this.pos = savedPos;
                             }
+                        }
+                        // Symbol commands (\dots, \ldots, etc.)
+                        if (cmdName in SYMBOL_COMMANDS) {
+                            this.advance();
+                            itemInlines.push({
+                                type: 'latexRawInline',
+                                attrs: {content: SYMBOL_COMMANDS[cmdName], rawLatex: `\\${cmdName}`},
+                            });
+                            continue;
+                        }
+                        // \href{url}{text}
+                        if (cmdName === 'href') {
+                            this.advance();
+                            let url = '';
+                            let text = '';
+                            if (this.peek().type === TokenType.OPEN_BRACE) {
+                                url = this.readBraceGroupText();
+                            }
+                            if (this.peek().type === TokenType.OPEN_BRACE) {
+                                text = this.readBraceGroupText();
+                            }
+                            const rawLatex = `\\href{${url}}{${text}}`;
+                            itemInlines.push({
+                                type: 'latexHref',
+                                attrs: {url, text, rawLatex, isUrl: false},
+                            });
+                            continue;
+                        }
+                        // \url{address}
+                        if (cmdName === 'url') {
+                            this.advance();
+                            let url = '';
+                            if (this.peek().type === TokenType.OPEN_BRACE) {
+                                url = this.readBraceGroupText();
+                            }
+                            const rawLatex = `\\url{${url}}`;
+                            itemInlines.push({
+                                type: 'latexHref',
+                                attrs: {url, text: url, rawLatex, isUrl: true},
+                            });
+                            continue;
                         }
                         // Unknown command → raw inline
                         this.advance();

@@ -24,24 +24,4 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.sessionId = :sessionId ORDER BY dc.createdAt ASC")
     List<DocumentChange> findBySessionIdOrderByCreatedAt(@Param("sessionId") String sessionId);
 
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC LIMIT 1")
-    Optional<DocumentChange> findLatestByProjectId(@Param("projectId") Long projectId);
-
-    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.id > :afterChangeId")
-    long countByProjectIdAfterChange(@Param("projectId") Long projectId, @Param("afterChangeId") Long afterChangeId);
-
-    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
-    long countByProjectId(@Param("projectId") Long projectId);
-
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC")
-    List<DocumentChange> findRecentByProjectId(@Param("projectId") Long projectId, org.springframework.data.domain.Pageable pageable);
-
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.id > :afterChangeId ORDER BY dc.id ASC")
-    List<DocumentChange> findByProjectIdAfterChange(@Param("projectId") Long projectId, @Param("afterChangeId") Long afterChangeId);
-
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
-    List<DocumentChange> findAllByProjectId(@Param("projectId") Long projectId);
-
-    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.createdAt > :afterTimestamp")
-    long countByProjectIdAfterTimestamp(@Param("projectId") Long projectId, @Param("afterTimestamp") java.time.LocalDateTime afterTimestamp);
 }

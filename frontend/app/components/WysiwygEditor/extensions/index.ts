@@ -5,3 +5,6 @@ export {LatexRawInline} from './LatexRawInline';
 export {LatexRawBlock} from './LatexRawBlock';
 export {LatexInput} from './LatexInput';
 export {LatexPreamble} from './LatexPreamble';
+export {LatexHref} from './LatexHref';
+export {LatexComment} from './LatexComment';
+export {LatexTitle} from './LatexTitle';
