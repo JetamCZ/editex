@@ -43,6 +43,10 @@ public class ProjectFile {
     @JoinColumn(name = "uploaded_by", nullable = false)
     private User uploadedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "active_branch_id")
+    private FileBranch activeBranch;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -125,6 +129,14 @@ public class ProjectFile {
 
     public void setUploadedBy(User uploadedBy) {
         this.uploadedBy = uploadedBy;
+    }
+
+    public FileBranch getActiveBranch() {
+        return activeBranch;
+    }
+
+    public void setActiveBranch(FileBranch activeBranch) {
+        this.activeBranch = activeBranch;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -2,9 +2,11 @@ package eu.puhony.latex_editor.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.puhony.latex_editor.entity.FileBranch;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.FileBranchRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class TemplateService {
     private final ObjectMapper objectMapper;
     private final MinioService minioService;
     private final ProjectFileRepository projectFileRepository;
+    private final FileBranchRepository fileBranchRepository;
 
     private static final String TEMPLATES_CONFIG = "templates/templates.json";
     private static final String SOURCES_ROOT = "/sources";
@@ -127,7 +130,19 @@ public class TemplateService {
             projectFile.setS3Url(s3Url);
             projectFile.setUploadedBy(user);
 
-            return projectFileRepository.save(projectFile);
+            projectFile = projectFileRepository.save(projectFile);
+
+            // Auto-create "main" branch
+            FileBranch mainBranch = new FileBranch();
+            mainBranch.setFile(projectFile);
+            mainBranch.setName("main");
+            mainBranch.setCreatedBy(user);
+            mainBranch = fileBranchRepository.save(mainBranch);
+
+            projectFile.setActiveBranch(mainBranch);
+            projectFile = projectFileRepository.save(projectFile);
+
+            return projectFile;
         } catch (Exception e) {
             log.error("Failed to create file from template: {}", templateFile, e);
             throw new RuntimeException("Failed to upload template file to S3: " + templateFile, e);

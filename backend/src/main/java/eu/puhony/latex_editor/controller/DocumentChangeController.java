@@ -38,15 +38,17 @@ public class DocumentChangeController {
                 request.getSessionId(),
                 request.getChanges(),
                 request.getBaseChangeId(),
+                request.getBranchId(),
                 user
         );
 
-        // Broadcast changes to all subscribers except the sender
+        // Broadcast changes to all subscribers
         ChangesBatchResponse response = new ChangesBatchResponse();
         response.setFileId(fileId);
         response.setSessionId(request.getSessionId());
         response.setUserId(user.getId());
         response.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+        response.setBranchId(request.getBranchId());
         response.setChanges(savedChanges.stream()
                 .map(change -> {
                     ChangeResponse changeResp = new ChangeResponse();
@@ -104,31 +106,17 @@ public class DocumentChangeController {
     public static class ChangesBatchRequest {
         private String sessionId;
         private Long baseChangeId;
+        private String branchId;
         private List<DocumentChangeService.ChangeData> changes;
 
-        public String getSessionId() {
-            return sessionId;
-        }
-
-        public void setSessionId(String sessionId) {
-            this.sessionId = sessionId;
-        }
-
-        public Long getBaseChangeId() {
-            return baseChangeId;
-        }
-
-        public void setBaseChangeId(Long baseChangeId) {
-            this.baseChangeId = baseChangeId;
-        }
-
-        public List<DocumentChangeService.ChangeData> getChanges() {
-            return changes;
-        }
-
-        public void setChanges(List<DocumentChangeService.ChangeData> changes) {
-            this.changes = changes;
-        }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Long getBaseChangeId() { return baseChangeId; }
+        public void setBaseChangeId(Long baseChangeId) { this.baseChangeId = baseChangeId; }
+        public String getBranchId() { return branchId; }
+        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public List<DocumentChangeService.ChangeData> getChanges() { return changes; }
+        public void setChanges(List<DocumentChangeService.ChangeData> changes) { this.changes = changes; }
     }
 
     public static class ChangesBatchResponse {
@@ -136,65 +124,27 @@ public class DocumentChangeController {
         private String sessionId;
         private Long userId;
         private String userName;
+        private String branchId;
         private List<ChangeResponse> changes;
         private Integer chunkIndex;
         private Integer totalChunks;
 
-        public String getFileId() {
-            return fileId;
-        }
-
-        public void setFileId(String fileId) {
-            this.fileId = fileId;
-        }
-
-        public String getSessionId() {
-            return sessionId;
-        }
-
-        public void setSessionId(String sessionId) {
-            this.sessionId = sessionId;
-        }
-
-        public Long getUserId() {
-            return userId;
-        }
-
-        public void setUserId(Long userId) {
-            this.userId = userId;
-        }
-
-        public String getUserName() {
-            return userName;
-        }
-
-        public void setUserName(String userName) {
-            this.userName = userName;
-        }
-
-        public List<ChangeResponse> getChanges() {
-            return changes;
-        }
-
-        public void setChanges(List<ChangeResponse> changes) {
-            this.changes = changes;
-        }
-
-        public Integer getChunkIndex() {
-            return chunkIndex;
-        }
-
-        public void setChunkIndex(Integer chunkIndex) {
-            this.chunkIndex = chunkIndex;
-        }
-
-        public Integer getTotalChunks() {
-            return totalChunks;
-        }
-
-        public void setTotalChunks(Integer totalChunks) {
-            this.totalChunks = totalChunks;
-        }
+        public String getFileId() { return fileId; }
+        public void setFileId(String fileId) { this.fileId = fileId; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+        public String getBranchId() { return branchId; }
+        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public List<ChangeResponse> getChanges() { return changes; }
+        public void setChanges(List<ChangeResponse> changes) { this.changes = changes; }
+        public Integer getChunkIndex() { return chunkIndex; }
+        public void setChunkIndex(Integer chunkIndex) { this.chunkIndex = chunkIndex; }
+        public Integer getTotalChunks() { return totalChunks; }
+        public void setTotalChunks(Integer totalChunks) { this.totalChunks = totalChunks; }
     }
 
     public static class ChangeResponse {

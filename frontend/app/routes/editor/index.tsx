@@ -18,6 +18,7 @@ import EditorToolbar from "~/components/EditorToolbar";
 import {FileTextIcon, PlayIcon, DownloadIcon} from "@radix-ui/react-icons";
 import {Upload} from "lucide-react";
 import EditorModeToggle, {type EditorMode} from "~/components/EditorModeToggle";
+import FileBranchSelector from "~/components/FileBranchSelector";
 import WysiwygEditor from "~/components/WysiwygEditor";
 
 export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
@@ -254,9 +255,20 @@ const EditorPage = () => {
         editorRef.current?.replaceContent?.(latex);
     }, []);
 
+    const handleBranchChanged = useCallback(() => {
+        // Reload file content when branch changes
+        editorRef.current?.handleReloadFile();
+    }, []);
+
     // Header actions rendered via portal
     const headerActions = headerActionsContainer && createPortal(
         <>
+            {selectedFile && isTextFile && (
+                <FileBranchSelector
+                    selectedFile={selectedFile}
+                    onBranchChanged={handleBranchChanged}
+                />
+            )}
             {selectedFile && isTexFileSelected && (
                 <EditorModeToggle mode={editorMode} onModeChange={handleEditorModeChange} />
             )}

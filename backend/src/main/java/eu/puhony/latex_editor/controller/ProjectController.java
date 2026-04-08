@@ -163,7 +163,9 @@ public class ProjectController {
                             file.getS3Url(),
                             file.getUploadedBy().getId(),
                             file.getCreatedAt(),
-                            lastChangeId
+                            lastChangeId,
+                            file.getActiveBranch() != null ? file.getActiveBranch().getId() : null,
+                            file.getActiveBranch() != null ? file.getActiveBranch().getName() : null
                     );
                 })
                 .collect(Collectors.toList());

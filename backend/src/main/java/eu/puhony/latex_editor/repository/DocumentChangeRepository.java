@@ -24,4 +24,17 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.sessionId = :sessionId ORDER BY dc.createdAt ASC")
     List<DocumentChange> findBySessionIdOrderByCreatedAt(@Param("sessionId") String sessionId);
 
+    // Branch-aware queries
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId ORDER BY dc.id ASC")
+    List<DocumentChange> findByFileIdAndBranchIdOrderById(@Param("fileId") String fileId, @Param("branchId") String branchId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId ORDER BY dc.id DESC LIMIT 1")
+    Optional<DocumentChange> findLatestByFileIdAndBranchId(@Param("fileId") String fileId, @Param("branchId") String branchId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId AND dc.id > :afterChangeId ORDER BY dc.id ASC")
+    List<DocumentChange> findByFileIdAndBranchIdAfterChange(@Param("fileId") String fileId, @Param("branchId") String branchId, @Param("afterChangeId") Long afterChangeId);
+
+    @Query("DELETE FROM DocumentChange dc WHERE dc.branch.id = :branchId")
+    @org.springframework.data.jpa.repository.Modifying
+    void deleteByBranchId(@Param("branchId") String branchId);
 }

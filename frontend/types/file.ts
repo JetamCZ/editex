@@ -10,4 +10,24 @@ export interface ProjectFile {
     uploadedBy: number;
     createdAt: string;
     lastChangeId?: string | null;
+    activeBranchId?: string | null;
+    activeBranchName?: string | null;
+}
+
+export interface FileBranch {
+    id: string;
+    fileId: string;
+    name: string;
+    sourceBranchName?: string | null;
+    createdBy: number;
+    createdAt: string;
+}
+
+export interface FileCommit {
+    id: number;
+    branchId: string;
+    message?: string | null;
+    committedBy: number;
+    committedByName: string;
+    createdAt: string;
 }

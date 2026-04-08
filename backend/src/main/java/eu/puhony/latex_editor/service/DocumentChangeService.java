@@ -1,9 +1,11 @@
 package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.entity.DocumentChange;
+import eu.puhony.latex_editor.entity.FileBranch;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.DocumentChangeRepository;
+import eu.puhony.latex_editor.repository.FileBranchRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,19 +20,32 @@ public class DocumentChangeService {
     private final DocumentChangeRepository changeRepository;
     private final ProjectFileRepository fileRepository;
     private final ProjectMemberService projectMemberService;
+    private final FileBranchRepository branchRepository;
 
     @Transactional
     public DocumentChange saveChange(String fileId, String sessionId, String operation,
                                      Integer lineNumber, String content, Long baseChangeId,
                                      User user) {
+        return saveChange(fileId, sessionId, operation, lineNumber, content, baseChangeId, null, user);
+    }
+
+    @Transactional
+    public DocumentChange saveChange(String fileId, String sessionId, String operation,
+                                     Integer lineNumber, String content, Long baseChangeId,
+                                     String branchId, User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
         projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
 
+        // Resolve branch
+        FileBranch branch = resolveBranch(file, branchId);
+
         // Get intermediate changes that happened after baseChangeId (if any)
         List<DocumentChange> intermediateChanges = Collections.emptyList();
-        if (baseChangeId != null) {
+        if (baseChangeId != null && branch != null) {
+            intermediateChanges = changeRepository.findByFileIdAndBranchIdAfterChange(fileId, branch.getId(), baseChangeId);
+        } else if (baseChangeId != null) {
             intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
         }
 
@@ -45,6 +60,7 @@ public class DocumentChangeService {
         change.setLineNumber(transformedLine);
         change.setContent(content);
         change.setBaseChangeId(baseChangeId);
+        change.setBranch(branch);
 
         return changeRepository.save(change);
     }
@@ -53,26 +69,32 @@ public class DocumentChangeService {
     public List<DocumentChange> saveChanges(String fileId, String sessionId,
                                            List<ChangeData> changes, Long baseChangeId,
                                            User user) {
+        return saveChanges(fileId, sessionId, changes, baseChangeId, null, user);
+    }
+
+    @Transactional
+    public List<DocumentChange> saveChanges(String fileId, String sessionId,
+                                           List<ChangeData> changes, Long baseChangeId,
+                                           String branchId, User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
         projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
 
+        // Resolve branch
+        FileBranch branch = resolveBranch(file, branchId);
+
         // Get intermediate changes that happened after baseChangeId (if any)
-        // These are changes from OTHER sessions that we need to transform against
         List<DocumentChange> intermediateChanges = Collections.emptyList();
-        if (baseChangeId != null) {
+        if (baseChangeId != null && branch != null) {
+            intermediateChanges = changeRepository.findByFileIdAndBranchIdAfterChange(fileId, branch.getId(), baseChangeId);
+        } else if (baseChangeId != null) {
             intermediateChanges = changeRepository.findByFileIdAfterChange(fileId, baseChangeId);
         }
 
-        // Transform and save each incoming change
-        // Note: We only transform based on intermediate changes from other sessions.
-        // Changes within the same request batch are already relative to each other
-        // (the client calculated them as a coherent set).
         List<DocumentChange> savedChanges = new ArrayList<>();
 
         for (ChangeData changeData : changes) {
-            // Transform line number based on intermediate changes from other sessions only
             int transformedLine = transformLineNumber(
                     changeData.getLine(),
                     intermediateChanges
@@ -86,6 +108,7 @@ public class DocumentChangeService {
             change.setLineNumber(transformedLine);
             change.setContent(changeData.getContent());
             change.setBaseChangeId(baseChangeId);
+            change.setBranch(branch);
 
             DocumentChange saved = changeRepository.save(change);
             savedChanges.add(saved);
@@ -132,6 +155,31 @@ public class DocumentChangeService {
                 break;
         }
         return line;
+    }
+
+    /**
+     * Resolve branch: if branchId provided use it, otherwise fall back to file's active branch.
+     */
+    private FileBranch resolveBranch(ProjectFile file, String branchId) {
+        if (branchId != null) {
+            return branchRepository.findByIdNonDeleted(branchId)
+                    .orElseThrow(() -> new RuntimeException("Branch not found: " + branchId));
+        }
+        return file.getActiveBranch(); // May be null for legacy files
+    }
+
+    public List<DocumentChange> getFileChanges(String fileId, String branchId, Long userId) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
+        return changeRepository.findByFileIdAndBranchIdOrderById(fileId, branchId);
+    }
+
+    public Optional<DocumentChange> getLatestChange(String fileId, String branchId, Long userId) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
+        return changeRepository.findLatestByFileIdAndBranchId(fileId, branchId);
     }
 
     public List<DocumentChange> getFileChanges(String fileId, Long userId) {

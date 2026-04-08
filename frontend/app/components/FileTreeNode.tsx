@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Folder, FolderOpen, FileText, MoreVertical, Trash2, Download, FolderInput } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, FileText, MoreVertical, Trash2, Download, FolderInput, GitBranch } from "lucide-react";
 import { DropdownMenu, AlertDialog, Button, Flex, Text } from "@radix-ui/themes";
 import styles from "./FileTreeNode.module.css";
 
@@ -11,6 +11,7 @@ export type FileNode = {
   s3Url?: string;
   folder?: string;
   children?: FileNode[];
+  activeBranchName?: string | null;
 };
 
 export function FileTreeNode({
@@ -95,6 +96,23 @@ export function FileTreeNode({
         <div className={styles.treeItemContent}>
           {renderIcon()}
           <span className={styles.treeItemLabel}>{node.name}</span>
+          {!isFolder && node.activeBranchName && node.activeBranchName !== 'main' && (
+            <span style={{
+              fontSize: '9px',
+              backgroundColor: 'var(--blue-3)',
+              color: 'var(--blue-11)',
+              borderRadius: '6px',
+              padding: '0 4px',
+              marginLeft: '4px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '2px',
+              flexShrink: 0,
+            }}>
+              <GitBranch size={8} />
+              {node.activeBranchName}
+            </span>
+          )}
         </div>
         {!isFolder && node.fileId && (
           <div className={styles.treeItemMenuWrapper} onClick={(e) => e.stopPropagation()}>

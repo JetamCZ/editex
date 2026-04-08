@@ -1,8 +1,10 @@
 package eu.puhony.latex_editor.service;
 
+import eu.puhony.latex_editor.entity.FileBranch;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.FileBranchRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class FileService {
     private final ProjectFileRepository fileRepository;
     private final MinioService minioService;
     private final ProjectMemberService projectMemberService;
+    private final FileBranchRepository branchRepository;
 
     private static final String SOURCES_ROOT = "/sources";
 
@@ -45,7 +48,19 @@ public class FileService {
         projectFile.setS3Url(s3Url);
         projectFile.setUploadedBy(uploadedBy);
 
-        return fileRepository.save(projectFile);
+        projectFile = fileRepository.save(projectFile);
+
+        // Auto-create "main" branch for the new file
+        FileBranch mainBranch = new FileBranch();
+        mainBranch.setFile(projectFile);
+        mainBranch.setName("main");
+        mainBranch.setCreatedBy(uploadedBy);
+        mainBranch = branchRepository.save(mainBranch);
+
+        projectFile.setActiveBranch(mainBranch);
+        projectFile = fileRepository.save(projectFile);
+
+        return projectFile;
     }
 
     public List<ProjectFile> getProjectFiles(Long projectId, String baseProject, Long userId) {
@@ -176,6 +191,18 @@ public class FileService {
         projectFile.setS3Url(s3Url);
         projectFile.setUploadedBy(user);
 
-        return fileRepository.save(projectFile);
+        projectFile = fileRepository.save(projectFile);
+
+        // Auto-create "main" branch
+        FileBranch mainBranch = new FileBranch();
+        mainBranch.setFile(projectFile);
+        mainBranch.setName("main");
+        mainBranch.setCreatedBy(user);
+        mainBranch = branchRepository.save(mainBranch);
+
+        projectFile.setActiveBranch(mainBranch);
+        projectFile = fileRepository.save(projectFile);
+
+        return projectFile;
     }
 }

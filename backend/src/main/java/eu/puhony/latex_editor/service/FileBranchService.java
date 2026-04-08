@@ -1,0 +1,306 @@
+package eu.puhony.latex_editor.service;
+
+import eu.puhony.latex_editor.entity.*;
+import eu.puhony.latex_editor.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class FileBranchService {
+
+    private final FileBranchRepository branchRepository;
+    private final FileCommitRepository commitRepository;
+    private final DocumentChangeRepository changeRepository;
+    private final ProjectFileRepository fileRepository;
+    private final ProjectMemberService projectMemberService;
+    private final MinioService minioService;
+    private final DocumentChangeService documentChangeService;
+
+    /**
+     * Resolve the current content of a branch.
+     * Content = latest commit content + pending document_changes applied on top.
+     * If no commits exist (legacy), falls back to S3 base + all changes for this branch.
+     */
+    public String getContent(String branchId, Long userId) {
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        ProjectFile file = branch.getFile();
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
+
+        return resolveContent(branch);
+    }
+
+    /**
+     * Internal content resolution without permission check.
+     */
+    public String resolveContent(FileBranch branch) {
+        String fileId = branch.getFile().getId();
+        String branchId = branch.getId();
+
+        Optional<FileCommit> latestCommit = commitRepository.findLatestByBranchId(branchId);
+
+        if (latestCommit.isPresent()) {
+            // Has commits: latest commit content + changes after that commit
+            String baseContent = latestCommit.get().getContent();
+            List<DocumentChange> changes = changeRepository.findByFileIdAndBranchIdOrderById(fileId, branchId);
+
+            // Filter only changes created after the commit
+            Long commitId = latestCommit.get().getId();
+            List<DocumentChange> pendingChanges = changes.stream()
+                    .filter(c -> c.getId() > getLastChangeIdAtCommit(commitId, branchId))
+                    .toList();
+
+            if (pendingChanges.isEmpty()) {
+                return baseContent;
+            }
+            return documentChangeService.applyChangesToContent(baseContent, pendingChanges);
+        } else {
+            // No commits yet (legacy or newly created): S3 base + all branch changes
+            try {
+                String originalContent = minioService.getFileContent(branch.getFile().getS3Url());
+                List<DocumentChange> changes = changeRepository.findByFileIdAndBranchIdOrderById(fileId, branchId);
+
+                if (changes.isEmpty()) {
+                    return originalContent;
+                }
+                return documentChangeService.applyChangesToContent(originalContent, changes);
+            } catch (Exception e) {
+                throw new RuntimeException("Error resolving content for branch " + branchId, e);
+            }
+        }
+    }
+
+    /**
+     * Get the last document_change id that was baked into the latest commit.
+     * We use the commit's created_at vs change's created_at to determine this.
+     * Simpler approach: all changes on the branch at the time of commit are baked in,
+     * so we just use all current changes (they are all post-commit since commit clears them).
+     */
+    private Long getLastChangeIdAtCommit(Long commitId, String branchId) {
+        // Since commit() deletes all changes, any remaining changes are post-commit
+        return 0L;
+    }
+
+    /**
+     * List all branches for a file.
+     */
+    public List<FileBranch> listBranches(String fileId, Long userId) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
+
+        return branchRepository.findByFileIdNonDeleted(fileId);
+    }
+
+    /**
+     * Create a new branch from the current state of a source branch.
+     */
+    @Transactional
+    public FileBranch createBranch(String fileId, String branchName, String sourceBranchName, User user) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
+
+        // Check branch name doesn't already exist
+        if (branchRepository.findByFileIdAndNameNonDeleted(fileId, branchName).isPresent()) {
+            throw new RuntimeException("Branch '" + branchName + "' already exists for this file");
+        }
+
+        // Find source branch (default to "main")
+        String sourceRef = sourceBranchName != null ? sourceBranchName : "main";
+        FileBranch sourceBranch = branchRepository.findByFileIdAndNameNonDeleted(fileId, sourceRef)
+                .orElseThrow(() -> new RuntimeException("Source branch '" + sourceRef + "' not found"));
+
+        // Resolve current content of source branch
+        String sourceContent = resolveContent(sourceBranch);
+
+        // Create new branch
+        FileBranch newBranch = new FileBranch();
+        newBranch.setFile(file);
+        newBranch.setName(branchName);
+        newBranch.setSourceBranch(sourceBranch);
+        newBranch.setCreatedBy(user);
+        newBranch = branchRepository.save(newBranch);
+
+        // Create initial commit on new branch with source content
+        FileCommit initialCommit = new FileCommit();
+        initialCommit.setBranch(newBranch);
+        initialCommit.setContent(sourceContent);
+        initialCommit.setMessage("Branch created from '" + sourceRef + "'");
+        initialCommit.setCommittedBy(user);
+        commitRepository.save(initialCommit);
+
+        return newBranch;
+    }
+
+    /**
+     * Commit current state of a branch (snapshot).
+     * Resolves content, saves as commit, deletes pending changes.
+     */
+    @Transactional
+    public FileCommit commit(String branchId, String message, User user) {
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        ProjectFile file = branch.getFile();
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
+
+        // Resolve current content
+        String currentContent = resolveContent(branch);
+
+        // Create commit
+        FileCommit commit = new FileCommit();
+        commit.setBranch(branch);
+        commit.setContent(currentContent);
+        commit.setMessage(message);
+        commit.setCommittedBy(user);
+        commit = commitRepository.save(commit);
+
+        // Delete all pending changes for this branch (they are now baked into the commit)
+        changeRepository.deleteByBranchId(branchId);
+
+        return commit;
+    }
+
+    /**
+     * Get commit history for a branch.
+     */
+    public List<FileCommit> getCommitHistory(String branchId, Long userId) {
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        projectMemberService.ensureCanRead(branch.getFile().getProject().getBaseProject(), userId);
+
+        return commitRepository.findByBranchIdOrderByIdDesc(branchId);
+    }
+
+    /**
+     * Set the active branch for a file.
+     */
+    @Transactional
+    public ProjectFile setActiveBranch(String fileId, String branchId, Long userId) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        if (!branch.getFile().getId().equals(fileId)) {
+            throw new RuntimeException("Branch does not belong to this file");
+        }
+
+        file.setActiveBranch(branch);
+        return fileRepository.save(file);
+    }
+
+    /**
+     * Merge source branch content into target branch.
+     * Simple overwrite: resolves source content, creates commit on target, clears target changes.
+     */
+    @Transactional
+    public FileCommit merge(String sourceBranchId, String targetBranchId, User user) {
+        FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
+                .orElseThrow(() -> new RuntimeException("Source branch not found"));
+        FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
+                .orElseThrow(() -> new RuntimeException("Target branch not found"));
+
+        // Both branches must belong to the same file
+        if (!sourceBranch.getFile().getId().equals(targetBranch.getFile().getId())) {
+            throw new RuntimeException("Branches must belong to the same file");
+        }
+
+        projectMemberService.ensureCanEdit(
+                sourceBranch.getFile().getProject().getBaseProject(), user.getId());
+
+        // Resolve source content
+        String sourceContent = resolveContent(sourceBranch);
+
+        // Create merge commit on target
+        FileCommit mergeCommit = new FileCommit();
+        mergeCommit.setBranch(targetBranch);
+        mergeCommit.setContent(sourceContent);
+        mergeCommit.setMessage("Merge from '" + sourceBranch.getName() + "' into '" + targetBranch.getName() + "'");
+        mergeCommit.setCommittedBy(user);
+        mergeCommit = commitRepository.save(mergeCommit);
+
+        // Clear target branch changes
+        changeRepository.deleteByBranchId(targetBranchId);
+
+        return mergeCommit;
+    }
+
+    /**
+     * Get diff between two branches (source and target content).
+     */
+    public String[] getDiff(String sourceBranchId, String targetBranchId, Long userId) {
+        FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
+                .orElseThrow(() -> new RuntimeException("Source branch not found"));
+        FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
+                .orElseThrow(() -> new RuntimeException("Target branch not found"));
+
+        projectMemberService.ensureCanRead(
+                sourceBranch.getFile().getProject().getBaseProject(), userId);
+
+        String sourceContent = resolveContent(sourceBranch);
+        String targetContent = resolveContent(targetBranch);
+
+        return new String[]{sourceContent, targetContent};
+    }
+
+    /**
+     * Soft-delete a branch. Cannot delete active branch or "main".
+     */
+    @Transactional
+    public void deleteBranch(String branchId, Long userId) {
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        ProjectFile file = branch.getFile();
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+
+        if ("main".equals(branch.getName())) {
+            throw new RuntimeException("Cannot delete the main branch");
+        }
+
+        if (file.getActiveBranch() != null && file.getActiveBranch().getId().equals(branchId)) {
+            throw new RuntimeException("Cannot delete the active branch. Switch to another branch first.");
+        }
+
+        // Clear changes for this branch
+        changeRepository.deleteByBranchId(branchId);
+
+        // Soft delete
+        branch.setDeletedAt(java.time.LocalDateTime.now());
+        branchRepository.save(branch);
+    }
+
+    /**
+     * Ensure a file has a main branch (used when creating/uploading files).
+     */
+    @Transactional
+    public FileBranch ensureMainBranch(ProjectFile file, User user) {
+        return branchRepository.findByFileIdAndNameNonDeleted(file.getId(), "main")
+                .orElseGet(() -> {
+                    FileBranch mainBranch = new FileBranch();
+                    mainBranch.setFile(file);
+                    mainBranch.setName("main");
+                    mainBranch.setCreatedBy(user);
+                    mainBranch = branchRepository.save(mainBranch);
+
+                    file.setActiveBranch(mainBranch);
+                    fileRepository.save(file);
+
+                    return mainBranch;
+                });
+    }
+}

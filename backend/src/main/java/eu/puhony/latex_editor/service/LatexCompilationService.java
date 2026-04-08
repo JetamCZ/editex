@@ -30,6 +30,7 @@ public class LatexCompilationService {
     private final ProjectFileRepository projectFileRepository;
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
+    private final FileBranchService fileBranchService;
 
     @Value("${latex.temp.directory:/tmp/latex-compilations}")
     private String tempDirectory;
@@ -225,20 +226,22 @@ public class LatexCompilationService {
             String sanitizedFileName = sanitizeFilename(file.getOriginalFileName());
             File destFile = resolveDestinationFile(workDir, file.getProjectFolder(), sanitizedFileName);
 
-            // For .tex files, get content with changes applied
+            // For .tex files, get content with changes applied (branch-aware)
             if (sanitizedFileName.endsWith(".tex")) {
                 System.out.println("  -> .tex file detected, fetching content with changes...");
 
-                // Get original content from S3
-                String originalContent = minioService.getFileContent(file.getS3Url());
-                System.out.println("  -> Original content length: " + originalContent.length() + " chars");
+                String currentContent;
+                if (file.getActiveBranch() != null) {
+                    // Use branch-aware content resolution
+                    currentContent = fileBranchService.resolveContent(file.getActiveBranch());
+                    System.out.println("  -> Resolved from branch: " + file.getActiveBranch().getName());
+                } else {
+                    // Legacy fallback: S3 + all changes
+                    String originalContent = minioService.getFileContent(file.getS3Url());
+                    List<DocumentChange> changes = documentChangeService.getFileChanges(file.getId(), userId);
+                    currentContent = documentChangeService.applyChangesToContent(originalContent, changes);
+                }
 
-                // Get all changes for this file
-                List<DocumentChange> changes = documentChangeService.getFileChanges(file.getId(), userId);
-                System.out.println("  -> Found " + changes.size() + " document changes");
-
-                // Apply changes to get current content
-                String currentContent = documentChangeService.applyChangesToContent(originalContent, changes);
                 System.out.println("  -> Current content length: " + currentContent.length() + " chars");
 
                 // Write current content to file
