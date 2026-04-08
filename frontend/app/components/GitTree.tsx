@@ -1,278 +1,403 @@
-import { useMemo } from 'react';
-import { Text, Flex, Badge, Tooltip } from '@radix-ui/themes';
-import { GitBranch, GitCommit, Circle } from 'lucide-react';
-import { useFileBranches, useBranchCommits } from '~/hooks/useFileBranches';
-import type { FileBranch, FileCommit } from '../../types/file';
+import { useMemo, useState, useEffect, type ReactElement } from "react";
+import { Text, Badge } from "@radix-ui/themes";
+import { GitBranch, GitMerge, Tag } from "lucide-react";
+import { useFileBranches } from "~/hooks/useFileBranches";
+import type { FileBranch, FileCommit } from "../../types/file";
+import axios from "axios";
+import useAuth from "~/hooks/useAuth";
 
-interface Props {
+// Internal node for rendering
+interface TreeNode {
+    id: string;
+    shortId: string;
+    message: string;
+    author: string;
+    timestamp: Date;
+    branch: string;
+    branchId: string;
+    type: "commit" | "merge" | "branch-start";
+}
+
+interface BranchInfo {
+    name: string;
+    color: string;
+    lane: number;
+}
+
+// Branch colors
+const BRANCH_COLORS: Record<string, string> = {
+    main: "#22c55e",
+    develop: "#8b5cf6",
+    hotfix: "#ef4444",
+};
+
+const getBranchColor = (branchName: string): string => {
+    if (BRANCH_COLORS[branchName]) return BRANCH_COLORS[branchName];
+    let hash = 0;
+    for (let i = 0; i < branchName.length; i++) {
+        hash = branchName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 70%, 50%)`;
+};
+
+interface GitTreeProps {
     fileId: string;
     activeBranchId?: string | null;
 }
 
-// Colors for different branches
-const BRANCH_COLORS = [
-    { line: 'var(--blue-9)', dot: 'var(--blue-9)', bg: 'var(--blue-2)', text: 'var(--blue-11)' },
-    { line: 'var(--green-9)', dot: 'var(--green-9)', bg: 'var(--green-2)', text: 'var(--green-11)' },
-    { line: 'var(--orange-9)', dot: 'var(--orange-9)', bg: 'var(--orange-2)', text: 'var(--orange-11)' },
-    { line: 'var(--purple-9)', dot: 'var(--purple-9)', bg: 'var(--purple-2)', text: 'var(--purple-11)' },
-    { line: 'var(--red-9)', dot: 'var(--red-9)', bg: 'var(--red-2)', text: 'var(--red-11)' },
-    { line: 'var(--cyan-9)', dot: 'var(--cyan-9)', bg: 'var(--cyan-2)', text: 'var(--cyan-11)' },
-];
-
-const GitTree = ({ fileId, activeBranchId }: Props) => {
+const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
     const { data: branches = [], isLoading: branchesLoading } = useFileBranches(fileId);
+    const { bearerToken } = useAuth();
+    const [allCommits, setAllCommits] = useState<Map<string, FileCommit[]>>(new Map());
+    const [commitsLoading, setCommitsLoading] = useState(false);
 
-    if (branchesLoading) {
-        return <Text size="2" color="gray" style={{ padding: '16px 0' }}>Loading...</Text>;
+    // Fetch commits for all branches
+    useEffect(() => {
+        if (branches.length === 0 || !bearerToken) return;
+
+        setCommitsLoading(true);
+        const baseURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+
+        Promise.all(
+            branches.map(branch =>
+                axios.get<FileCommit[]>(`/api/branches/${branch.id}/commits`, {
+                    headers: { Authorization: `Bearer ${bearerToken}` },
+                    baseURL,
+                }).then(res => ({ branchId: branch.id, commits: res.data }))
+            )
+        ).then(results => {
+            const map = new Map<string, FileCommit[]>();
+            results.forEach(r => map.set(r.branchId, r.commits));
+            setAllCommits(map);
+        }).finally(() => setCommitsLoading(false));
+    }, [branches, bearerToken]);
+
+    // Build tree nodes
+    const treeNodes = useMemo(() => {
+        const nodes: TreeNode[] = [];
+        branches.forEach(branch => {
+            const commits = allCommits.get(branch.id) || [];
+            commits.forEach(commit => {
+                const isMerge = commit.message?.startsWith("Merge from") ?? false;
+                const isBranchStart = commit.message?.startsWith("Branch created") ?? false;
+                nodes.push({
+                    id: `commit-${commit.id}`,
+                    shortId: String(commit.id),
+                    message: commit.message || "No message",
+                    author: commit.committedByName || "Unknown",
+                    timestamp: new Date(commit.createdAt),
+                    branch: branch.name,
+                    branchId: branch.id,
+                    type: isMerge ? "merge" : isBranchStart ? "branch-start" : "commit",
+                });
+            });
+        });
+        return nodes;
+    }, [branches, allCommits]);
+
+    // Sort by timestamp descending (newest first)
+    const sortedNodes = useMemo(() => {
+        return [...treeNodes].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    }, [treeNodes]);
+
+    // Calculate branch lanes
+    const { branchInfoMap, laneCount } = useMemo(() => {
+        const branchMap = new Map<string, BranchInfo>();
+        const activeLanes: Set<number> = new Set();
+        let maxLane = 0;
+
+        // Main branch always lane 0
+        const mainBranch = branches.find(b => b.name === "main");
+        if (mainBranch) {
+            branchMap.set(mainBranch.name, {
+                name: mainBranch.name,
+                color: getBranchColor(mainBranch.name),
+                lane: 0,
+            });
+            activeLanes.add(0);
+        }
+
+        // Assign lanes to other branches
+        branches.forEach(branch => {
+            if (branchMap.has(branch.name)) return;
+            let lane = 0;
+            while (activeLanes.has(lane)) lane++;
+            branchMap.set(branch.name, {
+                name: branch.name,
+                color: getBranchColor(branch.name),
+                lane,
+            });
+            activeLanes.add(lane);
+            maxLane = Math.max(maxLane, lane);
+        });
+
+        return { branchInfoMap: branchMap, laneCount: Math.max(maxLane + 1, 1) };
+    }, [branches]);
+
+    const isLoading = branchesLoading || commitsLoading;
+
+    if (isLoading) {
+        return (
+            <div style={{ padding: "20px", textAlign: "center" }}>
+                <Text color="gray">Loading...</Text>
+            </div>
+        );
     }
 
-    if (branches.length === 0) {
-        return <Text size="2" color="gray" style={{ padding: '16px 0' }}>No branches</Text>;
+    if (sortedNodes.length === 0) {
+        return (
+            <div style={{
+                padding: "40px",
+                textAlign: "center",
+                backgroundColor: "var(--gray-2)",
+                borderRadius: "8px",
+                border: "2px dashed var(--gray-6)",
+            }}>
+                <Tag size={48} color="var(--gray-8)" style={{ marginBottom: "16px" }} />
+                <Text size="3" weight="medium" style={{ display: "block", marginBottom: "8px" }}>
+                    No Commits Yet
+                </Text>
+                <Text size="2" color="gray">
+                    Create a commit to save a snapshot of your file.
+                </Text>
+            </div>
+        );
     }
 
-    // Sort: active branch first, then main, then rest
-    const sortedBranches = [...branches].sort((a, b) => {
-        if (a.id === activeBranchId) return -1;
-        if (b.id === activeBranchId) return 1;
-        if (a.name === 'main') return -1;
-        if (b.name === 'main') return 1;
-        return a.name.localeCompare(b.name);
-    });
+    // Layout constants
+    const LANE_WIDTH = 24;
+    const ROW_HEIGHT = 64;
+    const NODE_RADIUS = 8;
+    const GRAPH_WIDTH = (laneCount + 1) * LANE_WIDTH + 20;
+    const getLaneX = (lane: number) => 20 + lane * LANE_WIDTH;
+
+    const formatTimestamp = (date: Date) => {
+        return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    };
+
+    // Render SVG branch lines
+    const renderBranchLines = (): ReactElement[] => {
+        const lines: ReactElement[] = [];
+
+        sortedNodes.forEach((node, index) => {
+            const branchInfo = branchInfoMap.get(node.branch);
+            if (!branchInfo) return;
+
+            const x = getLaneX(branchInfo.lane);
+            const y = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+            // Vertical line to next commit on same branch
+            const nextOnBranch = sortedNodes.findIndex(
+                (c, i) => i > index && c.branch === node.branch
+            );
+            if (nextOnBranch !== -1) {
+                const nextY = nextOnBranch * ROW_HEIGHT + ROW_HEIGHT / 2;
+                lines.push(
+                    <line
+                        key={`line-${node.id}`}
+                        x1={x} y1={y + NODE_RADIUS}
+                        x2={x} y2={nextY - NODE_RADIUS}
+                        stroke={branchInfo.color}
+                        strokeWidth={2}
+                    />
+                );
+            }
+
+            // Branch creation: curve from source branch
+            if (node.type === "branch-start") {
+                const match = node.message.match(/from '(.+)'/);
+                const sourceBranchName = match?.[1];
+                if (sourceBranchName) {
+                    const parentBranch = branchInfoMap.get(sourceBranchName);
+                    if (parentBranch) {
+                        const parentX = getLaneX(parentBranch.lane);
+                        const parentCommit = sortedNodes.find(
+                            (c, i) => i > index && c.branch === sourceBranchName
+                        );
+                        if (parentCommit) {
+                            const parentIndex = sortedNodes.indexOf(parentCommit);
+                            const parentY = parentIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+                            lines.push(
+                                <path
+                                    key={`branch-${node.id}`}
+                                    d={`M ${parentX} ${parentY - NODE_RADIUS}
+                                        C ${parentX} ${(parentY + y) / 2},
+                                          ${x} ${(parentY + y) / 2},
+                                          ${x} ${y + NODE_RADIUS}`}
+                                    stroke={branchInfo.color}
+                                    strokeWidth={2}
+                                    fill="none"
+                                />
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Merge line
+            if (node.type === "merge") {
+                const match = node.message.match(/from '(.+)' into/);
+                const sourceBranchName = match?.[1];
+                if (sourceBranchName) {
+                    const mergedBranch = branchInfoMap.get(sourceBranchName);
+                    if (mergedBranch) {
+                        const mergedX = getLaneX(mergedBranch.lane);
+                        const lastMergedCommit = sortedNodes.find(
+                            (c, i) => i > index && c.branch === sourceBranchName
+                        );
+                        if (lastMergedCommit) {
+                            const lastMergedIndex = sortedNodes.indexOf(lastMergedCommit);
+                            const lastMergedY = lastMergedIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+                            lines.push(
+                                <path
+                                    key={`merge-${node.id}`}
+                                    d={`M ${mergedX} ${lastMergedY - NODE_RADIUS}
+                                        C ${mergedX} ${(lastMergedY + y) / 2},
+                                          ${x} ${(lastMergedY + y) / 2},
+                                          ${x} ${y + NODE_RADIUS}`}
+                                    stroke={mergedBranch.color}
+                                    strokeWidth={2}
+                                    fill="none"
+                                />
+                            );
+                        }
+                    }
+                }
+            }
+        });
+
+        return lines;
+    };
+
+    // Render SVG commit nodes
+    const renderCommitNodes = (): ReactElement[] => {
+        return sortedNodes.map((node, index) => {
+            const branchInfo = branchInfoMap.get(node.branch);
+            if (!branchInfo) return null!;
+
+            const x = getLaneX(branchInfo.lane);
+            const y = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+            if (node.type === "merge") {
+                return (
+                    <g key={node.id}>
+                        <circle cx={x} cy={y} r={NODE_RADIUS + 2}
+                            fill="var(--gray-1)" stroke={branchInfo.color} strokeWidth={3} />
+                        <GitMerge x={x - 5} y={y - 5} size={10} color={branchInfo.color} />
+                    </g>
+                );
+            }
+
+            if (node.type === "branch-start") {
+                return (
+                    <g key={node.id}>
+                        <circle cx={x} cy={y} r={NODE_RADIUS + 2}
+                            fill="var(--gray-1)" stroke={branchInfo.color} strokeWidth={3} />
+                        <GitBranch x={x - 5} y={y - 5} size={10} color={branchInfo.color} />
+                    </g>
+                );
+            }
+
+            return (
+                <g key={node.id}>
+                    <circle cx={x} cy={y} r={NODE_RADIUS + 1}
+                        fill="var(--gray-1)" stroke={branchInfo.color} strokeWidth={3} />
+                    <Tag x={x - 4} y={y - 4} size={8} color={branchInfo.color} />
+                </g>
+            );
+        });
+    };
 
     return (
-        <div style={{ marginTop: '12px' }}>
-            {sortedBranches.map((branch, index) => (
-                <BranchLane
-                    key={branch.id}
-                    branch={branch}
-                    colorIndex={index}
-                    isActive={branch.id === activeBranchId}
-                    allBranches={sortedBranches}
-                />
-            ))}
+        <div style={{ display: "flex", position: "relative", overflow: "auto", maxHeight: "500px" }}>
+            {/* SVG Graph */}
+            <svg
+                width={GRAPH_WIDTH}
+                height={sortedNodes.length * ROW_HEIGHT}
+                style={{ flexShrink: 0 }}
+            >
+                {renderBranchLines()}
+                {renderCommitNodes()}
+            </svg>
+
+            {/* Commit Details */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+                {sortedNodes.map((node) => {
+                    const branchInfo = branchInfoMap.get(node.branch);
+
+                    return (
+                        <div
+                            key={node.id}
+                            style={{
+                                height: ROW_HEIGHT,
+                                display: "flex",
+                                alignItems: "center",
+                                padding: "8px 16px 8px 8px",
+                            }}
+                        >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginBottom: "4px",
+                                }}>
+                                    <Text size="2" weight="medium" style={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                    }}>
+                                        {node.message}
+                                    </Text>
+                                    {node.type === "merge" && (
+                                        <Badge size="1" color="purple">merge</Badge>
+                                    )}
+                                    {node.type === "branch-start" && (
+                                        <Badge size="1" color="blue">branch</Badge>
+                                    )}
+                                    {node.type === "commit" && (
+                                        <Badge size="1" color="green">version</Badge>
+                                    )}
+                                </div>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                }}>
+                                    <Text size="1" style={{
+                                        fontFamily: "monospace",
+                                        color: branchInfo?.color,
+                                        fontWeight: 500,
+                                    }}>
+                                        #{node.shortId}
+                                    </Text>
+                                    {node.author && (
+                                        <Text size="1" color="gray">{node.author}</Text>
+                                    )}
+                                    <Text size="1" color="gray">
+                                        {formatTimestamp(node.timestamp)}
+                                    </Text>
+                                </div>
+                            </div>
+                            <Badge size="1" style={{
+                                backgroundColor: branchInfo?.color,
+                                color: "white",
+                                flexShrink: 0,
+                            }}>
+                                {node.branch}
+                            </Badge>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };
-
-function BranchLane({ branch, colorIndex, isActive, allBranches }: {
-    branch: FileBranch;
-    colorIndex: number;
-    isActive: boolean;
-    allBranches: FileBranch[];
-}) {
-    const { data: commits = [], isLoading } = useBranchCommits(branch.id);
-    const color = BRANCH_COLORS[colorIndex % BRANCH_COLORS.length];
-
-    // Find source branch for fork indicator
-    const sourceBranch = branch.sourceBranchName
-        ? allBranches.find(b => b.name === branch.sourceBranchName)
-        : null;
-    const sourceColor = sourceBranch
-        ? BRANCH_COLORS[allBranches.indexOf(sourceBranch) % BRANCH_COLORS.length]
-        : null;
-
-    return (
-        <div style={{ marginBottom: '4px' }}>
-            {/* Branch header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 0',
-            }}>
-                {/* Graph line element */}
-                <div style={{
-                    width: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    flexShrink: 0,
-                }}>
-                    {/* Vertical line continuing from above if not first */}
-                    <div style={{
-                        width: '2px',
-                        height: '100%',
-                        backgroundColor: color.line,
-                        position: 'absolute',
-                        top: commits.length > 0 ? 0 : '50%',
-                        bottom: 0,
-                    }} />
-                    {/* Branch dot */}
-                    <div style={{
-                        width: '14px',
-                        height: '14px',
-                        borderRadius: '50%',
-                        backgroundColor: color.dot,
-                        border: isActive ? '3px solid var(--gray-1)' : 'none',
-                        boxShadow: isActive ? `0 0 0 2px ${color.dot}` : 'none',
-                        zIndex: 1,
-                        flexShrink: 0,
-                    }} />
-                </div>
-
-                {/* Branch name + badges */}
-                <Flex align="center" gap="2" style={{ flex: 1, minWidth: 0 }}>
-                    <GitBranch size={14} strokeWidth={2} style={{ color: color.dot, flexShrink: 0 }} />
-                    <Text size="2" weight="bold" style={{ color: color.text }}>
-                        {branch.name}
-                    </Text>
-                    {isActive && (
-                        <Badge size="1" color="blue" variant="soft">active</Badge>
-                    )}
-                    {branch.sourceBranchName && (
-                        <Tooltip content={`Branched from ${branch.sourceBranchName}`}>
-                            <Text size="1" color="gray" style={{ cursor: 'default' }}>
-                                from {branch.sourceBranchName}
-                            </Text>
-                        </Tooltip>
-                    )}
-                    <Text size="1" color="gray" style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                        {commits.length} commit{commits.length !== 1 ? 's' : ''}
-                    </Text>
-                </Flex>
-            </div>
-
-            {/* Commits */}
-            {isLoading ? (
-                <div style={{ paddingLeft: '40px' }}>
-                    <Text size="1" color="gray">Loading commits...</Text>
-                </div>
-            ) : (
-                commits.map((commit, i) => (
-                    <CommitNode
-                        key={commit.id}
-                        commit={commit}
-                        color={color}
-                        isLast={i === commits.length - 1}
-                        isMerge={commit.message?.startsWith('Merge from') ?? false}
-                        isBranchStart={commit.message?.startsWith('Branch created') ?? false}
-                    />
-                ))
-            )}
-
-            {/* Empty state for branches with no commits */}
-            {!isLoading && commits.length === 0 && (
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    paddingLeft: '40px',
-                    paddingBottom: '8px',
-                }}>
-                    <Text size="1" color="gray" style={{ fontStyle: 'italic' }}>
-                        No commits yet - changes are tracked incrementally
-                    </Text>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function CommitNode({ commit, color, isLast, isMerge, isBranchStart }: {
-    commit: FileCommit;
-    color: typeof BRANCH_COLORS[0];
-    isLast: boolean;
-    isMerge: boolean;
-    isBranchStart: boolean;
-}) {
-    const timeAgo = useMemo(() => formatTimeAgo(commit.createdAt), [commit.createdAt]);
-
-    return (
-        <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '8px',
-            minHeight: '36px',
-        }}>
-            {/* Graph column */}
-            <div style={{
-                width: '40px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                flexShrink: 0,
-                position: 'relative',
-                alignSelf: 'stretch',
-            }}>
-                {/* Vertical line top half */}
-                <div style={{
-                    width: '2px',
-                    flex: 1,
-                    backgroundColor: color.line,
-                    opacity: 0.4,
-                }} />
-                {/* Commit dot */}
-                <div style={{
-                    width: isMerge ? '10px' : '8px',
-                    height: isMerge ? '10px' : '8px',
-                    borderRadius: isMerge ? '2px' : '50%',
-                    backgroundColor: isMerge ? color.dot : 'var(--gray-1)',
-                    border: `2px solid ${color.line}`,
-                    flexShrink: 0,
-                    transform: isMerge ? 'rotate(45deg)' : 'none',
-                }} />
-                {/* Vertical line bottom half */}
-                <div style={{
-                    width: '2px',
-                    flex: 1,
-                    backgroundColor: isLast ? 'transparent' : color.line,
-                    opacity: 0.4,
-                }} />
-            </div>
-
-            {/* Commit info */}
-            <div style={{
-                flex: 1,
-                padding: '4px 0',
-                minWidth: 0,
-            }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                }}>
-                    <Text size="2" weight="medium" style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        color: commit.message ? 'var(--gray-12)' : 'var(--gray-9)',
-                    }}>
-                        {commit.message || 'No message'}
-                    </Text>
-                </div>
-                <Flex gap="2" mt="1" align="center">
-                    <Text size="1" color="gray">{commit.committedByName}</Text>
-                    <Text size="1" style={{ color: 'var(--gray-7)' }}>
-                        {timeAgo}
-                    </Text>
-                    <Text size="1" style={{
-                        color: 'var(--gray-8)',
-                        fontFamily: 'monospace',
-                        fontSize: '11px',
-                    }}>
-                        #{commit.id}
-                    </Text>
-                </Flex>
-            </div>
-        </div>
-    );
-}
-
-function formatTimeAgo(dateStr: string): string {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 export default GitTree;
