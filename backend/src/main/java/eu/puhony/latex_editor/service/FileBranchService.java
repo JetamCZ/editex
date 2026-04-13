@@ -28,7 +28,7 @@ public class FileBranchService {
      */
     public String getContent(String branchId, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new RuntimeException("Variant not found"));
 
         ProjectFile file = branch.getFile();
         folderPermissionService.ensureCanRead(userId, file);
@@ -71,7 +71,7 @@ public class FileBranchService {
                 }
                 return documentChangeService.applyChangesToContent(originalContent, changes);
             } catch (Exception e) {
-                throw new RuntimeException("Error resolving content for branch " + branchId, e);
+                throw new RuntimeException("Error resolving content for variant " + branchId, e);
             }
         }
     }
@@ -122,15 +122,15 @@ public class FileBranchService {
 
         folderPermissionService.ensureCanEdit(user.getId(), file);
 
-        // Check branch name doesn't already exist
+        // Check variant name doesn't already exist
         if (branchRepository.findByFileIdAndNameNonDeleted(fileId, branchName).isPresent()) {
-            throw new RuntimeException("Branch '" + branchName + "' already exists for this file");
+            throw new RuntimeException("Variant '" + branchName + "' already exists for this file");
         }
 
-        // Find source branch (default to "main")
+        // Find source variant (default to "main")
         String sourceRef = sourceBranchName != null ? sourceBranchName : "main";
         FileBranch sourceBranch = branchRepository.findByFileIdAndNameNonDeleted(fileId, sourceRef)
-                .orElseThrow(() -> new RuntimeException("Source branch '" + sourceRef + "' not found"));
+                .orElseThrow(() -> new RuntimeException("Source variant '" + sourceRef + "' not found"));
 
         // Use the source's committed base (latest commit, or S3 origin if none)
         // so pending changes can be replayed on top of the new branch instead
@@ -149,7 +149,7 @@ public class FileBranchService {
         FileCommit initialCommit = new FileCommit();
         initialCommit.setBranch(newBranch);
         initialCommit.setContent(baseContent);
-        initialCommit.setMessage("Branch created from '" + sourceRef + "'");
+        initialCommit.setMessage("Created from '" + sourceRef + "'");
         initialCommit.setCommittedBy(user);
         commitRepository.save(initialCommit);
 
@@ -185,7 +185,7 @@ public class FileBranchService {
         try {
             return minioService.getFileContent(branch.getFile().getS3Url());
         } catch (Exception e) {
-            throw new RuntimeException("Error reading base content for branch " + branch.getId(), e);
+            throw new RuntimeException("Error reading base content for variant " + branch.getId(), e);
         }
     }
 
@@ -196,7 +196,7 @@ public class FileBranchService {
     @Transactional
     public FileCommit commit(String branchId, String message, User user) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new RuntimeException("Variant not found"));
 
         ProjectFile file = branch.getFile();
         folderPermissionService.ensureCanEdit(user.getId(), file);
@@ -223,7 +223,7 @@ public class FileBranchService {
      */
     public List<FileCommit> getCommitHistory(String branchId, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new RuntimeException("Variant not found"));
 
         folderPermissionService.ensureCanRead(userId, branch.getFile());
 
@@ -241,10 +241,10 @@ public class FileBranchService {
         folderPermissionService.ensureCanEdit(userId, file);
 
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new RuntimeException("Variant not found"));
 
         if (!branch.getFile().getId().equals(fileId)) {
-            throw new RuntimeException("Branch does not belong to this file");
+            throw new RuntimeException("Variant does not belong to this file");
         }
 
         file.setActiveBranch(branch);
@@ -258,13 +258,13 @@ public class FileBranchService {
     @Transactional
     public FileCommit merge(String sourceBranchId, String targetBranchId, User user) {
         FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
-                .orElseThrow(() -> new RuntimeException("Source branch not found"));
+                .orElseThrow(() -> new RuntimeException("Source variant not found"));
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
-                .orElseThrow(() -> new RuntimeException("Target branch not found"));
+                .orElseThrow(() -> new RuntimeException("Target variant not found"));
 
-        // Both branches must belong to the same file
+        // Both variants must belong to the same file
         if (!sourceBranch.getFile().getId().equals(targetBranch.getFile().getId())) {
-            throw new RuntimeException("Branches must belong to the same file");
+            throw new RuntimeException("Variants must belong to the same file");
         }
 
         folderPermissionService.ensureCanEdit(user.getId(), sourceBranch.getFile());
@@ -276,7 +276,7 @@ public class FileBranchService {
         FileCommit mergeCommit = new FileCommit();
         mergeCommit.setBranch(targetBranch);
         mergeCommit.setContent(sourceContent);
-        mergeCommit.setMessage("Merge from '" + sourceBranch.getName() + "' into '" + targetBranch.getName() + "'");
+        mergeCommit.setMessage("Combined from '" + sourceBranch.getName() + "' into '" + targetBranch.getName() + "'");
         mergeCommit.setCommittedBy(user);
         mergeCommit = commitRepository.save(mergeCommit);
 
@@ -291,9 +291,9 @@ public class FileBranchService {
      */
     public String[] getDiff(String sourceBranchId, String targetBranchId, Long userId) {
         FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
-                .orElseThrow(() -> new RuntimeException("Source branch not found"));
+                .orElseThrow(() -> new RuntimeException("Source variant not found"));
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
-                .orElseThrow(() -> new RuntimeException("Target branch not found"));
+                .orElseThrow(() -> new RuntimeException("Target variant not found"));
 
         folderPermissionService.ensureCanRead(userId, sourceBranch.getFile());
 
@@ -310,18 +310,18 @@ public class FileBranchService {
     @Transactional
     public FileBranch renameBranch(String branchId, String newName, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new RuntimeException("Variant not found"));
 
         ProjectFile file = branch.getFile();
         folderPermissionService.ensureCanEdit(userId, file);
 
         String trimmed = newName == null ? "" : newName.trim();
         if (trimmed.isEmpty()) {
-            throw new RuntimeException("Branch name cannot be empty");
+            throw new RuntimeException("Variant name cannot be empty");
         }
 
         if ("main".equals(branch.getName())) {
-            throw new RuntimeException("Cannot rename the main branch");
+            throw new RuntimeException("Cannot rename the main variant");
         }
 
         if (trimmed.equals(branch.getName())) {
@@ -329,7 +329,7 @@ public class FileBranchService {
         }
 
         if (branchRepository.findByFileIdAndNameNonDeleted(file.getId(), trimmed).isPresent()) {
-            throw new RuntimeException("Branch '" + trimmed + "' already exists for this file");
+            throw new RuntimeException("Variant '" + trimmed + "' already exists for this file");
         }
 
         branch.setName(trimmed);
@@ -342,17 +342,17 @@ public class FileBranchService {
     @Transactional
     public void deleteBranch(String branchId, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
-                .orElseThrow(() -> new RuntimeException("Branch not found"));
+                .orElseThrow(() -> new RuntimeException("Variant not found"));
 
         ProjectFile file = branch.getFile();
         folderPermissionService.ensureCanEdit(userId, file);
 
         if ("main".equals(branch.getName())) {
-            throw new RuntimeException("Cannot delete the main branch");
+            throw new RuntimeException("Cannot delete the main variant");
         }
 
         if (file.getActiveBranch() != null && file.getActiveBranch().getId().equals(branchId)) {
-            throw new RuntimeException("Cannot delete the active branch. Switch to another branch first.");
+            throw new RuntimeException("Cannot delete the current variant. Switch to another variant first.");
         }
 
         // Clear changes for this branch

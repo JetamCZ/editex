@@ -94,7 +94,7 @@ export default function Home() {
               </div>
               <Heading size="4">Version Control</Heading>
               <Text size="3" className="text-gray-11">
-                Track every change with built-in version control. Create branches, merge changes, and never lose your work.
+                Track every change with built-in version control. Save versions, work in parallel variants, and never lose your work.
               </Text>
             </Flex>
           </Box>

@@ -87,8 +87,9 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
         branches.forEach(branch => {
             const commits = allCommits.get(branch.id) || [];
             commits.forEach(commit => {
-                const isMerge = commit.message?.startsWith("Merge from") ?? false;
-                const isBranchStart = commit.message?.startsWith("Branch created") ?? false;
+                const msg = commit.message ?? "";
+                const isMerge = msg.startsWith("Combined from") || msg.startsWith("Merge from");
+                const isBranchStart = msg.startsWith("Created from") || msg.startsWith("Branch created");
                 nodes.push({
                     id: `commit-${commit.id}`,
                     shortId: commit.hash || String(commit.id),
@@ -105,7 +106,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                 nodes.push({
                     id: `uncommitted-${branch.id}`,
                     shortId: "WIP",
-                    message: "Uncommitted changes",
+                    message: "Unsaved changes",
                     author: "",
                     timestamp: now,
                     branch: branch.name,
@@ -177,10 +178,10 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
             }}>
                 <Tag size={48} color="var(--gray-8)" style={{ marginBottom: "16px" }} />
                 <Text size="3" weight="medium" style={{ display: "block", marginBottom: "8px" }}>
-                    No Commits Yet
+                    No Versions Yet
                 </Text>
                 <Text size="2" color="gray">
-                    Create a commit to save a snapshot of your file.
+                    Save a version to capture a snapshot of your file.
                 </Text>
             </div>
         );
@@ -395,16 +396,16 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                                         {node.message}
                                     </Text>
                                     {node.type === "merge" && (
-                                        <Badge size="1" color="purple">merge</Badge>
+                                        <Badge size="1" color="purple">combine</Badge>
                                     )}
                                     {node.type === "branch-start" && (
-                                        <Badge size="1" color="blue">branch</Badge>
+                                        <Badge size="1" color="blue">new variant</Badge>
                                     )}
                                     {node.type === "commit" && (
                                         <Badge size="1" color="green">version</Badge>
                                     )}
                                     {isUncommitted && (
-                                        <Badge size="1" color="orange" variant="soft">working</Badge>
+                                        <Badge size="1" color="orange" variant="soft">unsaved</Badge>
                                     )}
                                 </div>
                                 <div style={{

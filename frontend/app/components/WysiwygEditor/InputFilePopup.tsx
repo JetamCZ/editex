@@ -230,7 +230,7 @@ function VersionSelector({ fileId, refType, versionRef, onRefTypeChange, onVersi
                             transition: 'all 0.1s',
                         }}
                     >
-                        {type === 'branch' ? '@ Branch' : '# Commit'}
+                        {type === 'branch' ? '@ Variant' : '# Version'}
                     </button>
                 ))}
             </div>
@@ -321,7 +321,7 @@ function CommitPicker({ branches, versionRef, onVersionRefChange }: {
 
             {commits.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#999', padding: '8px 0' }}>
-                    No commits on this branch
+                    No versions in this variant
                 </div>
             ) : (
                 <div style={{
