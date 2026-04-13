@@ -4,11 +4,13 @@ import { Button, Card, TextField, Flex, Text, Callout } from '@radix-ui/themes';
 import { CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
 import api from '../lib/axios.server';
 import delay from '~/lib/delay';
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
     return [
-        { title: "Reset Password - Editex" },
-        { name: "description", content: "Set a new password for your Editex account" },
+        { title: i18n.t('auth.resetPassword.meta.title') },
+        { name: "description", content: i18n.t('auth.resetPassword.meta.description') },
     ];
 }
 
@@ -59,6 +61,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function ResetPassword() {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
     const actionData = useActionData<typeof action>();
@@ -82,12 +85,12 @@ export default function ResetPassword() {
                                 <CrossCircledIcon />
                             </Callout.Icon>
                             <Callout.Text>
-                                Invalid password reset link. Please request a new one.
+                                {t('auth.resetPassword.invalidLink')}
                             </Callout.Text>
                         </Callout.Root>
 
                         <Button asChild size="3" style={{ width: '100%' }}>
-                            <Link to="/auth/forgot-password">Request New Link</Link>
+                            <Link to="/auth/forgot-password">{t('auth.resetPassword.requestNewLink')}</Link>
                         </Button>
                     </Flex>
                 </Card>
@@ -113,26 +116,26 @@ export default function ResetPassword() {
                                     <CheckCircledIcon />
                                 </Callout.Icon>
                                 <Callout.Text>
-                                    Your password has been reset successfully!
+                                    {t('auth.resetPassword.successMessage')}
                                 </Callout.Text>
                             </Callout.Root>
 
                             <Text size="2" align="center">
-                                You can now log in with your new password.
+                                {t('auth.resetPassword.successSubtext')}
                             </Text>
 
                             <Button asChild size="3" style={{ width: '100%' }}>
-                                <Link to="/auth/login">Go to Login</Link>
+                                <Link to="/auth/login">{t('auth.resetPassword.goToLogin')}</Link>
                             </Button>
                         </>
                     ) : (
                         <>
                             <Text size="4" weight="bold" align="center">
-                                Reset Password
+                                {t('auth.resetPassword.heading')}
                             </Text>
 
                             <Text size="2" align="center" color="gray">
-                                Enter your new password below.
+                                {t('auth.resetPassword.description')}
                             </Text>
 
                             {actionData?.error && (
@@ -147,38 +150,38 @@ export default function ResetPassword() {
                                 <Flex direction="column" gap="3">
                                     <label>
                                         <Text as="div" size="2" mb="1" weight="bold">
-                                            New Password
+                                            {t('auth.resetPassword.newPasswordLabel')}
                                         </Text>
                                         <TextField.Root
                                             type="password"
                                             name="password"
-                                            placeholder="Enter new password"
+                                            placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
                                             required
                                         />
                                     </label>
 
                                     <label>
                                         <Text as="div" size="2" mb="1" weight="bold">
-                                            Confirm Password
+                                            {t('auth.resetPassword.confirmPasswordLabel')}
                                         </Text>
                                         <TextField.Root
                                             type="password"
                                             name="confirm_password"
-                                            placeholder="Confirm new password"
+                                            placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
                                             required
                                         />
                                     </label>
 
                                     <Button type="submit" size="3" disabled={loading}>
-                                        {loading ? 'Resetting...' : 'Reset Password'}
+                                        {loading ? t('auth.resetPassword.submitting') : t('auth.resetPassword.submit')}
                                     </Button>
                                 </Flex>
                             </Form>
 
                             <Text size="2" align="center">
-                                Remember your password?{' '}
+                                {t('auth.resetPassword.rememberPassword')}{' '}
                                 <Link to="/auth/login" style={{ color: 'var(--accent-9)' }}>
-                                    Login
+                                    {t('auth.resetPassword.loginLink')}
                                 </Link>
                             </Text>
                         </>

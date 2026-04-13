@@ -1,6 +1,7 @@
 import { Select, TextField, Flex } from "@radix-ui/themes";
 import { useMemo, useState } from "react";
 import { useProjectFolders } from "~/hooks/useProjectFolders";
+import { useTranslation } from 'react-i18next';
 
 interface FolderSelectProps {
     baseProject: string;
@@ -33,6 +34,7 @@ export default function FolderSelect({
     disabled = false,
     placeholder = "Select folder",
 }: FolderSelectProps) {
+    const { t } = useTranslation();
     const { data: projectFolders = [], isLoading } = useProjectFolders(baseProject);
 
     const options = useMemo(() => {
@@ -88,7 +90,7 @@ export default function FolderSelect({
                         <>
                             <Select.Separator />
                             <Select.Item value={NEW_FOLDER_SENTINEL}>
-                                + New folder…
+                                {t('folderSelect.newFolder')}
                             </Select.Item>
                         </>
                     )}
@@ -96,7 +98,7 @@ export default function FolderSelect({
             </Select.Root>
             {isCreating && (
                 <TextField.Root
-                    placeholder="e.g. /chapters or /images/fig1"
+                    placeholder={t('folderSelect.newFolderPlaceholder')}
                     value={draft}
                     onChange={(e) => handleDraftChange(e.target.value)}
                     onBlur={() => handleDraftChange(normalizePath(draft))}

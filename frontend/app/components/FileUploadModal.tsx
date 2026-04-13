@@ -4,6 +4,7 @@ import axios from "axios";
 import useAuth from "~/hooks/useAuth";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import FolderSelect from "~/components/FolderSelect";
+import { useTranslation } from 'react-i18next';
 
 interface FileUploadModalProps {
   open: boolean;
@@ -27,6 +28,7 @@ export default function FileUploadModal({
   branch = "main",
   folder = "/",
 }: FileUploadModalProps) {
+  const { t } = useTranslation();
   const {bearerToken} = useAuth()
   const queryClient = useQueryClient();
 
@@ -142,14 +144,14 @@ export default function FileUploadModal({
   return (
     <Dialog.Root open={open} onOpenChange={handleClose}>
       <Dialog.Content maxWidth="550px">
-        <Dialog.Title>Upload Files</Dialog.Title>
+        <Dialog.Title>{t('fileUpload.title')}</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Upload files to your project. Drag and drop or click to select files.
+          {t('fileUpload.description')}
         </Dialog.Description>
 
         <Flex direction="column" gap="3">
           <Box>
-            <Text size="2" weight="bold" mb="1">Upload to Folder</Text>
+            <Text size="2" weight="bold" mb="1">{t('fileUpload.folderLabel')}</Text>
             <FolderSelect
               baseProject={baseProject}
               value={selectedFolder}
@@ -175,7 +177,7 @@ export default function FileUploadModal({
             }}
           >
             <Text size="2" color="gray">
-              {dragActive ? 'Drop files here' : 'Drag and drop files here, or click to select'}
+              {dragActive ? t('fileUpload.dropHere') : t('fileUpload.dragAndDrop')}
             </Text>
             <input
               ref={fileInputRef}
@@ -188,7 +190,7 @@ export default function FileUploadModal({
 
           {files.length > 0 && (
             <Box>
-              <Text size="2" weight="bold" mb="2">Selected Files:</Text>
+              <Text size="2" weight="bold" mb="2">{t('fileUpload.selectedFiles')}</Text>
               <Flex direction="column" gap="2">
                 {files.map((file, index) => (
                   <Flex
@@ -213,7 +215,7 @@ export default function FileUploadModal({
                         size="1"
                         onClick={() => removeFile(index)}
                       >
-                        Remove
+                        {t('common.remove')}
                       </Button>
                     )}
                   </Flex>
@@ -224,7 +226,7 @@ export default function FileUploadModal({
 
           {uploadMutation.isPending && (
             <Box>
-              <Text size="2" mb="2">Uploading... {uploadProgress}%</Text>
+              <Text size="2" mb="2">{t('fileUpload.uploading', { progress: uploadProgress })}</Text>
               <Progress value={uploadProgress} />
             </Box>
           )}
@@ -239,21 +241,21 @@ export default function FileUploadModal({
 
           {uploadMutation.isSuccess && (
             <Box p="3" style={{ backgroundColor: '#efe', borderRadius: '6px' }}>
-              <Text size="2" color="green">Files uploaded successfully!</Text>
+              <Text size="2" color="green">{t('fileUpload.success')}</Text>
             </Box>
           )}
 
           <Flex gap="3" mt="2" justify="end">
             <Dialog.Close>
               <Button variant="soft" color="gray" type="button" disabled={uploadMutation.isPending}>
-                Cancel
+                {t('fileUpload.cancel')}
               </Button>
             </Dialog.Close>
             <Button
               onClick={handleUpload}
               disabled={files.length === 0 || uploadMutation.isPending}
             >
-              {uploadMutation.isPending ? 'Uploading...' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
+              {uploadMutation.isPending ? t('fileUpload.submitting') : t('fileUpload.submit', { count: files.length })}
             </Button>
           </Flex>
         </Flex>

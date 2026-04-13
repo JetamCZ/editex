@@ -1,5 +1,6 @@
 import {useState, useEffect, useRef, useCallback} from 'react';
 import {createPortal} from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface HrefPopupProps {
     url: string;
@@ -9,6 +10,7 @@ interface HrefPopupProps {
 }
 
 export default function HrefPopup({url: initialUrl, text: initialText, onSave, onCancel}: HrefPopupProps) {
+    const { t } = useTranslation();
     const [url, setUrl] = useState(initialUrl);
     const [text, setText] = useState(initialText);
     const urlRef = useRef<HTMLInputElement>(null);
@@ -30,31 +32,31 @@ export default function HrefPopup({url: initialUrl, text: initialText, onSave, o
         <div className="math-popup-overlay" onClick={onCancel}>
             <div className="math-popup" onClick={e => e.stopPropagation()}>
                 <div className="math-popup-header">
-                    <span>Edit Link</span>
+                    <span>{t('wysiwygEditor.hrefPopup.title')}</span>
                     <span style={{fontSize: '12px', color: '#999', fontWeight: 400}}>
-                        Ctrl+Enter to save
+                        {t('wysiwygEditor.hrefPopup.ctrlEnter')}
                     </span>
                 </div>
                 <div className="math-popup-body">
                     <div style={{marginBottom: '12px'}}>
-                        <label className="image-popup-label">URL</label>
+                        <label className="image-popup-label">{t('wysiwygEditor.hrefPopup.urlLabel')}</label>
                         <input
                             ref={urlRef}
                             className="image-popup-input"
                             value={url}
                             onChange={e => setUrl(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="https://example.com"
+                            placeholder={t('wysiwygEditor.hrefPopup.urlPlaceholder')}
                         />
                     </div>
                     <div>
-                        <label className="image-popup-label">Display text</label>
+                        <label className="image-popup-label">{t('wysiwygEditor.hrefPopup.textLabel')}</label>
                         <input
                             className="image-popup-input"
                             value={text}
                             onChange={e => setText(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Link text (leave empty to use URL)"
+                            placeholder={t('wysiwygEditor.hrefPopup.textPlaceholder')}
                         />
                     </div>
                     <div className="href-popup-preview">
@@ -71,13 +73,13 @@ export default function HrefPopup({url: initialUrl, text: initialText, onSave, o
                 </div>
                 <div className="math-popup-footer">
                     <button className="math-popup-btn" onClick={onCancel}>
-                        Cancel
+                        {t('wysiwygEditor.hrefPopup.cancel')}
                     </button>
                     <button
                         className="math-popup-btn math-popup-btn-primary"
                         onClick={() => onSave(url, text || url)}
                     >
-                        Save
+                        {t('wysiwygEditor.hrefPopup.save')}
                     </button>
                 </div>
             </div>

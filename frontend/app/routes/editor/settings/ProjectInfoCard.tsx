@@ -1,4 +1,5 @@
 import {useState} from "react";
+import { useTranslation } from 'react-i18next';
 import {
     Box,
     Text,
@@ -37,6 +38,7 @@ function getRoleColor(role: FolderRole | null | undefined) {
 }
 
 export default function ProjectInfoCard({project, bearerToken, isOwner}: ProjectInfoCardProps) {
+    const { t } = useTranslation();
     const [projectName, setProjectName] = useState(project.name);
     const [isEditingName, setIsEditingName] = useState(false);
 
@@ -69,14 +71,14 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
     return (
         <Card className="w-full max-w-2xl mb-6">
             <Flex direction="column" gap="4">
-                <Heading size="5">Project Information</Heading>
+                <Heading size="5">{t('settings.projectInfo.heading')}</Heading>
 
                 {updateProjectMutation.isSuccess && (
                     <Callout.Root color="green">
                         <Callout.Icon>
                             <CheckCircledIcon />
                         </Callout.Icon>
-                        <Callout.Text>Project name updated successfully!</Callout.Text>
+                        <Callout.Text>{t('settings.projectInfo.updateSuccess')}</Callout.Text>
                     </Callout.Root>
                 )}
 
@@ -93,14 +95,14 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
 
                 <Box>
                     <Text as="label" size="2" weight="bold" mb="2" className="block">
-                        Project Name
+                        {t('settings.projectInfo.nameLabel')}
                     </Text>
                     {isEditingName ? (
                         <Flex gap="2">
                             <TextField.Root
                                 value={projectName}
                                 onChange={(e) => setProjectName(e.target.value)}
-                                placeholder="Enter project name"
+                                placeholder={t('settings.projectInfo.namePlaceholder')}
                                 size="3"
                                 style={{flex: 1}}
                             />
@@ -108,7 +110,7 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
                                 onClick={handleSaveProjectName}
                                 disabled={updateProjectMutation.isPending}
                             >
-                                {updateProjectMutation.isPending ? "Saving..." : "Save"}
+                                {updateProjectMutation.isPending ? t('settings.projectInfo.saving') : t('settings.projectInfo.save')}
                             </Button>
                             <Button
                                 variant="soft"
@@ -118,7 +120,7 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
                                     setIsEditingName(false);
                                 }}
                             >
-                                Cancel
+                                {t('settings.projectInfo.cancel')}
                             </Button>
                         </Flex>
                     ) : (
@@ -141,21 +143,21 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
 
                 <Flex direction="column" gap="2">
                     <Flex justify="between" align="center">
-                        <Text size="2" className="text-gray-11">Project ID</Text>
+                        <Text size="2" className="text-gray-11">{t('settings.projectInfo.projectId')}</Text>
                         <Text size="2" style={{fontFamily: "monospace"}}>{project.baseProject}</Text>
                     </Flex>
                     <Flex justify="between" align="center">
-                        <Text size="2" className="text-gray-11">Branch</Text>
+                        <Text size="2" className="text-gray-11">{t('settings.projectInfo.branch')}</Text>
                         <Text size="2" style={{fontFamily: "monospace"}}>{project.branch}</Text>
                     </Flex>
                     <Flex justify="between" align="center">
-                        <Text size="2" className="text-gray-11">Your Role</Text>
+                        <Text size="2" className="text-gray-11">{t('settings.projectInfo.yourRole')}</Text>
                         <Text size="2" weight="bold" color={getRoleColor(project.userRole)}>
                             {project.userRole ?? "—"}
                         </Text>
                     </Flex>
                     <Flex justify="between" align="center">
-                        <Text size="2" className="text-gray-11">Created</Text>
+                        <Text size="2" className="text-gray-11">{t('settings.projectInfo.created')}</Text>
                         <Text size="2">{new Date(project.createdAt).toLocaleDateString()}</Text>
                     </Flex>
                 </Flex>

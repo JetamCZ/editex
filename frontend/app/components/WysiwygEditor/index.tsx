@@ -1,5 +1,6 @@
 import {useEditor, EditorContent} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import i18n from '~/i18n';
 import Underline from '@tiptap/extension-underline';
 import {Table} from '@tiptap/extension-table';
 import {TableRow} from '@tiptap/extension-table-row';
@@ -98,7 +99,7 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             TableRow,
             TableCell,
             TableHeader,
-            Placeholder.configure({placeholder: 'Start writing...'}),
+            Placeholder.configure({placeholder: i18n.t('wysiwygEditor.placeholder')}),
             LatexMathInline,
             LatexMathBlock,
             LatexFigure,

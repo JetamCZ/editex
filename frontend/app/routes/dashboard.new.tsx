@@ -3,11 +3,13 @@ import { Dialog, Button, Flex, Text, TextField, Select, Box } from "@radix-ui/th
 import { getApiClient } from "../lib/axios.server";
 import type { Project } from "../../types/project";
 import { useState } from "react";
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
     return [
-        { title: "New Project - Editex" },
-        { name: "description", content: "Create a new LaTeX project" },
+        { title: i18n.t('dashboard.newProject.meta.title') },
+        { name: "description", content: i18n.t('dashboard.newProject.meta.description') },
     ];
 }
 
@@ -48,6 +50,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function DashboardNew() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { templates } = useLoaderData<typeof loader>();
   const [projectName, setProjectName] = useState("");
@@ -62,20 +65,20 @@ export default function DashboardNew() {
   return (
     <Dialog.Root open={true} onOpenChange={(open) => !open && handleClose()}>
       <Dialog.Content maxWidth="450px">
-        <Dialog.Title>Create New Project</Dialog.Title>
+        <Dialog.Title>{t('createProjectModal.title')}</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Enter a name for your new LaTeX project and select a template.
+          {t('createProjectModal.descriptionWithTemplate')}
         </Dialog.Description>
 
         <Form method="post">
           <Flex direction="column" gap="3">
             <label>
               <Text as="div" size="2" mb="1" weight="bold">
-                Project Name
+                {t('createProjectModal.projectNameLabel')}
               </Text>
               <TextField.Root
                 name="projectName"
-                placeholder="My LaTeX Project"
+                placeholder={t('createProjectModal.projectNamePlaceholder')}
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 required
@@ -84,7 +87,7 @@ export default function DashboardNew() {
 
             <Box>
               <Text as="div" size="2" mb="1" weight="bold">
-                Template
+                {t('createProjectModal.templateLabel')}
               </Text>
               <Select.Root value={templateId} onValueChange={setTemplateId} name="templateId">
                 <Select.Trigger style={{ width: "100%" }} />
@@ -108,11 +111,11 @@ export default function DashboardNew() {
           <Flex gap="3" mt="4" justify="end">
             <Dialog.Close>
               <Button variant="soft" color="gray" type="button" onClick={handleClose}>
-                Cancel
+                {t('createProjectModal.cancel')}
               </Button>
             </Dialog.Close>
             <Button type="submit" disabled={!projectName.trim()}>
-              Create Project
+              {t('createProjectModal.submit')}
             </Button>
           </Flex>
         </Form>

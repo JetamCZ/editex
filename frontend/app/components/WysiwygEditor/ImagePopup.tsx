@@ -1,5 +1,6 @@
 import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {createPortal} from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {useProjectFiles} from '~/hooks/useProjectFiles';
 import {getFileContentType, ContentType} from '~/const/ContentType';
 import type {ProjectFile} from '../../../types/file';
@@ -14,6 +15,7 @@ interface ImagePopupProps {
 }
 
 export default function ImagePopup({imagePath, caption, onSave, onCancel, baseProject, branch}: ImagePopupProps) {
+    const { t } = useTranslation();
     const [path, setPath] = useState(imagePath);
     const [cap, setCap] = useState(caption);
     const pathRef = useRef<HTMLInputElement>(null);
@@ -60,15 +62,15 @@ export default function ImagePopup({imagePath, caption, onSave, onCancel, basePr
         <div className="math-popup-overlay" onClick={onCancel}>
             <div className="math-popup" onClick={e => e.stopPropagation()}>
                 <div className="math-popup-header">
-                    <span>Figure</span>
+                    <span>{t('wysiwygEditor.imagePopup.title')}</span>
                     <span style={{fontSize: '12px', color: '#999', fontWeight: 400}}>
-                        Ctrl+Enter to save
+                        {t('wysiwygEditor.imagePopup.ctrlEnter')}
                     </span>
                 </div>
                 <div className="math-popup-body" onKeyDown={handleKeyDown}>
                     {imageFiles.length > 0 && (
                         <>
-                            <label className="image-popup-label">Uploaded images</label>
+                            <label className="image-popup-label">{t('wysiwygEditor.imagePopup.uploadedImages')}</label>
                             <div className="image-popup-grid">
                                 {imageFiles.map((file: ProjectFile) => (
                                     <button
@@ -92,23 +94,23 @@ export default function ImagePopup({imagePath, caption, onSave, onCancel, basePr
                         </>
                     )}
                     <label className="image-popup-label" style={imageFiles.length > 0 ? {marginTop: '12px'} : undefined}>
-                        Image path
+                        {t('wysiwygEditor.imagePopup.imagePath')}
                     </label>
                     <input
                         ref={pathRef}
                         className="image-popup-input"
                         value={path}
                         onChange={e => setPath(e.target.value)}
-                        placeholder="e.g. images/diagram.png"
+                        placeholder={t('wysiwygEditor.imagePopup.imagePathPlaceholder')}
                     />
                     <label className="image-popup-label" style={{marginTop: '12px'}}>
-                        Caption
+                        {t('wysiwygEditor.imagePopup.caption')}
                     </label>
                     <input
                         className="image-popup-input"
                         value={cap}
                         onChange={e => setCap(e.target.value)}
-                        placeholder="Figure caption (optional)"
+                        placeholder={t('wysiwygEditor.imagePopup.captionPlaceholder')}
                     />
                     <div className="image-popup-preview">
                         <span className="latex-figure-icon">{'\u{1F5BC}'}</span>
@@ -118,13 +120,13 @@ export default function ImagePopup({imagePath, caption, onSave, onCancel, basePr
                 </div>
                 <div className="math-popup-footer">
                     <button className="math-popup-btn" onClick={onCancel}>
-                        Cancel
+                        {t('wysiwygEditor.imagePopup.cancel')}
                     </button>
                     <button
                         className="math-popup-btn math-popup-btn-primary"
                         onClick={() => onSave(path, cap)}
                     >
-                        Save
+                        {t('wysiwygEditor.imagePopup.save')}
                     </button>
                 </div>
             </div>

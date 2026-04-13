@@ -2,6 +2,8 @@ import {useNavigate, useOutletContext} from "react-router";
 import type {Project} from "../../../types/project";
 import {useEffect, useState} from "react";
 import {createPortal} from "react-dom";
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 import {
     Box,
     Text,
@@ -17,8 +19,8 @@ import {
 
 export function meta() {
     return [
-        { title: "LaTeX Reference - Editex" },
-        { name: "description", content: "Quick reference for LaTeX commands and syntax" },
+        { title: i18n.t('editor.help.meta.title') },
+        { name: "description", content: i18n.t('editor.help.meta.description') },
     ];
 }
 
@@ -72,6 +74,7 @@ function Section({title, children}: SectionProps) {
 }
 
 const HelpPage = () => {
+    const { t } = useTranslation();
     const {project} = useOutletContext<OutletContextType>();
     const navigate = useNavigate();
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
@@ -87,7 +90,7 @@ const HelpPage = () => {
             variant="soft"
             onClick={() => navigate(`/project/${project.id}`)}
         >
-            Back to Editor
+            {t('editor.help.backToEditor')}
         </Button>,
         headerActionsContainer
     );
@@ -98,20 +101,20 @@ const HelpPage = () => {
 
             <Box className="flex-1 bg-gray-1 overflow-auto">
                 <Box className="py-8 px-6 max-w-4xl mx-auto">
-                    <Heading size="8" mb="2">LaTeX Reference Guide</Heading>
+                    <Heading size="8" mb="2">{t('editor.help.heading')}</Heading>
                     <Text size="3" className="text-gray-11" mb="6" as="p">
-                        A quick reference for commonly used LaTeX commands and syntax
+                        {t('editor.help.description')}
                     </Text>
 
                     <Tabs.Root defaultValue="basics">
                         <Tabs.List mb="4">
-                            <Tabs.Trigger value="basics">Basics</Tabs.Trigger>
-                            <Tabs.Trigger value="formatting">Formatting</Tabs.Trigger>
-                            <Tabs.Trigger value="math">Math</Tabs.Trigger>
-                            <Tabs.Trigger value="structure">Structure</Tabs.Trigger>
-                            <Tabs.Trigger value="lists">Lists & Tables</Tabs.Trigger>
-                            <Tabs.Trigger value="figures">Figures</Tabs.Trigger>
-                            <Tabs.Trigger value="references">References</Tabs.Trigger>
+                            <Tabs.Trigger value="basics">{t('editor.help.tabs.basics')}</Tabs.Trigger>
+                            <Tabs.Trigger value="formatting">{t('editor.help.tabs.formatting')}</Tabs.Trigger>
+                            <Tabs.Trigger value="math">{t('editor.help.tabs.math')}</Tabs.Trigger>
+                            <Tabs.Trigger value="structure">{t('editor.help.tabs.structure')}</Tabs.Trigger>
+                            <Tabs.Trigger value="lists">{t('editor.help.tabs.lists')}</Tabs.Trigger>
+                            <Tabs.Trigger value="figures">{t('editor.help.tabs.figures')}</Tabs.Trigger>
+                            <Tabs.Trigger value="references">{t('editor.help.tabs.references')}</Tabs.Trigger>
                         </Tabs.List>
 
                         <Tabs.Content value="basics">
@@ -999,16 +1002,16 @@ The \\index{document class}document class...
                     </Tabs.Root>
 
                     <Card mt="6">
-                        <Heading size="4" mb="3">Keyboard Shortcuts</Heading>
+                        <Heading size="4" mb="3">{t('editor.help.shortcuts.heading')}</Heading>
                         <Text as="p" mb="3">
-                            The editor supports these keyboard shortcuts for LaTeX formatting:
+                            {t('editor.help.shortcuts.description')}
                         </Text>
                         <Box style={{display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 24px'}}>
-                            <Code>Ctrl+B</Code><Text>Bold (\\textbf)</Text>
-                            <Code>Ctrl+I</Code><Text>Italic (\\textit)</Text>
-                            <Code>Ctrl+U</Code><Text>Underline (\\underline)</Text>
-                            <Code>Ctrl+Shift+U</Code><Text>Bullet list (itemize)</Text>
-                            <Code>Ctrl+Shift+O</Code><Text>Numbered list (enumerate)</Text>
+                            <Code>Ctrl+B</Code><Text>{t('editor.help.shortcuts.bold')}</Text>
+                            <Code>Ctrl+I</Code><Text>{t('editor.help.shortcuts.italic')}</Text>
+                            <Code>Ctrl+U</Code><Text>{t('editor.help.shortcuts.underline')}</Text>
+                            <Code>Ctrl+Shift+U</Code><Text>{t('editor.help.shortcuts.bulletList')}</Text>
+                            <Code>Ctrl+Shift+O</Code><Text>{t('editor.help.shortcuts.numberedList')}</Text>
                         </Box>
                     </Card>
                 </Box>

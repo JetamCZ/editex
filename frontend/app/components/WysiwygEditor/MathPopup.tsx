@@ -1,5 +1,6 @@
 import {useState, useEffect, useRef, useCallback} from 'react';
 import {createPortal} from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface MathPopupProps {
     latex: string;
@@ -9,6 +10,7 @@ interface MathPopupProps {
 }
 
 export default function MathPopup({latex, isBlock, onSave, onCancel}: MathPopupProps) {
+    const { t } = useTranslation();
     const [value, setValue] = useState(latex);
     const [previewHtml, setPreviewHtml] = useState('');
     const [error, setError] = useState('');
@@ -54,9 +56,9 @@ export default function MathPopup({latex, isBlock, onSave, onCancel}: MathPopupP
         <div className="math-popup-overlay" onClick={onCancel}>
             <div className="math-popup" onClick={e => e.stopPropagation()}>
                 <div className="math-popup-header">
-                    <span>{isBlock ? 'Display Math' : 'Inline Math'}</span>
+                    <span>{isBlock ? t('wysiwygEditor.mathPopup.displayMath') : t('wysiwygEditor.mathPopup.inlineMath')}</span>
                     <span style={{fontSize: '12px', color: '#999', fontWeight: 400}}>
-                        Ctrl+Enter to save
+                        {t('wysiwygEditor.mathPopup.ctrlEnter')}
                     </span>
                 </div>
                 <div className="math-popup-body">
@@ -66,7 +68,7 @@ export default function MathPopup({latex, isBlock, onSave, onCancel}: MathPopupP
                         value={value}
                         onChange={e => setValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Enter LaTeX math..."
+                        placeholder={t('wysiwygEditor.mathPopup.placeholder')}
                     />
                     <div className="math-popup-preview">
                         {error ? (
@@ -78,10 +80,10 @@ export default function MathPopup({latex, isBlock, onSave, onCancel}: MathPopupP
                 </div>
                 <div className="math-popup-footer">
                     <button className="math-popup-btn" onClick={onCancel}>
-                        Cancel
+                        {t('wysiwygEditor.mathPopup.cancel')}
                     </button>
                     <button className="math-popup-btn math-popup-btn-primary" onClick={() => onSave(value)}>
-                        Save
+                        {t('wysiwygEditor.mathPopup.save')}
                     </button>
                 </div>
             </div>

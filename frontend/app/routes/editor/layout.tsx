@@ -11,6 +11,8 @@ import {
 import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
 import type {ReactNode} from "react";
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 
 export function meta({ data }: { data: { project: Project } | undefined }) {
     const projectName = data?.project?.name || "Project";
@@ -33,25 +35,27 @@ export async function loader({request, params}: LoaderFunctionArgs) {
     }
 }
 
-const iconSidebarItems = [
-    {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: 'Files', path: ''},
-];
-
-const iconSidebarBottomItems = [
-    {id: 'help', icon: <QuestionMarkCircledIcon width="20" height="20" />, tooltip: 'Help', path: '/help'},
-    {id: 'settings', icon: <GearIcon width="20" height="20" />, tooltip: 'Settings', path: '/settings'},
-];
 
 interface ProjectLayoutProps {
     headerActions?: ReactNode;
 }
 
 export default function ProjectLayout() {
+    const { t } = useTranslation();
     const {project} = useLoaderData<typeof loader>();
     const navigate = useNavigate();
     const location = useLocation();
     const {user} = useAuth();
     const initials = getInitials(user?.name || user?.email || "U");
+
+    const iconSidebarItems = [
+        {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: t('editor.layout.filesTooltip'), path: ''},
+    ];
+
+    const iconSidebarBottomItems = [
+        {id: 'help', icon: <QuestionMarkCircledIcon width="20" height="20" />, tooltip: t('editor.layout.helpTooltip'), path: '/help'},
+        {id: 'settings', icon: <GearIcon width="20" height="20" />, tooltip: t('editor.layout.settingsTooltip'), path: '/settings'},
+    ];
 
     const isSettingsPage = location.pathname.endsWith('/settings');
     const isHelpPage = location.pathname.endsWith('/help');
@@ -90,7 +94,7 @@ export default function ProjectLayout() {
 
                 <nav style={{display: "flex", gap: "16px"}}>
                     <Link to="/dashboard" style={{textDecoration: "none"}}>
-                        <Text size="2" style={{color: "var(--gray-11)"}}>Projects</Text>
+                        <Text size="2" style={{color: "var(--gray-11)"}}>{t('editor.layout.projects')}</Text>
                     </Link>
                     {/* TODO: Uncomment when templates page is implemented
                     <Link to="/dashboard" style={{textDecoration: "none"}}>
@@ -115,6 +119,8 @@ export default function ProjectLayout() {
                 {/* Outlet context for header actions */}
                 <div id="header-actions" style={{display: "flex", alignItems: "center", gap: "12px"}} />
 
+                <LanguageSwitcher />
+
                 <DropdownMenu.Root>
                     <DropdownMenu.Trigger>
                         <Avatar
@@ -126,12 +132,12 @@ export default function ProjectLayout() {
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Content>
                         <DropdownMenu.Item asChild>
-                            <Link to="/profile">Profile</Link>
+                            <Link to="/profile">{t('editor.layout.profile')}</Link>
                         </DropdownMenu.Item>
                         <DropdownMenu.Separator />
                         <DropdownMenu.Item asChild>
                             <Link to="/auth/logout" style={{color: "var(--red-11)"}}>
-                                <ExitIcon /> Logout
+                                <ExitIcon /> {t('editor.layout.logout')}
                             </Link>
                         </DropdownMenu.Item>
                     </DropdownMenu.Content>

@@ -1,6 +1,7 @@
 import { Dialog, Button, Flex, Text, TextField } from "@radix-ui/themes";
 import { Form } from "react-router";
 import { useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 interface CreateProjectModalProps {
   open: boolean;
@@ -8,6 +9,7 @@ interface CreateProjectModalProps {
 }
 
 export default function CreateProjectModal({ open, onOpenChange }: CreateProjectModalProps) {
+  const { t } = useTranslation();
   const [projectName, setProjectName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,9 +27,9 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Content maxWidth="450px">
-        <Dialog.Title>Create New Project</Dialog.Title>
+        <Dialog.Title>{t('createProjectModal.title')}</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Enter a name for your new LaTeX project.
+          {t('createProjectModal.description')}
         </Dialog.Description>
 
         <Form method="post" onSubmit={handleSubmit}>
@@ -35,11 +37,11 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
           <Flex direction="column" gap="3">
             <label>
               <Text as="div" size="2" mb="1" weight="bold">
-                Project Name
+                {t('createProjectModal.projectNameLabel')}
               </Text>
               <TextField.Root
                 name="projectName"
-                placeholder="My LaTeX Project"
+                placeholder={t('createProjectModal.projectNamePlaceholder')}
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 required
@@ -50,11 +52,11 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
           <Flex gap="3" mt="4" justify="end">
             <Dialog.Close>
               <Button variant="soft" color="gray" type="button">
-                Cancel
+                {t('createProjectModal.cancel')}
               </Button>
             </Dialog.Close>
             <Button type="submit" disabled={!projectName.trim()}>
-              Create Project
+              {t('createProjectModal.submit')}
             </Button>
           </Flex>
         </Form>

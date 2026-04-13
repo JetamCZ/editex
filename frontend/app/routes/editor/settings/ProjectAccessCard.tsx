@@ -2,6 +2,7 @@ import {Box, Button, Card, Flex, Heading, Text} from "@radix-ui/themes";
 import {Link} from "react-router";
 import {Lock, Users} from "lucide-react";
 import type {Project} from "../../../../types/project";
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     project: Project;
@@ -9,18 +10,17 @@ interface Props {
 }
 
 export default function ProjectAccessCard({project, canManageAccess}: Props) {
+    const { t } = useTranslation();
     return (
         <Card className="w-full max-w-2xl mb-6">
             <Flex direction="column" gap="4">
                 <Heading size="5">
                     <Lock className="h-5 w-5 inline mr-2" />
-                    Access & Permissions
+                    {t('settings.access.heading')}
                 </Heading>
 
                 <Text size="2" color="gray">
-                    Permissions are managed per folder. Grant a user VIEWER, EDITOR, or
-                    MANAGER access on any folder, and that access cascades into every
-                    subfolder beneath it.
+                    {t('settings.access.description')}
                 </Text>
 
                 <Box>
@@ -28,8 +28,8 @@ export default function ProjectAccessCard({project, canManageAccess}: Props) {
                         <Users size={16} />
                         <Text size="2">
                             {canManageAccess
-                                ? "You can grant or revoke access on any folder you manage."
-                                : "Only managers can change permissions."}
+                                ? t('settings.access.canManage')
+                                : t('settings.access.onlyManagers')}
                         </Text>
                     </Flex>
                 </Box>
@@ -37,7 +37,7 @@ export default function ProjectAccessCard({project, canManageAccess}: Props) {
                 <Flex gap="3">
                     <Button asChild>
                         <Link to={`/project/${project.baseProject}/${project.branch}/settings/permissions`}>
-                            Manage permissions
+                            {t('settings.access.manageButton')}
                         </Link>
                     </Button>
                 </Flex>

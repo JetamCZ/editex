@@ -1,6 +1,7 @@
 import { Dialog, Button, Flex, Text, ScrollArea, Code } from "@radix-ui/themes";
 import { AlertCircle, Copy, Check } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 interface CompilationErrorDialogProps {
     open: boolean;
@@ -15,6 +16,7 @@ export default function CompilationErrorDialog({
     errorMessage,
     compilationLog,
 }: CompilationErrorDialogProps) {
+    const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
 
     const handleCopyLog = async () => {
@@ -62,7 +64,7 @@ export default function CompilationErrorDialog({
                 <Dialog.Title>
                     <Flex align="center" gap="2" style={{ color: "var(--red-11)" }}>
                         <AlertCircle className="h-5 w-5" />
-                        Compilation Failed
+                        {t('compilationError.title')}
                     </Flex>
                 </Dialog.Title>
 
@@ -85,7 +87,7 @@ export default function CompilationErrorDialog({
                     {errorLines.length > 0 && (
                         <div>
                             <Text size="2" weight="bold" mb="2" style={{ display: "block" }}>
-                                Errors Found:
+                                {t('compilationError.errorsFound')}
                             </Text>
                             <div style={{
                                 padding: "12px",
@@ -117,7 +119,7 @@ export default function CompilationErrorDialog({
                         <div>
                             <Flex justify="between" align="center" mb="2">
                                 <Text size="2" weight="bold">
-                                    Full Compilation Log:
+                                    {t('compilationError.fullLog')}
                                 </Text>
                                 <Button
                                     size="1"
@@ -127,11 +129,11 @@ export default function CompilationErrorDialog({
                                 >
                                     {copied ? (
                                         <>
-                                            <Check size={12} /> Copied
+                                            <Check size={12} /> {t('common.copied')}
                                         </>
                                     ) : (
                                         <>
-                                            <Copy size={12} /> Copy Log
+                                            <Copy size={12} /> {t('common.copyLog')}
                                         </>
                                     )}
                                 </Button>
@@ -163,7 +165,7 @@ export default function CompilationErrorDialog({
                 <Flex gap="3" mt="4" justify="end">
                     <Dialog.Close>
                         <Button variant="soft" color="gray">
-                            Close
+                            {t('common.close')}
                         </Button>
                     </Dialog.Close>
                 </Flex>

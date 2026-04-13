@@ -2,11 +2,13 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData } from "react-router";
 import { FileText, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
 import { getApiClient } from "~/lib/axios.server";
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Editex - Collaborative LaTeX Editor" },
-    { name: "description", content: "LaTeX editing, redesigned for teams. Version control, real-time collaboration, and document management." },
+    { title: i18n.t('home.meta.title') },
+    { name: "description", content: i18n.t('home.meta.description') },
   ];
 }
 
@@ -31,27 +33,24 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-const features = [
+const getFeatures = (t: (key: string) => string) => [
   {
     icon: GitBranch,
     color: "#2563eb",
-    title: "Version Control",
-    description:
-      "Track every change with built-in version control. Save snapshots, work in parallel branches, and never lose your work.",
+    title: t('home.features.versionControl.title'),
+    description: t('home.features.versionControl.description'),
   },
   {
     icon: Users,
     color: "#7c3aed",
-    title: "Real-time Collaboration",
-    description:
-      "Work together with your team in real time. See changes as they happen and collaborate on complex documents seamlessly.",
+    title: t('home.features.collaboration.title'),
+    description: t('home.features.collaboration.description'),
   },
   {
     icon: FileText,
     color: "#059669",
-    title: "LaTeX Made Easy",
-    description:
-      "Professional document creation with LaTeX syntax support, live preview, and intelligent autocomplete for common commands.",
+    title: t('home.features.latexEditor.title'),
+    description: t('home.features.latexEditor.description'),
   },
 ];
 
@@ -60,7 +59,9 @@ const WARM_WHITE = "#faf9f6";
 const BLUE = "#2563eb";
 
 export default function Home() {
+  const { t } = useTranslation();
   const { user } = useLoaderData<typeof loader>();
+  const features = getFeatures(t);
 
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: DARK }}>
@@ -87,7 +88,7 @@ export default function Home() {
                   border: "none", cursor: "pointer",
                   fontSize: "14px", fontWeight: 600, fontFamily: "inherit",
                 }}>
-                  Dashboard
+                  {t('home.nav.dashboard')}
                 </button>
               </Link>
             ) : (
@@ -100,7 +101,7 @@ export default function Home() {
                     border: "1px solid rgba(255,255,255,0.12)",
                     cursor: "pointer", fontSize: "14px", fontWeight: 500, fontFamily: "inherit",
                   }}>
-                    Sign in
+                    {t('home.nav.signIn')}
                   </button>
                 </Link>
                 <Link to="/auth/register" style={{ textDecoration: "none" }}>
@@ -110,7 +111,7 @@ export default function Home() {
                     border: "none", cursor: "pointer",
                     fontSize: "14px", fontWeight: 600, fontFamily: "inherit",
                   }}>
-                    Get started
+                    {t('home.nav.getStarted')}
                   </button>
                 </Link>
               </>
@@ -147,7 +148,7 @@ export default function Home() {
           }}>
             <Zap size={12} style={{ color: "#60a5fa" }} />
             <span style={{ fontSize: "12px", fontWeight: 700, color: "#60a5fa", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              Collaborative LaTeX Editing
+              {t('home.hero.badge')}
             </span>
           </div>
 
@@ -163,9 +164,9 @@ export default function Home() {
                 color: "#f0ede6", letterSpacing: "-0.025em",
                 margin: "0 0 24px",
               }}>
-                LaTeX editing,<br />
-                <em style={{ fontStyle: "italic", color: "#93c5fd" }}>redesigned</em>{" "}
-                for teams.
+                {t('home.hero.headingLine1')}<br />
+                <em style={{ fontStyle: "italic", color: "#93c5fd" }}>{t('home.hero.headingEmphasis')}</em>{" "}
+                {t('home.hero.headingLine2')}
               </h1>
 
               <p style={{
@@ -173,7 +174,7 @@ export default function Home() {
                 color: "rgba(240,237,230,0.55)",
                 margin: "0 0 40px", maxWidth: "430px",
               }}>
-                Write, collaborate, and version-control your LaTeX documents. Built for researchers, academics, and technical teams.
+                {t('home.hero.subheading')}
               </p>
 
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -186,7 +187,7 @@ export default function Home() {
                     display: "flex", alignItems: "center", gap: "8px",
                     boxShadow: "0 0 48px rgba(37,99,235,0.4)",
                   }}>
-                    Get started free <ArrowRight size={15} />
+                    {t('home.hero.ctaPrimary')} <ArrowRight size={15} />
                   </button>
                 </Link>
                 <Link to="/auth/login" style={{ textDecoration: "none" }}>
@@ -197,7 +198,7 @@ export default function Home() {
                     border: "1px solid rgba(255,255,255,0.1)",
                     cursor: "pointer", fontSize: "15px", fontWeight: 500, fontFamily: "inherit",
                   }}>
-                    Sign in
+                    {t('home.hero.ctaSecondary')}
                   </button>
                 </Link>
               </div>
@@ -305,7 +306,7 @@ export default function Home() {
                   ))}
                 </div>
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
-                  3 editing now
+                  {t('home.mockEditor.editingNow')}
                 </span>
               </div>
             </div>
@@ -323,7 +324,7 @@ export default function Home() {
               letterSpacing: "0.1em", textTransform: "uppercase",
               margin: "0 0 16px",
             }}>
-              Features
+              {t('home.features.label')}
             </p>
             <h2 style={{
               fontFamily: "'Lora', serif",
@@ -332,10 +333,10 @@ export default function Home() {
               letterSpacing: "-0.025em", lineHeight: 1.2,
               margin: "0 0 16px", maxWidth: "540px",
             }}>
-              Everything your team needs to write great documents.
+              {t('home.features.heading')}
             </h2>
             <p style={{ fontSize: "17px", color: "#666", lineHeight: 1.65, margin: 0 }}>
-              Built for academics and researchers who demand precision from their tools.
+              {t('home.features.subheading')}
             </p>
           </div>
 
@@ -363,11 +364,11 @@ export default function Home() {
             letterSpacing: "-0.025em", lineHeight: 1.2,
             margin: "0 0 20px",
           }}>
-            Ready to write<br />
-            <em style={{ fontStyle: "italic", color: "#93c5fd" }}>together?</em>
+            {t('home.cta.headingLine1')}<br />
+            <em style={{ fontStyle: "italic", color: "#93c5fd" }}>{t('home.cta.headingEmphasis')}</em>
           </h2>
           <p style={{ fontSize: "18px", color: "rgba(240,237,230,0.5)", margin: "0 0 40px", lineHeight: 1.65 }}>
-            Join teams using Editex to collaborate on LaTeX documents.
+            {t('home.cta.subheading')}
           </p>
           <Link to="/auth/register" style={{ textDecoration: "none" }}>
             <button style={{
@@ -377,7 +378,7 @@ export default function Home() {
               fontSize: "16px", fontWeight: 700, fontFamily: "inherit",
               boxShadow: "0 0 80px rgba(255,255,255,0.12)",
             }}>
-              Start for free →
+              {t('home.cta.button')}
             </button>
           </Link>
         </div>
@@ -396,7 +397,7 @@ export default function Home() {
         }}>
           <img src="/logo.svg" style={{ height: "26px", filter: "brightness(0) invert(1) opacity(0.4)" }} alt="Editex" />
           <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", fontFamily: "inherit" }}>
-            © 2025 Editex. All rights reserved.
+            {t('home.footer.copyright')}
           </span>
         </div>
       </footer>

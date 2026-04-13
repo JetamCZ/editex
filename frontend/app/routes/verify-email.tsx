@@ -3,11 +3,13 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { Button, Card, Flex, Text, Callout } from '@radix-ui/themes';
 import { CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
 import api from '../lib/axios.server';
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
     return [
-        { title: "Verify Email - Editex" },
-        { name: "description", content: "Verify your Editex email address" },
+        { title: i18n.t('auth.verifyEmail.meta.title') },
+        { name: "description", content: i18n.t('auth.verifyEmail.meta.description') },
     ];
 }
 
@@ -40,6 +42,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function VerifyEmail() {
+    const { t } = useTranslation();
     const { success, error, email } = useLoaderData<typeof loader>();
 
     return (
@@ -60,16 +63,16 @@ export default function VerifyEmail() {
                                     <CheckCircledIcon />
                                 </Callout.Icon>
                                 <Callout.Text>
-                                    Your email has been verified successfully!
+                                    {t('auth.verifyEmail.successMessage')}
                                 </Callout.Text>
                             </Callout.Root>
 
                             <Text size="2" align="center">
-                                You can now log in to your account.
+                                {t('auth.verifyEmail.successSubtext')}
                             </Text>
 
                             <Button asChild size="3" style={{ width: '100%' }}>
-                                <Link to="/auth/login">Go to Login</Link>
+                                <Link to="/auth/login">{t('auth.verifyEmail.goToLogin')}</Link>
                             </Button>
                         </>
                     ) : (
@@ -83,13 +86,13 @@ export default function VerifyEmail() {
 
                             {email && error?.includes('expired') && (
                                 <Text size="2" align="center">
-                                    Your verification link has expired. Please request a new one.
+                                    {t('auth.verifyEmail.expiredMessage')}
                                 </Text>
                             )}
 
                             <Flex direction="column" gap="2" style={{ width: '100%' }}>
                                 <Button asChild size="3" variant="outline">
-                                    <Link to="/auth/login">Go to Login</Link>
+                                    <Link to="/auth/login">{t('auth.verifyEmail.goToLogin')}</Link>
                                 </Button>
                             </Flex>
                         </>

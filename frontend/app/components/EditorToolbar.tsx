@@ -1,5 +1,6 @@
 import {Tooltip, IconButton, Switch, Text} from "@radix-ui/themes";
 import {RotateCw, Save} from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 interface EditorToolbarProps {
     changeHistory: any[];
@@ -12,6 +13,7 @@ interface EditorToolbarProps {
 }
 
 const EditorToolbar = (props: EditorToolbarProps) => {
+    const { t } = useTranslation();
     const hasChanges = props.changeHistory.length > 0;
     const count = props.changeHistory.length;
 
@@ -26,7 +28,7 @@ const EditorToolbar = (props: EditorToolbarProps) => {
             height: '36px',
             overflow: 'hidden',
         }}>
-            <Tooltip content="Reload file">
+            <Tooltip content={t('editorToolbar.reloadFile')}>
                 <IconButton
                     size="2"
                     variant="ghost"
@@ -38,7 +40,7 @@ const EditorToolbar = (props: EditorToolbarProps) => {
                 </IconButton>
             </Tooltip>
 
-            <Tooltip content={hasChanges ? `Save ${count} change${count > 1 ? 's' : ''}` : 'No unsaved changes'}>
+            <Tooltip content={hasChanges ? t('editorToolbar.saveChanges', { count }) : t('editorToolbar.noUnsavedChanges')}>
                 <div style={{position: 'relative', display: 'inline-flex', overflow: 'visible'}}>
                     <IconButton
                         size="2"
@@ -86,7 +88,7 @@ const EditorToolbar = (props: EditorToolbarProps) => {
                 margin: '0 2px',
             }} />
 
-            <Tooltip content={props.autoSave ? 'Autosave is on' : 'Autosave is off'}>
+            <Tooltip content={props.autoSave ? t('editorToolbar.autosaveOn') : t('editorToolbar.autosaveOff')}>
                 <label style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -99,7 +101,7 @@ const EditorToolbar = (props: EditorToolbarProps) => {
                         checked={props.autoSave}
                         onCheckedChange={props.onAutoSaveChange}
                     />
-                    <Text size="2" style={{color: 'var(--gray-11)', userSelect: 'none'}}>Auto</Text>
+                    <Text size="2" style={{color: 'var(--gray-11)', userSelect: 'none'}}>{t('editorToolbar.auto')}</Text>
                 </label>
             </Tooltip>
         </div>

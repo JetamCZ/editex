@@ -1,4 +1,5 @@
 import {useMemo, useState} from "react";
+import { useTranslation } from 'react-i18next';
 import {
     Avatar,
     Badge,
@@ -42,6 +43,7 @@ function roleColor(role: FolderRole) {
 }
 
 export default function FolderAccessModal({open, onOpenChange, folder, baseProject, branch}: Props) {
+    const { t } = useTranslation();
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState<FolderRole>(FolderRole.VIEWER);
 
@@ -81,23 +83,22 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                 <Dialog.Title>
                     <Flex align="center" gap="2">
                         <Lock size={16} />
-                        Access — {folder?.path ?? ""}
+                        {t('folderAccess.title', { path: folder?.path ?? "" })}
                     </Flex>
                 </Dialog.Title>
                 <Dialog.Description size="2" mb="4" color="gray">
-                    Grants on this folder also apply to every subfolder beneath it.
-                    Inherited grants are shown faded.
+                    {t('folderAccess.description')}
                 </Dialog.Description>
 
                 {canManage && (
                     <Box mb="4">
-                        <Text size="2" weight="bold" mb="2" as="div">Grant access</Text>
+                        <Text size="2" weight="bold" mb="2" as="div">{t('folderAccess.grantHeading')}</Text>
                         <form onSubmit={handleGrant}>
                             <Flex gap="2">
                                 <Box style={{flex: 1}}>
                                     <TextField.Root
                                         type="email"
-                                        placeholder="Enter user email"
+                                        placeholder={t('folderAccess.emailPlaceholder')}
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
                                         required
@@ -109,13 +110,13 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                                 >
                                     <Select.Trigger style={{width: 130}} />
                                     <Select.Content>
-                                        <Select.Item value={FolderRole.VIEWER}>Viewer</Select.Item>
-                                        <Select.Item value={FolderRole.EDITOR}>Editor</Select.Item>
-                                        <Select.Item value={FolderRole.MANAGER}>Manager</Select.Item>
+                                        <Select.Item value={FolderRole.VIEWER}>{t('common.viewer')}</Select.Item>
+                                        <Select.Item value={FolderRole.EDITOR}>{t('common.editor')}</Select.Item>
+                                        <Select.Item value={FolderRole.MANAGER}>{t('common.manager')}</Select.Item>
                                     </Select.Content>
                                 </Select.Root>
                                 <Button type="submit" disabled={grant.isPending}>
-                                    {grant.isPending ? "Granting…" : "Grant"}
+                                    {grant.isPending ? t('folderAccess.granting') : t('folderAccess.grant')}
                                 </Button>
                             </Flex>
                             {grant.isError && (
@@ -124,7 +125,7 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                                     <Callout.Text>
                                         {(grant.error as any)?.response?.data?.message
                                             || (grant.error as any)?.message
-                                            || "Failed to grant access"}
+                                            || t('folderAccess.failedToGrant')}
                                     </Callout.Text>
                                 </Callout.Root>
                             )}
@@ -134,13 +135,13 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                 )}
 
                 <Text size="2" weight="bold" mb="2" as="div">
-                    Effective access ({sorted.length})
+                    {t('folderAccess.effectiveAccess', { count: sorted.length })}
                 </Text>
 
-                {isLoading && <Text size="2" color="gray">Loading…</Text>}
+                {isLoading && <Text size="2" color="gray">{t('folderAccess.loading')}</Text>}
 
                 {!isLoading && sorted.length === 0 && (
-                    <Text size="2" color="gray">No access grants yet.</Text>
+                    <Text size="2" color="gray">{t('folderAccess.noGrants')}</Text>
                 )}
 
                 <Flex direction="column" gap="2">
@@ -168,7 +169,7 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                                     <Flex align="center" gap="1" mt="1">
                                         <ArrowUpFromLine size={10} />
                                         <Text size="1" color="gray">
-                                            inherited from <code>{p.sourceFolderPath}</code>
+                                            {t('folderAccess.inheritedFrom', { path: p.sourceFolderPath })}
                                         </Text>
                                     </Flex>
                                 )}
@@ -184,9 +185,9 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                                     >
                                         <Select.Trigger style={{width: 110}} color={roleColor(p.role)} />
                                         <Select.Content>
-                                            <Select.Item value={FolderRole.VIEWER}>Viewer</Select.Item>
-                                            <Select.Item value={FolderRole.EDITOR}>Editor</Select.Item>
-                                            <Select.Item value={FolderRole.MANAGER}>Manager</Select.Item>
+                                            <Select.Item value={FolderRole.VIEWER}>{t('common.viewer')}</Select.Item>
+                                            <Select.Item value={FolderRole.EDITOR}>{t('common.editor')}</Select.Item>
+                                            <Select.Item value={FolderRole.MANAGER}>{t('common.manager')}</Select.Item>
                                         </Select.Content>
                                     </Select.Root>
                                     <IconButton
@@ -212,12 +213,12 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                             <Link
                                 to={`/project/${baseProject}/${branch}/settings/permissions?folder=${folder.id}`}
                             >
-                                Open full permissions page
+                                {t('folderAccess.openPermissions')}
                             </Link>
                         </Button>
                     )}
                     <Dialog.Close>
-                        <Button variant="soft">Close</Button>
+                        <Button variant="soft">{t('folderAccess.close')}</Button>
                     </Dialog.Close>
                 </Flex>
             </Dialog.Content>

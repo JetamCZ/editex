@@ -1,4 +1,5 @@
 import {useNavigate, useParams, useOutletContext} from "react-router";
+import { useTranslation } from 'react-i18next';
 import type {Project} from "../../../types/project";
 import {useState, useEffect, useRef, useCallback} from "react";
 import {createPortal} from "react-dom";
@@ -33,6 +34,7 @@ interface OutletContextType {
 }
 
 const EditorPage = () => {
+    const { t } = useTranslation();
     const {project} = useOutletContext<OutletContextType>();
     const params = useParams();
     const navigate = useNavigate();
@@ -306,7 +308,7 @@ const EditorPage = () => {
                     </Select.Content>
                 </Select.Root>
                 <div style={{width: '1px', height: '20px', backgroundColor: 'var(--gray-6)'}} />
-                <Tooltip content="Compile">
+                <Tooltip content={t('editor.index.compile')}>
                     <IconButton
                         size="2"
                         variant="ghost"
@@ -320,7 +322,7 @@ const EditorPage = () => {
                     </IconButton>
                 </Tooltip>
                 <div style={{width: '1px', height: '20px', backgroundColor: 'var(--gray-6)'}} />
-                <Tooltip content="Download">
+                <Tooltip content={t('editor.index.download')}>
                     <IconButton
                         size="2"
                         variant="ghost"
@@ -359,7 +361,7 @@ const EditorPage = () => {
                     alignItems: "center",
                     justifyContent: "space-between"
                 }}>
-                    <Text size="2" weight="bold" style={{color: "var(--gray-11)", letterSpacing: "0.05em"}}>FILES</Text>
+                    <Text size="2" weight="bold" style={{color: "var(--gray-11)", letterSpacing: "0.05em"}}>{t('editor.index.filesHeading')}</Text>
                     <div style={{display: "flex", gap: "4px"}}>
                         <button
                             onClick={() => setUploadModalOpen(true)}
@@ -440,7 +442,7 @@ const EditorPage = () => {
                     {/* Non-text file viewers */}
                     {!selectedFile ? (
                         <Box p="3" style={{flex: 1}}>
-                            <Text color="gray">Select a file from the tree to start editing</Text>
+                            <Text color="gray">{t('editor.index.selectFile')}</Text>
                         </Box>
                     ) : !isTextFile && isImageFile ? (
                         <Box
@@ -480,7 +482,7 @@ const EditorPage = () => {
                                     gap: '4px'
                                 }}
                             >
-                                Download {selectedFile.originalFileName}
+                                {t('editor.index.downloadFile', { name: selectedFile.originalFileName })}
                             </a>
                         </Box>
                     ) : !isTextFile && isPdfFile ? (
@@ -515,7 +517,7 @@ const EditorPage = () => {
                             }}
                         >
                             <Text color="gray">
-                                Cannot preview this file type. <a href={selectedFile.s3Url} download>Download file</a>
+                                {t('editor.index.cannotPreview')} <a href={selectedFile.s3Url} download>{t('editor.index.downloadFileLink')}</a>
                             </Text>
                         </Box>
                     ) : null}
@@ -531,7 +533,7 @@ const EditorPage = () => {
                             ) : (
                                 <Box p="4" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--gray-2)'}}>
                                     <Text color="gray" size="2" align="center">
-                                        Click "Compile" to generate PDF preview
+                                        {t('editor.index.compileTip')}
                                     </Text>
                                 </Box>
                             )}
@@ -554,10 +556,10 @@ const EditorPage = () => {
                     <div style={{display: "flex", alignItems: "center", gap: "16px"}}>
                         <span style={{display: "flex", alignItems: "center", gap: "4px", color: "var(--green-11)"}}>
                             <span style={{width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "var(--green-9)"}} />
-                            Document Valid
+                            {t('editor.index.documentValid')}
                         </span>
-                        <span style={{color: "var(--gray-11)"}}>— Words</span>
-                        <span style={{color: "var(--gray-11)"}}>— Characters</span>
+                        <span style={{color: "var(--gray-11)"}}>— {t('editor.index.words')}</span>
+                        <span style={{color: "var(--gray-11)"}}>— {t('editor.index.characters')}</span>
                     </div>
                     <div style={{display: "flex", alignItems: "center", gap: "16px"}}>
                         {selectedFile && isTextFile ? (
@@ -574,16 +576,16 @@ const EditorPage = () => {
                                         borderRadius: "50%",
                                         backgroundColor: editorState.isConnected ? "var(--green-9)" : "var(--gray-9)"
                                     }} />
-                                    {editorState.isConnected ? 'Connected' : 'Disconnected'}
+                                    {editorState.isConnected ? t('editor.index.connected') : t('editor.index.disconnected')}
                                 </span>
                                 {editorState.sessionId && (
                                     <span style={{color: "var(--gray-11)"}}>
-                                        Session: {editorState.sessionId.substring(0, 8)}
+                                        {t('editor.index.session', { id: editorState.sessionId.substring(0, 8) })}
                                     </span>
                                 )}
                             </>
                         ) : (
-                            <span style={{color: "var(--gray-11)"}}>Ready</span>
+                            <span style={{color: "var(--gray-11)"}}>{t('editor.index.ready')}</span>
                         )}
                     </div>
                 </footer>

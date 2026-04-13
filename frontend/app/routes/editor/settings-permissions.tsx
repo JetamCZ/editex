@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from "react";
 import {Link, useNavigate, useOutletContext, useSearchParams} from "react-router";
+import { useTranslation } from 'react-i18next';
 import {createPortal} from "react-dom";
 import {
     Avatar,
@@ -65,6 +66,7 @@ function flattenFolderTree(folders: ProjectFolder[]): FolderTreeItem[] {
 }
 
 const PermissionsPage = () => {
+    const { t } = useTranslation();
     const {project} = useOutletContext<OutletContextType>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -105,7 +107,7 @@ const PermissionsPage = () => {
             variant="soft"
             onClick={() => navigate(`/project/${project.baseProject}/${project.branch}/settings`)}
         >
-            <ArrowLeft size={14} /> Back to Settings
+            <ArrowLeft size={14} /> {t('settings.permissions.backToSettings')}
         </Button>,
         headerActionsContainer
     );
@@ -124,21 +126,20 @@ const PermissionsPage = () => {
                     <Flex direction="column" gap="2" mb="6">
                         <Flex align="center" gap="2">
                             <Lock size={20} />
-                            <Heading size="8">Permissions</Heading>
+                            <Heading size="8">{t('settings.permissions.heading')}</Heading>
                         </Flex>
                         <Text size="3" color="gray">
-                            Grants on a folder cascade into every subfolder. The project owner
-                            always has implicit MANAGER on the project root.
+                            {t('settings.permissions.description')}
                         </Text>
                     </Flex>
 
-                    {isLoading && <Text size="2" color="gray">Loading…</Text>}
+                    {isLoading && <Text size="2" color="gray">{t('common.loading')}</Text>}
 
                     {!isLoading && summary && (
                         <Flex gap="4" align="start">
                             {/* Folder tree */}
                             <Card style={{width: 320, flexShrink: 0, maxHeight: "70vh", overflow: "auto"}}>
-                                <Heading size="3" mb="3">Folders</Heading>
+                                <Heading size="3" mb="3">{t('settings.permissions.foldersHeading')}</Heading>
                                 <Flex direction="column" gap="1">
                                     {folderTree.map(folder => {
                                         const selected = folder.id === selectedFolderId;
@@ -167,7 +168,7 @@ const PermissionsPage = () => {
                                                     {folder.parentId === null ? "/" : folder.name}
                                                 </Text>
                                                 {folder.hasExplicitGrants && (
-                                                    <Tooltip content="Has explicit grants">
+                                                    <Tooltip content={t('settings.permissions.hasExplicitGrants')}>
                                                         <Lock size={10} color="var(--purple-11)" />
                                                     </Tooltip>
                                                 )}
@@ -187,7 +188,7 @@ const PermissionsPage = () => {
                                                     {selectedFolder.path}
                                                 </Heading>
                                                 <Text size="2" color="gray">
-                                                    Your effective role:{" "}
+                                                    {t('settings.permissions.yourEffectiveRole')}{" "}
                                                     <Badge color={roleColor(selectedFolder.effectiveRole)}>
                                                         {selectedFolder.effectiveRole ?? "—"}
                                                     </Badge>
@@ -195,16 +196,16 @@ const PermissionsPage = () => {
                                             </Box>
                                             {canManageRoot && (
                                                 <Button onClick={() => setAccessModalFolder(selectedFolder)}>
-                                                    Edit access
+                                                    {t('settings.permissions.editAccess')}
                                                 </Button>
                                             )}
                                         </Flex>
 
                                         <Separator size="4" mb="4" />
 
-                                        <Heading size="3" mb="3">Effective access ({permissions.length})</Heading>
+                                        <Heading size="3" mb="3">{t('settings.permissions.effectiveAccess', { count: permissions.length })}</Heading>
                                         {permissions.length === 0 && (
-                                            <Text size="2" color="gray">No grants on this folder.</Text>
+                                            <Text size="2" color="gray">{t('settings.permissions.noGrants')}</Text>
                                         )}
                                         <Flex direction="column" gap="2">
                                             {permissions
@@ -236,7 +237,7 @@ const PermissionsPage = () => {
                                                             </Text>
                                                             {p.inherited && (
                                                                 <Text as="div" size="1" color="gray">
-                                                                    inherited from <code>{p.sourceFolderPath}</code>
+                                                                    {t('settings.permissions.inheritedFrom', { path: p.sourceFolderPath })}
                                                                 </Text>
                                                             )}
                                                         </Box>
@@ -246,7 +247,7 @@ const PermissionsPage = () => {
                                         </Flex>
                                     </>
                                 ) : (
-                                    <Text color="gray">Select a folder to inspect its permissions.</Text>
+                                    <Text color="gray">{t('settings.permissions.selectFolder')}</Text>
                                 )}
                             </Card>
                         </Flex>

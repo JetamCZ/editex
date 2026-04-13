@@ -4,11 +4,13 @@ import type { ActionFunctionArgs } from "react-router";
 import api from '../lib/axios.server';
 import delay from "~/lib/delay";
 import { commitSession, getSession } from "~/lib/sessions.server";
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
   return [
-    { title: "Sign in – Editex" },
-    { name: "description", content: "Sign in to your Editex account" },
+    { title: i18n.t('auth.login.meta.title') },
+    { name: "description", content: i18n.t('auth.login.meta.description') },
   ];
 }
 
@@ -112,6 +114,7 @@ function Field({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> 
 /* ── Page ───────────────────────────────────────────────────────────────── */
 
 export default function Login() {
+  const { t } = useTranslation();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const loading = navigation.state !== "idle";
@@ -212,10 +215,10 @@ export default function Login() {
               color: '#0c0c0e', letterSpacing: '-0.02em',
               margin: '0 0 7px',
             }}>
-              Welcome back
+              {t('auth.login.heading')}
             </h1>
             <p style={{ fontSize: '15px', color: '#999', margin: 0, lineHeight: 1.5 }}>
-              Sign in to your Editex account
+              {t('auth.login.subheading')}
             </p>
           </div>
 
@@ -223,7 +226,7 @@ export default function Login() {
           {verificationSent && (
             <div style={{ marginBottom: 20 }}>
               <Alert color="green">
-                Verification email sent to <strong>{actionData?.email}</strong>. Please check your inbox.
+                {t('auth.login.verificationSent', { email: actionData?.email })}
               </Alert>
             </div>
           )}
@@ -243,7 +246,7 @@ export default function Login() {
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit', opacity: loading ? 0.7 : 1,
                 }}>
-                  {loading ? 'Sending…' : 'Resend Verification Email'}
+                  {loading ? t('auth.login.resendSending') : t('auth.login.resendButton')}
                 </button>
               </Form>
             </div>
@@ -258,8 +261,8 @@ export default function Login() {
           {/* Form */}
           <Form method="post">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-              <Field label="Email" type="email" name="email" placeholder="you@example.com" required autoComplete="email" />
-              <Field label="Password" type="password" name="password" placeholder="••••••••" required autoComplete="current-password" />
+              <Field label={t('auth.login.emailLabel')} type="email" name="email" placeholder={t('auth.login.emailPlaceholder')} required autoComplete="email" />
+              <Field label={t('auth.login.passwordLabel')} type="password" name="password" placeholder="••••••••" required autoComplete="current-password" />
               <button
                 type="submit"
                 disabled={loading}
@@ -276,7 +279,7 @@ export default function Login() {
                   transition: 'opacity 0.15s',
                 }}
               >
-                {loading ? 'Signing in…' : 'Sign in →'}
+                {loading ? t('auth.login.submitting') : t('auth.login.submit')}
               </button>
             </div>
           </Form>
@@ -284,12 +287,12 @@ export default function Login() {
           {/* Footer links */}
           <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 11, textAlign: 'center' }}>
             <Link to="/auth/forgot-password" style={{ fontSize: '14px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
-              Forgot password?
+              {t('auth.login.forgotPassword')}
             </Link>
             <p style={{ fontSize: '14px', color: '#999', margin: 0 }}>
-              Don't have an account?{' '}
+              {t('auth.login.noAccount')}{' '}
               <Link to="/auth/register" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}>
-                Create one
+                {t('auth.login.createAccount')}
               </Link>
             </p>
           </div>

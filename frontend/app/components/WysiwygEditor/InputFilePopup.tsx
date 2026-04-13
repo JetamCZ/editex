@@ -1,5 +1,6 @@
 import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {createPortal} from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {useProjectFiles} from '~/hooks/useProjectFiles';
 import {useFileBranches, useBranchCommits} from '~/hooks/useFileBranches';
 import type {ProjectFile, FileBranch, FileCommit} from '../../../types/file';
@@ -22,6 +23,7 @@ function parseFilePath(filePath: string): { path: string; ref: string; refType: 
 }
 
 export default function InputFilePopup({filePath, onSave, onCancel, baseProject, branch}: InputFilePopupProps) {
+    const { t } = useTranslation();
     const parsed = useMemo(() => parseFilePath(filePath), [filePath]);
     const [path, setPath] = useState(parsed.path);
     const [versionRef, setVersionRef] = useState(parsed.refType === 'commit' ? parsed.ref : (parsed.ref || 'main'));
@@ -100,15 +102,15 @@ export default function InputFilePopup({filePath, onSave, onCancel, baseProject,
         <div className="math-popup-overlay" onClick={onCancel}>
             <div className="math-popup" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
                 <div className="math-popup-header">
-                    <span>Input File</span>
+                    <span>{t('wysiwygEditor.inputFilePopup.title')}</span>
                     <span style={{fontSize: '12px', color: '#999', fontWeight: 400}}>
-                        Ctrl+Enter to save
+                        {t('wysiwygEditor.inputFilePopup.ctrlEnter')}
                     </span>
                 </div>
                 <div className="math-popup-body" onKeyDown={handleKeyDown}>
                     {texFiles.length > 0 && (
                         <>
-                            <label className="image-popup-label">Project files</label>
+                            <label className="image-popup-label">{t('wysiwygEditor.inputFilePopup.projectFiles')}</label>
                             <div className="input-file-list">
                                 {texFiles.map((file: ProjectFile) => (
                                     <button
@@ -144,14 +146,14 @@ export default function InputFilePopup({filePath, onSave, onCancel, baseProject,
                     )}
 
                     <label className="image-popup-label" style={texFiles.length > 0 ? {marginTop: '12px'} : undefined}>
-                        File path
+                        {t('wysiwygEditor.inputFilePopup.filePath')}
                     </label>
                     <input
                         ref={pathRef}
                         className="image-popup-input"
                         value={path}
                         onChange={e => setPath(e.target.value)}
-                        placeholder="e.g. chapters/introduction"
+                        placeholder={t('wysiwygEditor.inputFilePopup.filePathPlaceholder')}
                     />
 
                     {/* Version selector */}
@@ -171,13 +173,13 @@ export default function InputFilePopup({filePath, onSave, onCancel, baseProject,
                 </div>
                 <div className="math-popup-footer">
                     <button className="math-popup-btn" onClick={onCancel}>
-                        Cancel
+                        {t('wysiwygEditor.inputFilePopup.cancel')}
                     </button>
                     <button
                         className="math-popup-btn math-popup-btn-primary"
                         onClick={handleSave}
                     >
-                        Save
+                        {t('wysiwygEditor.inputFilePopup.save')}
                     </button>
                 </div>
             </div>
@@ -193,6 +195,7 @@ function VersionSelector({ fileId, refType, versionRef, onRefTypeChange, onVersi
     onRefTypeChange: (type: 'branch' | 'commit') => void;
     onVersionRefChange: (ref: string) => void;
 }) {
+    const { t } = useTranslation();
     const { data: branches = [] } = useFileBranches(fileId);
 
     // Find the active branch for commit listing
@@ -200,7 +203,7 @@ function VersionSelector({ fileId, refType, versionRef, onRefTypeChange, onVersi
 
     return (
         <div style={{ marginTop: '12px' }}>
-            <label className="image-popup-label">Version</label>
+            <label className="image-popup-label">{t('wysiwygEditor.inputFilePopup.version')}</label>
 
             {/* Ref type tabs */}
             <div style={{
@@ -230,7 +233,7 @@ function VersionSelector({ fileId, refType, versionRef, onRefTypeChange, onVersi
                             transition: 'all 0.1s',
                         }}
                     >
-                        {type === 'branch' ? '@ Variant' : '# Version'}
+                        {type === 'branch' ? t('wysiwygEditor.inputFilePopup.variantTab') : t('wysiwygEditor.inputFilePopup.versionTab')}
                     </button>
                 ))}
             </div>
@@ -284,6 +287,7 @@ function CommitPicker({ branches, versionRef, onVersionRefChange }: {
     versionRef: string;
     onVersionRefChange: (ref: string) => void;
 }) {
+    const { t } = useTranslation();
     const [selectedBranchId, setSelectedBranchId] = useState<string | null>(
         branches[0]?.id || null
     );
@@ -321,7 +325,7 @@ function CommitPicker({ branches, versionRef, onVersionRefChange }: {
 
             {commits.length === 0 ? (
                 <div style={{ fontSize: '12px', color: '#999', padding: '8px 0' }}>
-                    No versions in this variant
+                    {t('wysiwygEditor.inputFilePopup.noVersions')}
                 </div>
             ) : (
                 <div style={{
@@ -367,7 +371,7 @@ function CommitPicker({ branches, versionRef, onVersionRefChange }: {
                                 whiteSpace: 'nowrap',
                                 color: '#374151',
                             }}>
-                                {commit.message || 'No message'}
+                                {commit.message || t('wysiwygEditor.inputFilePopup.noMessage')}
                             </span>
                             <span style={{
                                 fontSize: '10px',

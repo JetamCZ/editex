@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DropdownMenu, Button, Dialog, TextField, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
 import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil } from 'lucide-react';
 import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch, useRenameBranch } from '~/hooks/useFileBranches';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
+    const { t } = useTranslation();
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [commitDialogOpen, setCommitDialogOpen] = useState(false);
     const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
@@ -127,7 +129,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             }}>
                 {/* Branch selector dropdown */}
                 <DropdownMenu.Root>
-                    <Tooltip content="Switch variant">
+                    <Tooltip content={t('fileBranchSelector.switchVariant')}>
                         <DropdownMenu.Trigger>
                             <button style={{
                                 display: 'flex',
@@ -166,7 +168,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                         </DropdownMenu.Trigger>
                     </Tooltip>
                     <DropdownMenu.Content size="2" align="start">
-                        <DropdownMenu.Label>Variants</DropdownMenu.Label>
+                        <DropdownMenu.Label>{t('fileBranchSelector.variantsLabel')}</DropdownMenu.Label>
                         {branches.map(branch => (
                             <DropdownMenu.Item
                                 key={branch.id}
@@ -181,7 +183,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                                     </Flex>
                                     <Flex align="center" gap="1">
                                         {branch.id === activeBranchId && (
-                                            <Text size="1" color="blue">current</Text>
+                                            <Text size="1" color="blue">{t('fileBranchSelector.current')}</Text>
                                         )}
                                         {branch.name !== 'main' && (
                                             <IconButton
@@ -216,12 +218,12 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                         <DropdownMenu.Separator />
                         <DropdownMenu.Item onSelect={() => setCreateDialogOpen(true)}>
                             <Plus size={14} strokeWidth={2} />
-                            <Text size="2">New variant...</Text>
+                            <Text size="2">{t('fileBranchSelector.newVariant')}</Text>
                         </DropdownMenu.Item>
                         {branches.length > 1 && (
                             <DropdownMenu.Item onSelect={() => setMergeDialogOpen(true)}>
                                 <GitMerge size={14} strokeWidth={2} />
-                                <Text size="2">Combine...</Text>
+                                <Text size="2">{t('fileBranchSelector.combine')}</Text>
                             </DropdownMenu.Item>
                         )}
                     </DropdownMenu.Content>
@@ -230,7 +232,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                 <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--gray-6)', margin: '0 2px' }} />
 
                 {/* Save version button */}
-                <Tooltip content="Save version">
+                <Tooltip content={t('fileBranchSelector.saveVersionTooltip')}>
                     <IconButton
                         size="2"
                         variant="ghost"
@@ -244,7 +246,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                 </Tooltip>
 
                 {/* History / Git tree button */}
-                <Tooltip content="Version history">
+                <Tooltip content={t('fileBranchSelector.versionHistoryTooltip')}>
                     <IconButton
                         size="2"
                         variant="ghost"
@@ -261,13 +263,13 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             {/* Create Variant Dialog */}
             <Dialog.Root open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <Dialog.Content maxWidth="400px">
-                    <Dialog.Title>New Variant</Dialog.Title>
+                    <Dialog.Title>{t('fileBranchSelector.newVariantDialog.title')}</Dialog.Title>
                     <Dialog.Description size="2" color="gray">
-                        Create a new variant from "{activeBranchName}" for {selectedFile.originalFileName}
+                        {t('fileBranchSelector.newVariantDialog.description', { branch: activeBranchName, file: selectedFile.originalFileName })}
                     </Dialog.Description>
                     <Flex direction="column" gap="3" mt="4">
                         <TextField.Root
-                            placeholder="Variant name"
+                            placeholder={t('fileBranchSelector.newVariantDialog.namePlaceholder')}
                             value={newBranchName}
                             onChange={(e) => setNewBranchName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleCreateBranch()}
@@ -275,14 +277,14 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                         />
                         <Flex gap="3" justify="end">
                             <Dialog.Close>
-                                <Button variant="soft" color="gray">Cancel</Button>
+                                <Button variant="soft" color="gray">{t('fileBranchSelector.newVariantDialog.cancel')}</Button>
                             </Dialog.Close>
                             <Button
                                 onClick={handleCreateBranch}
                                 disabled={!newBranchName.trim() || createBranch.isPending}
                                 loading={createBranch.isPending}
                             >
-                                Create Variant
+                                {t('fileBranchSelector.newVariantDialog.submit')}
                             </Button>
                         </Flex>
                     </Flex>
@@ -292,13 +294,13 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             {/* Rename Variant Dialog */}
             <Dialog.Root open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
                 <Dialog.Content maxWidth="400px">
-                    <Dialog.Title>Rename Variant</Dialog.Title>
+                    <Dialog.Title>{t('fileBranchSelector.renameVariantDialog.title')}</Dialog.Title>
                     <Dialog.Description size="2" color="gray">
-                        Enter a new name for this variant.
+                        {t('fileBranchSelector.renameVariantDialog.description')}
                     </Dialog.Description>
                     <Flex direction="column" gap="3" mt="4">
                         <TextField.Root
-                            placeholder="Variant name"
+                            placeholder={t('fileBranchSelector.renameVariantDialog.namePlaceholder')}
                             value={renameBranchValue}
                             onChange={(e) => setRenameBranchValue(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
@@ -306,14 +308,14 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                         />
                         <Flex gap="3" justify="end">
                             <Dialog.Close>
-                                <Button variant="soft" color="gray">Cancel</Button>
+                                <Button variant="soft" color="gray">{t('fileBranchSelector.renameVariantDialog.cancel')}</Button>
                             </Dialog.Close>
                             <Button
                                 onClick={handleRename}
                                 disabled={!renameBranchValue.trim() || renameBranch.isPending}
                                 loading={renameBranch.isPending}
                             >
-                                Rename
+                                {t('fileBranchSelector.renameVariantDialog.submit')}
                             </Button>
                         </Flex>
                     </Flex>
@@ -323,13 +325,13 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             {/* Save Version Dialog */}
             <Dialog.Root open={commitDialogOpen} onOpenChange={setCommitDialogOpen}>
                 <Dialog.Content maxWidth="400px">
-                    <Dialog.Title>Save Version</Dialog.Title>
+                    <Dialog.Title>{t('fileBranchSelector.saveVersionDialog.title')}</Dialog.Title>
                     <Dialog.Description size="2" color="gray">
-                        Save the current state of "{selectedFile.originalFileName}" on variant "{activeBranchName}"
+                        {t('fileBranchSelector.saveVersionDialog.description', { file: selectedFile.originalFileName, branch: activeBranchName })}
                     </Dialog.Description>
                     <Flex direction="column" gap="3" mt="4">
                         <TextField.Root
-                            placeholder="Description (optional)"
+                            placeholder={t('fileBranchSelector.saveVersionDialog.descriptionPlaceholder')}
                             value={commitMessage}
                             onChange={(e) => setCommitMessage(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
@@ -337,14 +339,14 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                         />
                         <Flex gap="3" justify="end">
                             <Dialog.Close>
-                                <Button variant="soft" color="gray">Cancel</Button>
+                                <Button variant="soft" color="gray">{t('fileBranchSelector.saveVersionDialog.cancel')}</Button>
                             </Dialog.Close>
                             <Button
                                 onClick={handleCommit}
                                 disabled={createCommit.isPending}
                                 loading={createCommit.isPending}
                             >
-                                Save Version
+                                {t('fileBranchSelector.saveVersionDialog.submit')}
                             </Button>
                         </Flex>
                     </Flex>
@@ -354,12 +356,12 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             {/* Combine Dialog */}
             <Dialog.Root open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
                 <Dialog.Content maxWidth="450px">
-                    <Dialog.Title>Combine Variants</Dialog.Title>
+                    <Dialog.Title>{t('fileBranchSelector.combineDialog.title')}</Dialog.Title>
                     <Dialog.Description size="2" color="gray">
-                        Combine content from "{activeBranchName}" into another variant
+                        {t('fileBranchSelector.combineDialog.description', { branch: activeBranchName })}
                     </Dialog.Description>
                     <Flex direction="column" gap="2" mt="4">
-                        <Text size="2" weight="medium" color="gray">Target variant:</Text>
+                        <Text size="2" weight="medium" color="gray">{t('fileBranchSelector.combineDialog.targetLabel')}</Text>
                         {branches
                             .filter(b => b.id !== activeBranchId)
                             .map(branch => (
@@ -390,7 +392,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                             ))}
                         <Flex gap="3" justify="end" mt="3">
                             <Dialog.Close>
-                                <Button variant="soft" color="gray">Cancel</Button>
+                                <Button variant="soft" color="gray">{t('fileBranchSelector.combineDialog.cancel')}</Button>
                             </Dialog.Close>
                             <Button
                                 color="blue"
@@ -399,7 +401,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                                 loading={mergeBranch.isPending}
                             >
                                 <GitMerge size={14} strokeWidth={2} />
-                                Combine
+                                {t('fileBranchSelector.combineDialog.submit')}
                             </Button>
                         </Flex>
                     </Flex>
@@ -412,7 +414,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                     <Dialog.Title>
                         <Flex align="center" gap="2">
                             <GitBranch size={18} strokeWidth={2} />
-                            History — {selectedFile.originalFileName}
+                            {t('fileBranchSelector.historyDialog.title', { file: selectedFile.originalFileName })}
                         </Flex>
                     </Dialog.Title>
                     <GitTree
@@ -421,7 +423,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                     />
                     <Flex justify="end" mt="4">
                         <Dialog.Close>
-                            <Button variant="soft" color="gray">Close</Button>
+                            <Button variant="soft" color="gray">{t('fileBranchSelector.historyDialog.close')}</Button>
                         </Dialog.Close>
                     </Flex>
                 </Dialog.Content>

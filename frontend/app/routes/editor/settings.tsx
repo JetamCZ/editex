@@ -1,4 +1,5 @@
 import {useNavigate, useOutletContext} from "react-router";
+import { useTranslation } from 'react-i18next';
 import type {Project} from "../../../types/project";
 import {FolderRole, roleIncludes} from "../../../types/permission";
 import {useEffect, useState} from "react";
@@ -26,6 +27,7 @@ interface OutletContextType {
 }
 
 const ProjectSettingsPage = () => {
+    const { t } = useTranslation();
     const {project} = useOutletContext<OutletContextType>();
     const navigate = useNavigate();
     const {bearerToken} = useAuth();
@@ -45,7 +47,7 @@ const ProjectSettingsPage = () => {
             variant="soft"
             onClick={() => navigate(`/project/${project.baseProject}/${project.branch}`)}
         >
-            Back to Editor
+            {t('editor.settings.backToEditor')}
         </Button>,
         headerActionsContainer
     );
@@ -61,9 +63,9 @@ const ProjectSettingsPage = () => {
                     className="py-8 px-4"
                 >
                     <Box className="w-full max-w-2xl mb-6">
-                        <Heading size="8" mb="2">Project Settings</Heading>
+                        <Heading size="8" mb="2">{t('editor.settings.heading')}</Heading>
                         <Text size="3" className="text-gray-11">
-                            Manage your project settings and access
+                            {t('editor.settings.description')}
                         </Text>
                     </Box>
 

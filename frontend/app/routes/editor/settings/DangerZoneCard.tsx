@@ -1,5 +1,6 @@
 import {useState} from "react";
 import {useNavigate} from "react-router";
+import { useTranslation } from 'react-i18next';
 import {
     Box,
     Text,
@@ -19,6 +20,7 @@ interface DangerZoneCardProps {
 }
 
 export default function DangerZoneCard({project, bearerToken}: DangerZoneCardProps) {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -42,12 +44,12 @@ export default function DangerZoneCard({project, bearerToken}: DangerZoneCardPro
         <>
             <Card className="w-full max-w-2xl border-red-6">
                 <Flex direction="column" gap="4">
-                    <Heading size="5" className="text-red-11">Danger Zone</Heading>
+                    <Heading size="5" className="text-red-11">{t('settings.dangerZone.heading')}</Heading>
                     <Flex justify="between" align="center">
                         <Flex direction="column" gap="1">
-                            <Text size="2" weight="bold">Delete Project</Text>
+                            <Text size="2" weight="bold">{t('settings.dangerZone.deleteTitle')}</Text>
                             <Text size="2" className="text-gray-11">
-                                Permanently delete this project and all its files
+                                {t('settings.dangerZone.deleteDescription')}
                             </Text>
                         </Flex>
                         <Button
@@ -56,7 +58,7 @@ export default function DangerZoneCard({project, bearerToken}: DangerZoneCardPro
                             size="2"
                             onClick={() => setDeleteDialogOpen(true)}
                         >
-                            Delete Project
+                            {t('settings.dangerZone.deleteButton')}
                         </Button>
                     </Flex>
                 </Flex>

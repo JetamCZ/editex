@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Link, type ActionFunctionArgs, Form, useActionData, useNavigation } from 'react-router';
 import api from '../lib/axios.server';
 import delay from "~/lib/delay";
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
   return [
-    { title: "Create account – Editex" },
-    { name: "description", content: "Create a new Editex account" },
+    { title: i18n.t('auth.register.meta.title') },
+    { name: "description", content: i18n.t('auth.register.meta.description') },
   ];
 }
 
@@ -94,6 +96,7 @@ function Field({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> 
 /* ── Page ───────────────────────────────────────────────────────────────── */
 
 export default function Register() {
+  const { t } = useTranslation();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const loading = navigation.state !== "idle";
@@ -134,20 +137,20 @@ export default function Register() {
             color: '#f0ede6', letterSpacing: '-0.025em',
             lineHeight: 1.18, margin: '0 0 18px',
           }}>
-            Start writing<br />
-            <em style={{ fontStyle: 'italic', color: '#93c5fd' }}>with your team.</em>
+            {t('auth.register.panel.headingLine1')}<br />
+            <em style={{ fontStyle: 'italic', color: '#93c5fd' }}>{t('auth.register.panel.headingEmphasis')}</em>
           </h2>
           <p style={{ fontSize: '15px', color: 'rgba(240,237,230,0.48)', lineHeight: 1.72, margin: 0, maxWidth: '300px' }}>
-            Create an account and invite collaborators to your LaTeX projects in seconds.
+            {t('auth.register.panel.subheading')}
           </p>
         </div>
 
         {/* Feature list */}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            'Version-controlled LaTeX documents',
-            'Real-time collaborative editing',
-            'Role-based access & permissions',
+            t('auth.register.panel.feature1'),
+            t('auth.register.panel.feature2'),
+            t('auth.register.panel.feature3'),
           ].map(item => (
             <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
@@ -203,12 +206,10 @@ export default function Register() {
                   color: '#0c0c0e', letterSpacing: '-0.02em',
                   margin: '0 0 10px',
                 }}>
-                  Check your inbox
+                  {t('auth.register.success.heading')}
                 </h1>
                 <p style={{ fontSize: '15px', color: '#888', margin: 0, lineHeight: 1.65 }}>
-                  We've sent a verification link to{' '}
-                  <strong style={{ color: '#444' }}>{actionData?.email}</strong>.
-                  Please check your inbox and spam folder.
+                  {t('auth.register.success.message', { email: actionData?.email })}
                 </p>
               </div>
               <Link to="/auth/login" style={{ textDecoration: 'none', width: '100%' }}>
@@ -219,7 +220,7 @@ export default function Register() {
                   border: 'none', cursor: 'pointer',
                   fontSize: '15px', fontWeight: 700, fontFamily: 'inherit',
                 }}>
-                  Go to sign in →
+                  {t('auth.register.success.signInButton')}
                 </button>
               </Link>
             </div>
@@ -233,10 +234,10 @@ export default function Register() {
                   color: '#0c0c0e', letterSpacing: '-0.02em',
                   margin: '0 0 7px',
                 }}>
-                  Create your account
+                  {t('auth.register.heading')}
                 </h1>
                 <p style={{ fontSize: '15px', color: '#999', margin: 0, lineHeight: 1.5 }}>
-                  Free to get started, no credit card required.
+                  {t('auth.register.subheading')}
                 </p>
               </div>
 
@@ -248,10 +249,10 @@ export default function Register() {
 
               <Form method="post">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                  <Field label="Full name" type="text" name="name" placeholder="Ada Lovelace" required autoComplete="name" />
-                  <Field label="Email" type="email" name="email" placeholder="you@example.com" required autoComplete="email" />
-                  <Field label="Password" type="password" name="password" placeholder="••••••••" required autoComplete="new-password" />
-                  <Field label="Confirm password" type="password" name="confirm_password" placeholder="••••••••" required autoComplete="new-password" />
+                  <Field label={t('auth.register.nameLabel')} type="text" name="name" placeholder={t('auth.register.namePlaceholder')} required autoComplete="name" />
+                  <Field label={t('auth.register.emailLabel')} type="email" name="email" placeholder={t('auth.register.emailPlaceholder')} required autoComplete="email" />
+                  <Field label={t('auth.register.passwordLabel')} type="password" name="password" placeholder="••••••••" required autoComplete="new-password" />
+                  <Field label={t('auth.register.confirmPasswordLabel')} type="password" name="confirm_password" placeholder="••••••••" required autoComplete="new-password" />
                   <button
                     type="submit"
                     disabled={loading}
@@ -265,15 +266,15 @@ export default function Register() {
                       transition: 'opacity 0.15s',
                     }}
                   >
-                    {loading ? 'Creating account…' : 'Create account →'}
+                    {loading ? t('auth.register.submitting') : t('auth.register.submit')}
                   </button>
                 </div>
               </Form>
 
               <p style={{ marginTop: 22, fontSize: '14px', color: '#999', textAlign: 'center', margin: '22px 0 0' }}>
-                Already have an account?{' '}
+                {t('auth.register.haveAccount')}{' '}
                 <Link to="/auth/login" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}>
-                  Sign in
+                  {t('auth.register.signIn')}
                 </Link>
               </p>
             </>

@@ -1,0 +1,647 @@
+{
+  "common": {
+    "cancel": "Zrušit",
+    "save": "Uložit",
+    "saving": "Ukládání...",
+    "create": "Vytvořit",
+    "creating": "Vytváření…",
+    "delete": "Smazat",
+    "deleting": "Mazání...",
+    "rename": "Přejmenovat",
+    "renaming": "Přejmenování…",
+    "close": "Zavřít",
+    "loading": "Načítání…",
+    "edit": "Upravit",
+    "move": "Přesunout",
+    "moving": "Přesouvání...",
+    "download": "Stáhnout",
+    "uploading": "Nahrávání...",
+    "back": "Zpět",
+    "grant": "Udělit",
+    "granting": "Udělování…",
+    "combine": "Sloučit",
+    "viewer": "Čtenář",
+    "editor": "Editor",
+    "manager": "Správce",
+    "grid": "Mřížka",
+    "list": "Seznam",
+    "active": "Aktivní",
+    "copied": "Zkopírováno",
+    "copyLog": "Kopírovat protokol",
+    "send": "Odeslat",
+    "sending": "Odesílání…",
+    "remove": "Odebrat",
+    "yes": "Ano",
+    "no": "Ne"
+  },
+  "errors": {
+    "oops": "Ups!",
+    "unexpectedError": "Došlo k neočekávané chybě.",
+    "notFound": "404",
+    "error": "Chyba",
+    "pageNotFound": "Požadovaná stránka nebyla nalezena."
+  },
+  "home": {
+    "meta": {
+      "title": "Editex - Kolaborativní LaTeX editor",
+      "description": "LaTeX úpravy, navržené pro týmy. Správa verzí, spolupráce v reálném čase a správa dokumentů."
+    },
+    "nav": {
+      "dashboard": "Přehled",
+      "signIn": "Přihlásit se",
+      "getStarted": "Začít"
+    },
+    "hero": {
+      "badge": "Kolaborativní editace LaTeXu",
+      "headingLine1": "LaTeX editace,",
+      "headingEmphasis": "přepracovaná",
+      "headingLine2": "pro týmy.",
+      "subheading": "Pište, spolupracujte a spravujte verze LaTeX dokumentů. Navrženo pro výzkumníky, akademiky a technické týmy.",
+      "ctaPrimary": "Začít zdarma",
+      "ctaSecondary": "Přihlásit se"
+    },
+    "features": {
+      "label": "Funkce",
+      "heading": "Vše, co váš tým potřebuje k psaní skvělých dokumentů.",
+      "subheading": "Navrženo pro akademiky a výzkumníky, kteří od svých nástrojů vyžadují přesnost.",
+      "versionControl": {
+        "title": "Správa verzí",
+        "description": "Sledujte každou změnu v dokumentech s plnou historií verzí."
+      },
+      "collaboration": {
+        "title": "Spolupráce v reálném čase",
+        "description": "Pište společně v reálném čase s celým týmem."
+      },
+      "latexEditor": {
+        "title": "LaTeX zjednodušený",
+        "description": "Výkonné editování LaTeXu s přehledným a intuitivním rozhraním."
+      }
+    },
+    "cta": {
+      "headingLine1": "Připraveni psát",
+      "headingEmphasis": "společně?",
+      "subheading": "Připojte se k týmům využívajícím Editex pro spolupráci na LaTeX dokumentech.",
+      "button": "Začít zdarma →"
+    },
+    "footer": {
+      "copyright": "© 2025 Editex. Všechna práva vyhrazena."
+    },
+    "mockEditor": {
+      "editingNow": "3 právě editují",
+      "live": "ŽIVĚ"
+    }
+  },
+  "auth": {
+    "login": {
+      "meta": {
+        "title": "Přihlášení – Editex",
+        "description": "Přihlaste se ke svému účtu Editex"
+      },
+      "heading": "Vítejte zpět",
+      "subheading": "Přihlaste se ke svému účtu Editex",
+      "verificationSent": "Ověřovací e-mail byl odeslán na {{email}}. Zkontrolujte svou doručenou poštu.",
+      "resendSending": "Odesílání…",
+      "resendButton": "Znovu odeslat ověřovací e-mail",
+      "emailLabel": "E-MAIL",
+      "emailPlaceholder": "vy@priklad.cz",
+      "passwordLabel": "HESLO",
+      "submitting": "Přihlašování…",
+      "submit": "Přihlásit se →",
+      "forgotPassword": "Zapomenuté heslo?",
+      "noAccount": "Nemáte účet?",
+      "createAccount": "Vytvořte si ho"
+    },
+    "register": {
+      "meta": {
+        "title": "Vytvořit účet – Editex",
+        "description": "Vytvořte si nový účet Editex"
+      },
+      "panel": {
+        "headingLine1": "Začněte psát",
+        "headingEmphasis": "s vaším týmem.",
+        "subheading": "Vytvořte si účet a pozvěte spolupracovníky do svých LaTeX projektů za pár sekund.",
+        "feature1": "LaTeX dokumenty se správou verzí",
+        "feature2": "Kolaborativní editace v reálném čase",
+        "feature3": "Přístup a oprávnění podle rolí"
+      },
+      "heading": "Vytvořte si účet",
+      "subheading": "Zdarma, bez nutnosti platební karty.",
+      "nameLabel": "CELÉ JMÉNO",
+      "namePlaceholder": "Ada Lovelace",
+      "emailLabel": "E-MAIL",
+      "emailPlaceholder": "vy@priklad.cz",
+      "passwordLabel": "HESLO",
+      "confirmPasswordLabel": "POTVRDIT HESLO",
+      "submitting": "Vytváření účtu…",
+      "submit": "Vytvořit účet →",
+      "haveAccount": "Již máte účet?",
+      "signIn": "Přihlásit se",
+      "success": {
+        "heading": "Zkontrolujte svou e-mailovou schránku",
+        "message": "Odeslali jsme ověřovací odkaz na {{email}}. Zkontrolujte svou doručenou poštu a spam.",
+        "signInButton": "Přejít k přihlášení →"
+      }
+    },
+    "forgotPassword": {
+      "meta": {
+        "title": "Zapomenuté heslo - Editex",
+        "description": "Obnovte heslo k vašemu účtu Editex"
+      },
+      "heading": "Zapomenuté heslo",
+      "description": "Zadejte svou e-mailovou adresu a my vám pošleme odkaz pro obnovení hesla.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "Zadejte svůj e-mail",
+      "submitting": "Odesílání…",
+      "submit": "Odeslat odkaz pro obnovení",
+      "rememberPassword": "Vzpomněli jste si na heslo?",
+      "loginLink": "Přihlášení",
+      "successMessage": "Pokud účet s tímto e-mailem existuje, brzy obdržíte odkaz pro obnovení hesla.",
+      "checkInbox": "Zkontrolujte svou doručenou poštu a složku se spamem.",
+      "backToLogin": "Zpět na přihlášení"
+    },
+    "resetPassword": {
+      "meta": {
+        "title": "Obnovení hesla - Editex",
+        "description": "Nastavte nové heslo pro váš účet Editex"
+      },
+      "invalidLink": "Neplatný odkaz pro obnovení hesla. Požádejte o nový.",
+      "requestNewLink": "Požádat o nový odkaz",
+      "heading": "Obnovení hesla",
+      "description": "Zadejte své nové heslo níže.",
+      "newPasswordLabel": "Nové heslo",
+      "newPasswordPlaceholder": "Zadejte nové heslo",
+      "confirmPasswordLabel": "Potvrdit heslo",
+      "confirmPasswordPlaceholder": "Potvrďte nové heslo",
+      "submitting": "Obnovování…",
+      "submit": "Obnovit heslo",
+      "successMessage": "Vaše heslo bylo úspěšně obnoveno!",
+      "successSubtext": "Nyní se můžete přihlásit pomocí nového hesla.",
+      "goToLogin": "Přejít k přihlášení",
+      "rememberPassword": "Vzpomněli jste si na heslo?",
+      "loginLink": "Přihlášení"
+    },
+    "verifyEmail": {
+      "meta": {
+        "title": "Ověření e-mailu - Editex",
+        "description": "Ověřte svou e-mailovou adresu Editex"
+      },
+      "successMessage": "Váš e-mail byl úspěšně ověřen!",
+      "successSubtext": "Nyní se můžete přihlásit ke svému účtu.",
+      "goToLogin": "Přejít k přihlášení",
+      "expiredMessage": "Platnost vašeho ověřovacího odkazu vypršela. Požádejte o nový."
+    }
+  },
+  "dashboard": {
+    "meta": {
+      "title": "Přehled - Editex",
+      "description": "Spravujte své LaTeX projekty"
+    },
+    "newProject": {
+      "meta": {
+        "title": "Nový projekt - Editex",
+        "description": "Vytvořte nový LaTeX projekt"
+      }
+    },
+    "index": {
+      "startNew": "Začít nový projekt",
+      "blank": "Prázdný projekt",
+      "recentProjects": "Nedávné projekty",
+      "noProjects": {
+        "heading": "Zatím žádné projekty",
+        "description": "Vytvořte svůj první LaTeX projekt a začněte.",
+        "createButton": "Vytvořit projekt"
+      }
+    }
+  },
+  "createProjectModal": {
+    "title": "Vytvořit nový projekt",
+    "description": "Zadejte název pro váš nový LaTeX projekt.",
+    "descriptionWithTemplate": "Zadejte název pro váš nový LaTeX projekt a vyberte šablonu.",
+    "projectNameLabel": "Název projektu",
+    "projectNamePlaceholder": "Můj LaTeX projekt",
+    "templateLabel": "Šablona",
+    "cancel": "Zrušit",
+    "submit": "Vytvořit projekt"
+  },
+  "profile": {
+    "meta": {
+      "title": "Profil - Editex",
+      "description": "Spravujte nastavení svého profilu"
+    },
+    "heading": "Nastavení profilu",
+    "description": "Spravujte své osobní údaje a nastavení účtu",
+    "errors": {
+      "passwordRequired": "Pro změnu hesla je vyžadováno aktuální heslo",
+      "passwordMismatch": "Nová hesla se neshodují",
+      "passwordTooShort": "Nové heslo musí mít alespoň 8 znaků"
+    },
+    "userInfo": {
+      "heading": "Informace o uživateli",
+      "fullNameLabel": "Celé jméno",
+      "fullNamePlaceholder": "Zadejte celé jméno"
+    },
+    "changePassword": {
+      "heading": "Změna hesla",
+      "description": "Ponechte prázdné, pokud nechcete heslo měnit",
+      "currentPasswordLabel": "Aktuální heslo",
+      "currentPasswordPlaceholder": "Zadejte aktuální heslo",
+      "newPasswordLabel": "Nové heslo",
+      "newPasswordPlaceholder": "Zadejte nové heslo",
+      "confirmPasswordLabel": "Potvrdit nové heslo",
+      "confirmPasswordPlaceholder": "Potvrďte nové heslo"
+    },
+    "accountInfo": {
+      "heading": "Informace o účtu",
+      "emailLabel": "E-mailová adresa",
+      "statusLabel": "Stav účtu",
+      "memberSinceLabel": "Člen od"
+    },
+    "dangerZone": {
+      "heading": "Nebezpečná zóna",
+      "deleteAccount": "Smazat účet",
+      "deleteAccountDescription": "Trvale smazat váš účet a všechna přidružená data",
+      "deleteAccountButton": "Smazat účet"
+    },
+    "success": "Profil byl úspěšně aktualizován!",
+    "cancel": "Zrušit",
+    "saving": "Ukládání...",
+    "saveChanges": "Uložit změny"
+  },
+  "editor": {
+    "layout": {
+      "files": "Soubory",
+      "help": "Nápověda",
+      "settings": "Nastavení",
+      "projects": "Projekty",
+      "profile": "Profil",
+      "logout": "Odhlásit se"
+    },
+    "index": {
+      "filesHeading": "SOUBORY",
+      "createNewFile": "Vytvořit nový soubor",
+      "selectFile": "Vyberte soubor ze stromu a začněte editovat",
+      "cannotPreview": "Tento typ souboru nelze zobrazit. ",
+      "downloadFile": "Stáhnout soubor",
+      "clickCompile": "Klikněte na \"Kompilovat\" pro vygenerování náhledu PDF",
+      "documentValid": "Dokument je v pořádku",
+      "words": "— Slova",
+      "characters": "— Znaky",
+      "connected": "Připojeno",
+      "disconnected": "Odpojeno",
+      "ready": "Připraveno",
+      "compile": "Kompilovat",
+      "download": "Stáhnout",
+      "backToEditor": "Zpět na editor"
+    },
+    "settings": {
+      "heading": "Nastavení projektu",
+      "description": "Spravujte nastavení projektu a přístupy",
+      "backToEditor": "Zpět na editor"
+    },
+    "help": {
+      "meta": {
+        "title": "LaTeX reference - Editex",
+        "description": "Rychlá reference příkazů a syntaxe LaTeXu"
+      },
+      "heading": "Průvodce LaTeX referencí",
+      "description": "Rychlá reference pro běžně používané příkazy a syntaxi LaTeXu",
+      "tabs": {
+        "basics": "Základy",
+        "formatting": "Formátování",
+        "math": "Matematika",
+        "structure": "Struktura",
+        "listsAndTables": "Seznamy a tabulky",
+        "figures": "Obrázky",
+        "references": "Reference"
+      },
+      "keyboardShortcuts": {
+        "heading": "Klávesové zkratky",
+        "description": "Editor podporuje tyto klávesové zkratky pro formátování LaTeXu:"
+      }
+    }
+  },
+  "settings": {
+    "projectInfo": {
+      "heading": "Informace o projektu",
+      "nameLabel": "Název projektu",
+      "namePlaceholder": "Zadejte název projektu",
+      "saving": "Ukládání...",
+      "save": "Uložit",
+      "cancel": "Zrušit",
+      "idLabel": "ID projektu",
+      "branchLabel": "Větev",
+      "roleLabel": "Vaše role",
+      "createdLabel": "Vytvořeno",
+      "successMessage": "Název projektu byl úspěšně aktualizován!",
+      "errorMessage": "Nepodařilo se aktualizovat název projektu"
+    },
+    "access": {
+      "heading": "Přístup a oprávnění",
+      "description": "Oprávnění jsou spravována per složka. Udělte uživateli přístup ČTENÁŘ, EDITOR nebo SPRÁVCE na jakékoli složce a tento přístup se přenese do každé podsložky.",
+      "youCanGrant": "Můžete udělovat nebo odvolávat přístup na jakékoli složce, kterou spravujete.",
+      "onlyManagers": "Pouze správci mohou měnit oprávnění.",
+      "manageButton": "Spravovat oprávnění"
+    },
+    "dangerZone": {
+      "heading": "Nebezpečná zóna",
+      "deleteProject": "Smazat projekt",
+      "deleteDescription": "Trvale smazat tento projekt a všechny jeho soubory",
+      "deleteButton": "Smazat projekt"
+    },
+    "deleteProject": {
+      "title": "Smazat projekt",
+      "description": "Tuto akci nelze vrátit zpět. Trvale se odstraní projekt",
+      "descriptionEnd": "a všechny jeho soubory.",
+      "pleaseType": "Napište prosím",
+      "toConfirm": "pro potvrzení:",
+      "failedToDelete": "Nepodařilo se smazat projekt",
+      "cancel": "Zrušit",
+      "deleting": "Mazání...",
+      "delete": "Smazat projekt"
+    },
+    "permissions": {
+      "heading": "Oprávnění",
+      "description": "Přístupy na složce se dědí do každé podsložky. Vlastník projektu má vždy implicitní roli SPRÁVCE na kořenové složce.",
+      "backToSettings": "Zpět na nastavení",
+      "foldersHeading": "Složky",
+      "selectFolder": "Vyberte složku pro kontrolu jejích oprávnění.",
+      "yourRole": "Vaše efektivní role:",
+      "editAccess": "Upravit přístup",
+      "effectiveAccess": "Efektivní přístupy ({{count}})",
+      "noGrants": "Na této složce nejsou žádná oprávnění.",
+      "inheritedFrom": "zděděno z {{path}}"
+    }
+  },
+  "appLayout": {
+    "general": "Obecné",
+    "dashboard": "Přehled",
+    "profile": "Profil",
+    "profileSettings": "Nastavení profilu",
+    "logout": "Odhlásit se"
+  },
+  "compilationLog": {
+    "errorsTitle": "Chyby kompilace",
+    "logTitle": "Protokol kompilace",
+    "noLog": "Žádný protokol k dispozici",
+    "close": "Zavřít"
+  },
+  "compilationError": {
+    "title": "Kompilace selhala",
+    "errorsFound": "Nalezené chyby:",
+    "fullLog": "Celý protokol kompilace:",
+    "close": "Zavřít"
+  },
+  "folderAccess": {
+    "title": "Přístup — {{path}}",
+    "description": "Přístupy na této složce platí i pro každou podsložku. Zděděné přístupy jsou zobrazeny vybledlé.",
+    "grantHeading": "Udělit přístup",
+    "emailPlaceholder": "Zadejte e-mail uživatele",
+    "granting": "Udělování…",
+    "grant": "Udělit",
+    "failedToGrant": "Nepodařilo se udělit přístup",
+    "effectiveAccess": "Efektivní přístupy ({{count}})",
+    "loading": "Načítání…",
+    "noGrants": "Zatím žádná oprávnění.",
+    "inheritedFrom": "zděděno z {{path}}",
+    "openPermissions": "Otevřít stránku oprávnění",
+    "close": "Zavřít"
+  },
+  "fileBranchSelector": {
+    "switchVariant": "Přepnout variantu",
+    "variantsLabel": "Varianty",
+    "current": "aktuální",
+    "newVariant": "Nová varianta...",
+    "combine": "Sloučit...",
+    "newVariantDialog": {
+      "title": "Nová varianta",
+      "description": "Vytvořit novou variantu z \"{{branch}}\" pro {{file}}",
+      "namePlaceholder": "Název varianty",
+      "cancel": "Zrušit",
+      "submit": "Vytvořit variantu"
+    },
+    "renameVariantDialog": {
+      "title": "Přejmenovat variantu",
+      "description": "Zadejte nový název pro tuto variantu.",
+      "namePlaceholder": "Název varianty",
+      "cancel": "Zrušit",
+      "submit": "Přejmenovat"
+    },
+    "saveVersionDialog": {
+      "title": "Uložit verzi",
+      "description": "Uložit aktuální stav \"{{file}}\" na variantě \"{{branch}}\"",
+      "descriptionPlaceholder": "Popis (nepovinné)",
+      "cancel": "Zrušit",
+      "submit": "Uložit verzi"
+    },
+    "combineDialog": {
+      "title": "Sloučit varianty",
+      "description": "Sloučit obsah z \"{{branch}}\" do jiné varianty",
+      "targetLabel": "Cílová varianta:",
+      "cancel": "Zrušit",
+      "submit": "Sloučit"
+    },
+    "historyDialog": {
+      "title": "Historie — {{file}}",
+      "close": "Zavřít"
+    },
+    "saveVersionTooltip": "Uložit verzi",
+    "versionHistoryTooltip": "Historie verzí"
+  },
+  "gitTree": {
+    "loading": "Načítání...",
+    "noVersions": {
+      "heading": "Zatím žádné verze",
+      "description": "Uložte verzi pro zachycení snímku vašeho souboru."
+    },
+    "badges": {
+      "combine": "sloučení",
+      "newVariant": "nová varianta",
+      "version": "verze",
+      "unsaved": "neuloženo"
+    }
+  },
+  "fileTreeNode": {
+    "hasGrants": "Tato složka má explicitní přístupová oprávnění",
+    "deleteFolder": {
+      "title": "Smazat složku",
+      "description": "Opravdu chcete smazat {{name}} a vše uvnitř? Soubory a podsložky budou dočasně smazány a lze je obnovit.",
+      "cancel": "Zrušit",
+      "confirm": "Smazat"
+    },
+    "deleteFile": {
+      "title": "Smazat soubor",
+      "description": "Opravdu chcete smazat {{name}}? Tuto akci nelze vrátit zpět.",
+      "cancel": "Zrušit",
+      "confirm": "Smazat"
+    },
+    "menu": {
+      "newSubfolder": "Nová podsložka",
+      "manageAccess": "Spravovat přístup…",
+      "rename": "Přejmenovat",
+      "deleteFolder": "Smazat složku",
+      "download": "Stáhnout",
+      "moveTo": "Přesunout do...",
+      "deleteFile": "Smazat"
+    }
+  },
+  "editorMode": {
+    "visual": "Vizuální",
+    "latex": "LaTeX kód"
+  },
+  "editorToolbar": {
+    "reloadFile": "Znovu načíst soubor",
+    "noUnsavedChanges": "Žádné neuložené změny",
+    "saveChanges": "Uložit {{count}} změn(u)",
+    "autosaveOn": "Automatické ukládání zapnuto",
+    "autosaveOff": "Automatické ukládání vypnuto",
+    "auto": "Auto"
+  },
+  "createFile": {
+    "title": "Vytvořit nový soubor",
+    "description": "Vytvořte nový soubor ve vašem projektu.",
+    "fileNameLabel": "Název souboru",
+    "fileNamePlaceholder": "např. kapitola1 nebo dokument.tex",
+    "willCreate": "Vytvoří se: {{name}}",
+    "folderLabel": "Složka",
+    "errors": {
+      "required": "Název souboru je povinný",
+      "invalidChars": "Název souboru může obsahovat pouze písmena, čísla, podtržítka, pomlčky a tečky"
+    },
+    "success": "Soubor byl úspěšně vytvořen!",
+    "cancel": "Zrušit",
+    "submit": "Vytvořit soubor"
+  },
+  "fileUpload": {
+    "title": "Nahrát soubory",
+    "description": "Nahrajte soubory do vašeho projektu. Přetáhněte nebo klikněte pro výběr souborů.",
+    "folderLabel": "Nahrát do složky",
+    "dropHere": "Přetáhněte soubory sem",
+    "dragAndDrop": "Přetáhněte soubory sem nebo klikněte pro výběr",
+    "selectedFiles": "Vybrané soubory:",
+    "uploading": "Nahrávání... {{progress}}%",
+    "success": "Soubory byly úspěšně nahrány!",
+    "cancel": "Zrušit",
+    "submit": "Nahrát {{count}} soubor(ů)",
+    "submitting": "Nahrávání..."
+  },
+  "moveFile": {
+    "title": "Přesunout soubor",
+    "description": "Vyberte cílovou složku pro {{name}}",
+    "currentLocation": "Aktuální umístění:",
+    "moveTo": "Přesunout do:",
+    "destinationPlaceholder": "Vyberte cílovou složku",
+    "cancel": "Zrušit",
+    "moving": "Přesouvání...",
+    "submit": "Přesunout"
+  },
+  "projectFiles": {
+    "newSubfolder": {
+      "title": "Nová podsložka",
+      "description": "Uvnitř {{path}}",
+      "namePlaceholder": "Název složky",
+      "cancel": "Zrušit",
+      "creating": "Vytváření…",
+      "submit": "Vytvořit"
+    },
+    "renameFolder": {
+      "title": "Přejmenovat složku",
+      "cancel": "Zrušit",
+      "renaming": "Přejmenování…",
+      "submit": "Přejmenovat"
+    }
+  },
+  "folderSelect": {
+    "placeholder": "Vyberte složku",
+    "root": "Kořen",
+    "newFolder": "+ Nová složka…",
+    "newFolderPlaceholder": "např. /kapitoly nebo /obrazky/obr1"
+  },
+  "wysiwygEditor": {
+    "placeholder": "Začněte psát...",
+    "mathPopup": {
+      "displayMath": "Zobrazovaná matematika",
+      "inlineMath": "Řádková matematika",
+      "ctrlEnter": "Ctrl+Enter pro uložení",
+      "placeholder": "Zadejte LaTeX matematiku...",
+      "cancel": "Zrušit",
+      "save": "Uložit"
+    },
+    "imagePopup": {
+      "figure": "Obrázek",
+      "ctrlEnter": "Ctrl+Enter pro uložení",
+      "uploadedImages": "Nahrané obrázky",
+      "imagePath": "Cesta k obrázku",
+      "imagePlaceholder": "např. obrazky/diagram.png",
+      "caption": "Popisek",
+      "captionPlaceholder": "Popisek obrázku (nepovinné)",
+      "cancel": "Zrušit",
+      "save": "Uložit"
+    },
+    "inputFilePopup": {
+      "title": "Vstupní soubor",
+      "ctrlEnter": "Ctrl+Enter pro uložení",
+      "projectFiles": "Soubory projektu",
+      "filePath": "Cesta k souboru",
+      "filePlaceholder": "např. kapitoly/uvod",
+      "version": "Verze",
+      "atVariant": "@ Varianta",
+      "hashVersion": "# Verze",
+      "noVersions": "V této variantě nejsou žádné verze",
+      "cancel": "Zrušit",
+      "save": "Uložit"
+    },
+    "hrefPopup": {
+      "title": "Upravit odkaz",
+      "ctrlEnter": "Ctrl+Enter pro uložení",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://priklad.cz",
+      "displayTextLabel": "Zobrazovaný text",
+      "displayTextPlaceholder": "Text odkazu (ponechte prázdné pro použití URL)",
+      "cancel": "Zrušit",
+      "save": "Uložit"
+    },
+    "toolbar": {
+      "bold": "Tučné",
+      "italic": "Kurzíva",
+      "underline": "Podtržení",
+      "headings": "Nadpisy",
+      "heading1": "Nadpis 1",
+      "heading2": "Nadpis 2",
+      "heading3": "Nadpis 3",
+      "bulletList": "Odrážkový seznam",
+      "orderedList": "Číslovaný seznam",
+      "insertTable": "Vložit tabulku",
+      "tableOptions": "Možnosti tabulky",
+      "columns": "Sloupce",
+      "addColumn": "Přidat sloupec",
+      "removeColumn": "Odebrat sloupec",
+      "rows": "Řádky",
+      "addRow": "Přidat řádek",
+      "removeRow": "Odebrat řádek",
+      "deleteTable": "Smazat tabulku",
+      "insertFigure": "Vložit obrázek",
+      "mathEquation": "Matematická rovnice",
+      "insertLink": "Vložit odkaz (\\href)",
+      "inputFile": "Vstupní soubor (\\input)"
+    }
+  },
+  "latexToolbar": {
+    "bold": "Tučné (\\textbf)",
+    "italic": "Kurzíva (\\textit)",
+    "underline": "Podtržení (\\underline)",
+    "sections": "Sekce",
+    "section": "\\section",
+    "subsection": "\\subsection",
+    "subsubsection": "\\subsubsection",
+    "bulletList": "Odrážkový seznam (itemize)",
+    "orderedList": "Číslovaný seznam (enumerate)",
+    "insertTable": "Vložit tabulku",
+    "insertFigure": "Vložit obrázek",
+    "mathEquation": "Matematická rovnice ($...$)",
+    "inputFile": "Vstupní soubor (\\input)",
+    "workspace": "pracovní prostor"
+  },
+  "languageSwitcher": {
+    "label": "Jazyk"
+  }
+}

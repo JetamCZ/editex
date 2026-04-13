@@ -6,6 +6,8 @@ import { GearIcon, ExitIcon, HomeIcon, EnvelopeClosedIcon } from "@radix-ui/reac
 // import { MagnifyingGlassIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import getInitials from "~/lib/getInitials";
 import useAuth from "~/hooks/useAuth";
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 
 interface MenuItem {
   label: string;
@@ -18,12 +20,12 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-const menuStructure: MenuCategory[] = [
+const getMenuStructure = (t: (key: string) => string): MenuCategory[] => [
   {
-    category: "General",
+    category: t('appLayout.general'),
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: <HomeIcon /> },
-      { label: "Profile", href: "/profile", icon: <GearIcon /> },
+      { label: t('appLayout.dashboard'), href: "/dashboard", icon: <HomeIcon /> },
+      { label: t('appLayout.profile'), href: "/profile", icon: <GearIcon /> },
     ],
   },
   // TODO: Uncomment when support pages are implemented
@@ -41,8 +43,10 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
+  const { t } = useTranslation();
   const {user} = useAuth()
   const initials = getInitials(user.name)
+  const menuStructure = getMenuStructure(t);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-1">
@@ -75,6 +79,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
           ))}
         </nav>
+        <div className="p-4 border-t border-gray-a6">
+          <LanguageSwitcher />
+        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -123,14 +130,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <DropdownMenu.Item asChild>
                   <Link to="/profile" className="flex items-center gap-2">
                     <GearIcon />
-                    Profile Settings
+                    {t('appLayout.profileSettings')}
                   </Link>
                 </DropdownMenu.Item>
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item asChild>
                   <Link to="/auth/logout" className="flex items-center gap-2 text-red-11">
                     <ExitIcon />
-                    Logout
+                    {t('appLayout.logout')}
                   </Link>
                 </DropdownMenu.Item>
               </DropdownMenu.Content>

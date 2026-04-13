@@ -6,8 +6,10 @@ import ProjectCard from "../components/ProjectCard";
 import ProjectListItem from "../components/ProjectListItem";
 import type { User } from "../../types/user";
 import type { Project } from "../../types/project";
+import { useTranslation } from 'react-i18next';
 
 export default function DashboardIndex() {
+  const { t } = useTranslation();
   const { user } = useRouteLoaderData("auth-user") as { user: User };
   const { projects } = useRouteLoaderData("dashboard") as { projects: Project[] };
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -25,7 +27,7 @@ export default function DashboardIndex() {
           className="uppercase tracking-widest block mb-3"
           style={{ color: 'var(--gray-11)', letterSpacing: '0.08em' }}
         >
-          Start a new project
+          {t('dashboard.index.startNewProject')}
         </Text>
         <Link to="/dashboard/new" style={{ textDecoration: 'none' }}>
           <div className="inline-flex flex-col items-center gap-2 group cursor-pointer">
@@ -49,7 +51,7 @@ export default function DashboardIndex() {
               </div>
             </div>
             <Text size="2" weight="medium" style={{ color: 'var(--gray-12)' }}>
-              Blank project
+              {t('dashboard.index.blankProject')}
             </Text>
           </div>
         </Link>
@@ -60,7 +62,7 @@ export default function DashboardIndex() {
         <Flex justify="between" align="center" mb="4">
           <Flex align="center" gap="2">
             <Clock size={15} style={{ color: 'var(--gray-11)' }} />
-            <Heading size="4">Recent projects</Heading>
+            <Heading size="4">{t('dashboard.index.recentProjects')}</Heading>
           </Flex>
 
           {/* View mode toggle */}
@@ -80,7 +82,7 @@ export default function DashboardIndex() {
               }}
             >
               <LayoutGrid size={13} />
-              Grid
+              {t('common.grid')}
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -92,7 +94,7 @@ export default function DashboardIndex() {
               }}
             >
               <List size={13} />
-              List
+              {t('common.list')}
             </button>
           </Flex>
         </Flex>
@@ -105,12 +107,12 @@ export default function DashboardIndex() {
             >
               <FileText size={28} style={{ color: 'var(--gray-9)' }} />
             </div>
-            <Heading size="4" mb="1">No projects yet</Heading>
+            <Heading size="4" mb="1">{t('dashboard.index.noProjectsHeading')}</Heading>
             <Text size="2" mb="4" style={{ color: 'var(--gray-11)' }}>
-              Create your first LaTeX project to get started.
+              {t('dashboard.index.noProjectsSubtext')}
             </Text>
             <Link to="/dashboard/new">
-              <Button size="2">Create a project</Button>
+              <Button size="2">{t('dashboard.index.createProject')}</Button>
             </Link>
           </Flex>
         ) : viewMode === 'grid' ? (

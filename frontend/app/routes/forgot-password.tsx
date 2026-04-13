@@ -4,11 +4,13 @@ import { Button, Card, TextField, Flex, Text, Callout } from '@radix-ui/themes';
 import { CheckCircledIcon } from '@radix-ui/react-icons';
 import api from '../lib/axios.server';
 import delay from '~/lib/delay';
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
     return [
-        { title: "Forgot Password - Editex" },
-        { name: "description", content: "Reset your Editex password" },
+        { title: i18n.t('auth.forgotPassword.meta.title') },
+        { name: "description", content: i18n.t('auth.forgotPassword.meta.description') },
     ];
 }
 
@@ -34,6 +36,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function ForgotPassword() {
+    const { t } = useTranslation();
     const actionData = useActionData<typeof action>();
     const navigation = useNavigation();
     const loading = navigation.state !== 'idle';
@@ -56,26 +59,26 @@ export default function ForgotPassword() {
                                     <CheckCircledIcon />
                                 </Callout.Icon>
                                 <Callout.Text>
-                                    If an account exists with this email, you will receive a password reset link shortly.
+                                    {t('auth.forgotPassword.successMessage')}
                                 </Callout.Text>
                             </Callout.Root>
 
                             <Text size="2" align="center">
-                                Please check your email inbox and spam folder.
+                                {t('auth.forgotPassword.checkInbox')}
                             </Text>
 
                             <Button asChild size="3" variant="outline">
-                                <Link to="/auth/login">Back to Login</Link>
+                                <Link to="/auth/login">{t('auth.forgotPassword.backToLogin')}</Link>
                             </Button>
                         </>
                     ) : (
                         <>
                             <Text size="4" weight="bold" align="center">
-                                Forgot Password
+                                {t('auth.forgotPassword.heading')}
                             </Text>
 
                             <Text size="2" align="center" color="gray">
-                                Enter your email address and we'll send you a link to reset your password.
+                                {t('auth.forgotPassword.description')}
                             </Text>
 
                             {actionData?.error && (
@@ -88,26 +91,26 @@ export default function ForgotPassword() {
                                 <Flex direction="column" gap="3">
                                     <label>
                                         <Text as="div" size="2" mb="1" weight="bold">
-                                            Email
+                                            {t('auth.forgotPassword.emailLabel')}
                                         </Text>
                                         <TextField.Root
                                             type="email"
                                             name="email"
-                                            placeholder="Enter your email"
+                                            placeholder={t('auth.forgotPassword.emailPlaceholder')}
                                             required
                                         />
                                     </label>
 
                                     <Button type="submit" size="3" disabled={loading}>
-                                        {loading ? 'Sending...' : 'Send Reset Link'}
+                                        {loading ? t('auth.forgotPassword.submitting') : t('auth.forgotPassword.submit')}
                                     </Button>
                                 </Flex>
                             </Form>
 
                             <Text size="2" align="center">
-                                Remember your password?{' '}
+                                {t('auth.forgotPassword.rememberPassword')}{' '}
                                 <Link to="/auth/login" style={{ color: 'var(--accent-9)' }}>
-                                    Login
+                                    {t('auth.forgotPassword.loginLink')}
                                 </Link>
                             </Text>
                         </>

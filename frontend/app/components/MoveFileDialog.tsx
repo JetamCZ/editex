@@ -2,6 +2,7 @@ import { Dialog, Button, Flex, Text } from "@radix-ui/themes";
 import { Folder } from "lucide-react";
 import { useEffect, useState } from "react";
 import FolderSelect from "~/components/FolderSelect";
+import { useTranslation } from 'react-i18next';
 
 interface MoveFileDialogProps {
     open: boolean;
@@ -24,6 +25,7 @@ export default function MoveFileDialog({
     onMove,
     isMoving = false,
 }: MoveFileDialogProps) {
+    const { t } = useTranslation();
     const [selectedFolder, setSelectedFolder] = useState<string>("");
 
     useEffect(() => {
@@ -46,11 +48,11 @@ export default function MoveFileDialog({
                 <Dialog.Title>
                     <Flex align="center" gap="2">
                         <Folder className="h-5 w-5" />
-                        Move File
+                        {t('moveFile.title')}
                     </Flex>
                 </Dialog.Title>
                 <Dialog.Description size="2" mb="4">
-                    Select a destination folder for <strong>{fileName}</strong>
+                    {t('moveFile.description', { name: fileName })}
                 </Dialog.Description>
 
                 <Flex direction="column" gap="3">
@@ -60,7 +62,7 @@ export default function MoveFileDialog({
                         borderRadius: "6px",
                         fontSize: "13px"
                     }}>
-                        <Text size="1" color="gray">Current location:</Text>
+                        <Text size="1" color="gray">{t('moveFile.currentLocation')}</Text>
                         <Text size="2" weight="medium" style={{ display: "block", marginTop: "2px" }}>
                             {displayFolder(currentFolder)}
                         </Text>
@@ -68,7 +70,7 @@ export default function MoveFileDialog({
 
                     <div>
                         <Text size="2" weight="bold" mb="2" style={{ display: "block" }}>
-                            Move to:
+                            {t('moveFile.moveTo')}
                         </Text>
                         <FolderSelect
                             baseProject={baseProject}
@@ -77,21 +79,21 @@ export default function MoveFileDialog({
                             excludePath={currentFolder}
                             allowCreate
                             disabled={isMoving}
-                            placeholder="Select destination folder"
+                            placeholder={t('moveFile.destinationPlaceholder')}
                         />
                     </div>
 
                     <Flex gap="3" mt="2" justify="end">
                         <Dialog.Close>
                             <Button variant="soft" color="gray" disabled={isMoving}>
-                                Cancel
+                                {t('moveFile.cancel')}
                             </Button>
                         </Dialog.Close>
                         <Button
                             onClick={handleMove}
                             disabled={!canMove || isMoving}
                         >
-                            {isMoving ? "Moving..." : "Move"}
+                            {isMoving ? t('moveFile.moving') : t('moveFile.submit')}
                         </Button>
                     </Flex>
                 </Flex>

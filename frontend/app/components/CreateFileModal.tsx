@@ -4,6 +4,7 @@ import axios from "axios";
 import useAuth from "~/hooks/useAuth";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import FolderSelect from "~/components/FolderSelect";
+import { useTranslation } from 'react-i18next';
 
 interface CreateFileModalProps {
   open: boolean;
@@ -49,6 +50,7 @@ export default function CreateFileModal({
   baseProject,
   branch,
 }: CreateFileModalProps) {
+  const { t } = useTranslation();
   const { bearerToken } = useAuth();
   const queryClient = useQueryClient();
 
@@ -111,14 +113,14 @@ export default function CreateFileModal({
     setError(null);
 
     if (!fileName.trim()) {
-      setError("File name is required");
+      setError(t('createFile.errors.required'));
       return;
     }
 
     // Validate file name (no special characters except underscore, hyphen, dot)
     const validNameRegex = /^[a-zA-Z0-9_\-\.]+$/;
     if (!validNameRegex.test(fileName)) {
-      setError("File name can only contain letters, numbers, underscores, hyphens, and dots");
+      setError(t('createFile.errors.invalidChars'));
       return;
     }
 
@@ -133,18 +135,18 @@ export default function CreateFileModal({
   return (
     <Dialog.Root open={open} onOpenChange={handleClose}>
       <Dialog.Content maxWidth="450px">
-        <Dialog.Title>Create New File</Dialog.Title>
+        <Dialog.Title>{t('createFile.title')}</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Create a new file in your project.
+          {t('createFile.description')}
         </Dialog.Description>
 
         <Flex direction="column" gap="3">
           <Box>
-            <Text size="2" weight="bold" mb="1">File Name</Text>
+            <Text size="2" weight="bold" mb="1">{t('createFile.fileNameLabel')}</Text>
             <Flex gap="2">
               <TextField.Root
                 style={{ flex: 1 }}
-                placeholder="e.g., chapter1 or document.tex"
+                placeholder={t('createFile.fileNamePlaceholder')}
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
                 onKeyDown={(e) => {
@@ -168,13 +170,13 @@ export default function CreateFileModal({
             </Flex>
             {fileName && (
               <Text size="1" color="gray" mt="1">
-                Will create: {getFullFileName()}
+                {t('createFile.willCreate', { name: getFullFileName() })}
               </Text>
             )}
           </Box>
 
           <Box>
-            <Text size="2" weight="bold" mb="1">Folder</Text>
+            <Text size="2" weight="bold" mb="1">{t('createFile.folderLabel')}</Text>
             <FolderSelect
               baseProject={baseProject}
               value={folder}
@@ -191,14 +193,14 @@ export default function CreateFileModal({
 
           {createFileMutation.isSuccess && (
             <Box p="3" style={{ backgroundColor: '#efe', borderRadius: '6px' }}>
-              <Text size="2" color="green">File created successfully!</Text>
+              <Text size="2" color="green">{t('createFile.success')}</Text>
             </Box>
           )}
 
           <Flex gap="3" mt="2" justify="end">
             <Dialog.Close>
               <Button variant="soft" color="gray" type="button" disabled={createFileMutation.isPending}>
-                Cancel
+                {t('createFile.cancel')}
               </Button>
             </Dialog.Close>
             <Button
@@ -206,7 +208,7 @@ export default function CreateFileModal({
               disabled={!fileName.trim() || createFileMutation.isPending}
               loading={createFileMutation.isPending}
             >
-              Create File
+              {t('createFile.submit')}
             </Button>
           </Flex>
         </Flex>

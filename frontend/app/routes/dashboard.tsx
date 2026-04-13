@@ -2,11 +2,12 @@ import { type LoaderFunctionArgs, Outlet } from "react-router";
 import { getApiClient } from "../lib/axios.server";
 import AppLayout from "../components/AppLayout";
 import type { Project } from "../../types/project";
+import i18n from '~/i18n';
 
 export function meta() {
     return [
-        { title: "Dashboard - Editex" },
-        { name: "description", content: "Manage your LaTeX projects" },
+        { title: i18n.t('dashboard.meta.title') },
+        { name: "description", content: i18n.t('dashboard.meta.description') },
     ];
 }
 

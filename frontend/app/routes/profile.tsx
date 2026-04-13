@@ -6,11 +6,13 @@ import type {User} from "../../types/user";
 import { Box, Card, Flex, Text, TextField, Button, Heading, Avatar, Separator, Callout } from "@radix-ui/themes";
 import { PersonIcon, LockClosedIcon, CheckCircledIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
+import i18n from '~/i18n';
 
 export function meta() {
     return [
-        { title: "Profile - Editex" },
-        { name: "description", content: "Manage your profile settings" },
+        { title: i18n.t('profile.meta.title') },
+        { name: "description", content: i18n.t('profile.meta.description') },
     ];
 }
 
@@ -54,6 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 const Profile = () => {
+    const { t } = useTranslation();
     const {user} = useRouteLoaderData("auth-user") as {user: User}
     const navigation = useNavigation();
     const actionData = useActionData() as { success?: boolean; error?: string } | undefined;
@@ -99,9 +102,9 @@ const Profile = () => {
                 >
                     {/* Header */}
                     <Box className="w-full max-w-2xl mb-6">
-                        <Heading size="8" mb="2">Profile Settings</Heading>
+                        <Heading size="8" mb="2">{t('profile.heading')}</Heading>
                         <Text size="3" className="text-gray-11">
-                            Manage your personal information and account settings
+                            {t('profile.subheading')}
                         </Text>
                     </Box>
 
@@ -123,7 +126,7 @@ const Profile = () => {
                                         <Callout.Icon>
                                             <CheckCircledIcon />
                                         </Callout.Icon>
-                                        <Callout.Text>Profile updated successfully!</Callout.Text>
+                                        <Callout.Text>{t('profile.successMessage')}</Callout.Text>
                                     </Callout.Root>
                                 )}
 
@@ -145,17 +148,17 @@ const Profile = () => {
 
                                 {/* Form Fields */}
                                 <Flex direction="column" gap="4">
-                                    <Heading size="5">User information</Heading>
+                                    <Heading size="5">{t('profile.userInfoHeading')}</Heading>
 
                                     {/* Name Field */}
                                     <Box>
                                         <Text as="label" size="2" weight="bold" mb="2" className="block">
-                                            Full Name
+                                            {t('profile.fullNameLabel')}
                                         </Text>
                                         <TextField.Root
                                             name="name"
                                             size="3"
-                                            placeholder="Enter your full name"
+                                            placeholder={t('profile.fullNamePlaceholder')}
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             required
@@ -172,21 +175,21 @@ const Profile = () => {
 
                                 {/* Password Section */}
                                 <Flex direction="column" gap="4">
-                                    <Heading size="5">Change Password</Heading>
+                                    <Heading size="5">{t('profile.changePasswordHeading')}</Heading>
                                     <Text size="2" className="text-gray-11">
-                                        Leave blank if you don't want to change your password
+                                        {t('profile.changePasswordHint')}
                                     </Text>
 
                                     {/* Current Password */}
                                     <Box>
                                         <Text as="label" size="2" weight="bold" mb="2" className="block">
-                                            Current Password
+                                            {t('profile.currentPasswordLabel')}
                                         </Text>
                                         <TextField.Root
                                             name="currentPassword"
                                             type="password"
                                             size="3"
-                                            placeholder="Enter current password"
+                                            placeholder={t('profile.currentPasswordPlaceholder')}
                                             value={currentPassword}
                                             onChange={(e) => setCurrentPassword(e.target.value)}
                                         >
@@ -199,13 +202,13 @@ const Profile = () => {
                                     {/* New Password */}
                                     <Box>
                                         <Text as="label" size="2" weight="bold" mb="2" className="block">
-                                            New Password
+                                            {t('profile.newPasswordLabel')}
                                         </Text>
                                         <TextField.Root
                                             name="newPassword"
                                             type="password"
                                             size="3"
-                                            placeholder="Enter new password"
+                                            placeholder={t('profile.newPasswordPlaceholder')}
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
                                         >
@@ -218,13 +221,13 @@ const Profile = () => {
                                     {/* Confirm Password */}
                                     <Box>
                                         <Text as="label" size="2" weight="bold" mb="2" className="block">
-                                            Confirm New Password
+                                            {t('profile.confirmNewPasswordLabel')}
                                         </Text>
                                         <TextField.Root
                                             name="confirmPassword"
                                             type="password"
                                             size="3"
-                                            placeholder="Confirm new password"
+                                            placeholder={t('profile.confirmNewPasswordPlaceholder')}
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
                                         >
@@ -247,14 +250,14 @@ const Profile = () => {
                                         onClick={handleReset}
                                         disabled={isSubmitting}
                                     >
-                                        Cancel
+                                        {t('profile.cancel')}
                                     </Button>
                                     <Button
                                         type="submit"
                                         size="3"
                                         disabled={isSubmitting}
                                     >
-                                        {isSubmitting ? "Saving..." : "Save Changes"}
+                                        {isSubmitting ? t('profile.saving') : t('profile.saveChanges')}
                                     </Button>
                                 </Flex>
                             </Flex>
@@ -264,18 +267,18 @@ const Profile = () => {
                     {/* Additional Settings Card */}
                     <Card className="w-full max-w-2xl mt-6">
                         <Flex direction="column" gap="4">
-                            <Heading size="5">Account Information</Heading>
+                            <Heading size="5">{t('profile.accountInfoHeading')}</Heading>
                             <Flex direction="column" gap="2">
                                 <Flex justify="between" align="center">
-                                    <Text size="2" className="text-gray-11">Email Address</Text>
+                                    <Text size="2" className="text-gray-11">{t('profile.emailAddress')}</Text>
                                     <Text size="2" weight="bold">{user?.email}</Text>
                                 </Flex>
                                 <Flex justify="between" align="center">
-                                    <Text size="2" className="text-gray-11">Account Status</Text>
-                                    <Text size="2" weight="bold" className="text-green-11">Active</Text>
+                                    <Text size="2" className="text-gray-11">{t('profile.accountStatus')}</Text>
+                                    <Text size="2" weight="bold" className="text-green-11">{t('profile.accountStatusActive')}</Text>
                                 </Flex>
                                 <Flex justify="between" align="center">
-                                    <Text size="2" className="text-gray-11">Member Since</Text>
+                                    <Text size="2" className="text-gray-11">{t('profile.memberSince')}</Text>
                                     <Text size="2" weight="bold">January 2025</Text>
                                 </Flex>
                             </Flex>
@@ -285,16 +288,16 @@ const Profile = () => {
                     {/* Danger Zone */}
                     <Card className="w-full max-w-2xl mt-6 border-red-6">
                         <Flex direction="column" gap="4">
-                            <Heading size="5" className="text-red-11">Danger Zone</Heading>
+                            <Heading size="5" className="text-red-11">{t('profile.dangerZone.heading')}</Heading>
                             <Flex justify="between" align="center">
                                 <Flex direction="column" gap="1">
-                                    <Text size="2" weight="bold">Delete Account</Text>
+                                    <Text size="2" weight="bold">{t('profile.dangerZone.deleteAccountTitle')}</Text>
                                     <Text size="2" className="text-gray-11">
-                                        Permanently delete your account and all associated data
+                                        {t('profile.dangerZone.deleteAccountDescription')}
                                     </Text>
                                 </Flex>
                                 <Button variant="soft" color="red" size="2">
-                                    Delete Account
+                                    {t('profile.dangerZone.deleteAccountButton')}
                                 </Button>
                             </Flex>
                         </Flex>

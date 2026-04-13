@@ -1,4 +1,5 @@
 import { Dialog, Button, Text, ScrollArea, Flex } from '@radix-ui/themes';
+import { useTranslation } from 'react-i18next';
 
 interface CompilationLogDialogProps {
     log: string;
@@ -8,11 +9,12 @@ interface CompilationLogDialogProps {
 }
 
 const CompilationLogDialog = ({ log, isError, open, onOpenChange }: CompilationLogDialogProps) => {
+    const { t } = useTranslation();
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Content style={{ maxWidth: '800px' }}>
                 <Dialog.Title>
-                    {isError ? 'Compilation Errors' : 'Compilation Log'}
+                    {isError ? t('compilationLog.errorsTitle') : t('compilationLog.logTitle')}
                 </Dialog.Title>
 
                 <ScrollArea
@@ -33,13 +35,13 @@ const CompilationLogDialog = ({ log, isError, open, onOpenChange }: CompilationL
                             wordBreak: 'break-word'
                         }}
                     >
-                        {log || 'No log available'}
+                        {log || t('compilationLog.noLog')}
                     </Text>
                 </ScrollArea>
 
                 <Flex gap="3" mt="4" justify="end">
                     <Dialog.Close>
-                        <Button variant="soft">Close</Button>
+                        <Button variant="soft">{t('compilationLog.close')}</Button>
                     </Dialog.Close>
                 </Flex>
             </Dialog.Content>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import {useDeleteFile} from "~/hooks/useDeleteFile";
 import {useMoveFile} from "~/hooks/useMoveFile";
@@ -20,6 +21,7 @@ interface Props {
 }
 
 const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onFileDeleted}: Props) => {
+    const { t } = useTranslation();
     const [moveDialogState, setMoveDialogState] = useState<{
         open: boolean;
         fileId: string;
@@ -154,12 +156,12 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                 onOpenChange={(open) => setCreateFolderDialog(prev => ({ ...prev, open }))}
             >
                 <Dialog.Content maxWidth="420px">
-                    <Dialog.Title>New subfolder</Dialog.Title>
+                    <Dialog.Title>{t('projectFiles.newSubfolder.title')}</Dialog.Title>
                     <Dialog.Description size="2" mb="3" color="gray">
-                        Inside <code>{createFolderDialog.parentPath}</code>
+                        {t('projectFiles.newSubfolder.description', { path: createFolderDialog.parentPath })}
                     </Dialog.Description>
                     <TextField.Root
-                        placeholder="Folder name"
+                        placeholder={t('projectFiles.newSubfolder.placeholder')}
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && submitCreateFolder()}
@@ -167,10 +169,10 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                     />
                     <Flex gap="2" mt="4" justify="end">
                         <Dialog.Close>
-                            <Button variant="soft" color="gray">Cancel</Button>
+                            <Button variant="soft" color="gray">{t('projectFiles.newSubfolder.cancel')}</Button>
                         </Dialog.Close>
                         <Button onClick={submitCreateFolder} disabled={createFolder.isPending || !newFolderName.trim()}>
-                            {createFolder.isPending ? "Creating…" : "Create"}
+                            {createFolder.isPending ? t('projectFiles.newSubfolder.creating') : t('projectFiles.newSubfolder.submit')}
                         </Button>
                     </Flex>
                 </Dialog.Content>
@@ -181,7 +183,7 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                 onOpenChange={(open) => setRenameFolderDialog(prev => ({ ...prev, open }))}
             >
                 <Dialog.Content maxWidth="420px">
-                    <Dialog.Title>Rename folder</Dialog.Title>
+                    <Dialog.Title>{t('projectFiles.renameFolder.title')}</Dialog.Title>
                     <TextField.Root
                         value={renameFolderName}
                         onChange={(e) => setRenameFolderName(e.target.value)}
@@ -190,10 +192,10 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                     />
                     <Flex gap="2" mt="4" justify="end">
                         <Dialog.Close>
-                            <Button variant="soft" color="gray">Cancel</Button>
+                            <Button variant="soft" color="gray">{t('projectFiles.renameFolder.cancel')}</Button>
                         </Dialog.Close>
                         <Button onClick={submitRenameFolder} disabled={renameFolder.isPending || !renameFolderName.trim()}>
-                            {renameFolder.isPending ? "Renaming…" : "Rename"}
+                            {renameFolder.isPending ? t('projectFiles.renameFolder.renaming') : t('projectFiles.renameFolder.submit')}
                         </Button>
                     </Flex>
                 </Dialog.Content>

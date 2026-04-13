@@ -1,0 +1,647 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "create": "Create",
+    "creating": "Creating…",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "rename": "Rename",
+    "renaming": "Renaming…",
+    "close": "Close",
+    "loading": "Loading…",
+    "edit": "Edit",
+    "move": "Move",
+    "moving": "Moving...",
+    "download": "Download",
+    "uploading": "Uploading...",
+    "back": "Back",
+    "grant": "Grant",
+    "granting": "Granting…",
+    "combine": "Combine",
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "manager": "Manager",
+    "grid": "Grid",
+    "list": "List",
+    "active": "Active",
+    "copied": "Copied",
+    "copyLog": "Copy Log",
+    "send": "Send",
+    "sending": "Sending…",
+    "remove": "Remove",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "errors": {
+    "oops": "Oops!",
+    "unexpectedError": "An unexpected error occurred.",
+    "notFound": "404",
+    "error": "Error",
+    "pageNotFound": "The requested page could not be found."
+  },
+  "home": {
+    "meta": {
+      "title": "Editex - Collaborative LaTeX Editor",
+      "description": "LaTeX editing, redesigned for teams. Version control, real-time collaboration, and document management."
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "signIn": "Sign in",
+      "getStarted": "Get started"
+    },
+    "hero": {
+      "badge": "Collaborative LaTeX Editing",
+      "headingLine1": "LaTeX editing,",
+      "headingEmphasis": "redesigned",
+      "headingLine2": "for teams.",
+      "subheading": "Write, collaborate, and version-control your LaTeX documents. Built for researchers, academics, and technical teams.",
+      "ctaPrimary": "Get started free",
+      "ctaSecondary": "Sign in"
+    },
+    "features": {
+      "label": "Features",
+      "heading": "Everything your team needs to write great documents.",
+      "subheading": "Built for academics and researchers who demand precision from their tools.",
+      "versionControl": {
+        "title": "Version Control",
+        "description": "Track every change to your documents with full version history."
+      },
+      "collaboration": {
+        "title": "Real-time Collaboration",
+        "description": "Write together in real time with your whole team."
+      },
+      "latexEditor": {
+        "title": "LaTeX Made Easy",
+        "description": "Powerful LaTeX editing with a clean, intuitive interface."
+      }
+    },
+    "cta": {
+      "headingLine1": "Ready to write",
+      "headingEmphasis": "together?",
+      "subheading": "Join teams using Editex to collaborate on LaTeX documents.",
+      "button": "Start for free →"
+    },
+    "footer": {
+      "copyright": "© 2025 Editex. All rights reserved."
+    },
+    "mockEditor": {
+      "editingNow": "3 editing now",
+      "live": "LIVE"
+    }
+  },
+  "auth": {
+    "login": {
+      "meta": {
+        "title": "Sign in – Editex",
+        "description": "Sign in to your Editex account"
+      },
+      "heading": "Welcome back",
+      "subheading": "Sign in to your Editex account",
+      "verificationSent": "Verification email sent to {{email}}. Please check your inbox.",
+      "resendSending": "Sending…",
+      "resendButton": "Resend Verification Email",
+      "emailLabel": "EMAIL",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "PASSWORD",
+      "submitting": "Signing in…",
+      "submit": "Sign in →",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create one"
+    },
+    "register": {
+      "meta": {
+        "title": "Create account – Editex",
+        "description": "Create a new Editex account"
+      },
+      "panel": {
+        "headingLine1": "Start writing",
+        "headingEmphasis": "with your team.",
+        "subheading": "Create an account and invite collaborators to your LaTeX projects in seconds.",
+        "feature1": "Version-controlled LaTeX documents",
+        "feature2": "Real-time collaborative editing",
+        "feature3": "Role-based access & permissions"
+      },
+      "heading": "Create your account",
+      "subheading": "Free to get started, no credit card required.",
+      "nameLabel": "FULL NAME",
+      "namePlaceholder": "Ada Lovelace",
+      "emailLabel": "EMAIL",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "PASSWORD",
+      "confirmPasswordLabel": "CONFIRM PASSWORD",
+      "submitting": "Creating account…",
+      "submit": "Create account →",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "success": {
+        "heading": "Check your inbox",
+        "message": "We've sent a verification link to {{email}}. Please check your inbox and spam folder.",
+        "signInButton": "Go to sign in →"
+      }
+    },
+    "forgotPassword": {
+      "meta": {
+        "title": "Forgot Password - Editex",
+        "description": "Reset your Editex password"
+      },
+      "heading": "Forgot Password",
+      "description": "Enter your email address and we'll send you a link to reset your password.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "submitting": "Sending…",
+      "submit": "Send Reset Link",
+      "rememberPassword": "Remember your password?",
+      "loginLink": "Login",
+      "successMessage": "If an account exists with this email, you will receive a password reset link shortly.",
+      "checkInbox": "Please check your email inbox and spam folder.",
+      "backToLogin": "Back to Login"
+    },
+    "resetPassword": {
+      "meta": {
+        "title": "Reset Password - Editex",
+        "description": "Set a new password for your Editex account"
+      },
+      "invalidLink": "Invalid password reset link. Please request a new one.",
+      "requestNewLink": "Request New Link",
+      "heading": "Reset Password",
+      "description": "Enter your new password below.",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submitting": "Resetting…",
+      "submit": "Reset Password",
+      "successMessage": "Your password has been reset successfully!",
+      "successSubtext": "You can now log in with your new password.",
+      "goToLogin": "Go to Login",
+      "rememberPassword": "Remember your password?",
+      "loginLink": "Login"
+    },
+    "verifyEmail": {
+      "meta": {
+        "title": "Verify Email - Editex",
+        "description": "Verify your Editex email address"
+      },
+      "successMessage": "Your email has been verified successfully!",
+      "successSubtext": "You can now log in to your account.",
+      "goToLogin": "Go to Login",
+      "expiredMessage": "Your verification link has expired. Please request a new one."
+    }
+  },
+  "dashboard": {
+    "meta": {
+      "title": "Dashboard - Editex",
+      "description": "Manage your LaTeX projects"
+    },
+    "newProject": {
+      "meta": {
+        "title": "New Project - Editex",
+        "description": "Create a new LaTeX project"
+      }
+    },
+    "index": {
+      "startNew": "Start a new project",
+      "blank": "Blank project",
+      "recentProjects": "Recent projects",
+      "noProjects": {
+        "heading": "No projects yet",
+        "description": "Create your first LaTeX project to get started.",
+        "createButton": "Create a project"
+      }
+    }
+  },
+  "createProjectModal": {
+    "title": "Create New Project",
+    "description": "Enter a name for your new LaTeX project.",
+    "descriptionWithTemplate": "Enter a name for your new LaTeX project and select a template.",
+    "projectNameLabel": "Project Name",
+    "projectNamePlaceholder": "My LaTeX Project",
+    "templateLabel": "Template",
+    "cancel": "Cancel",
+    "submit": "Create Project"
+  },
+  "profile": {
+    "meta": {
+      "title": "Profile - Editex",
+      "description": "Manage your profile settings"
+    },
+    "heading": "Profile Settings",
+    "description": "Manage your personal information and account settings",
+    "errors": {
+      "passwordRequired": "Current password is required to change password",
+      "passwordMismatch": "New passwords do not match",
+      "passwordTooShort": "New password must be at least 8 characters"
+    },
+    "userInfo": {
+      "heading": "User information",
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "Enter your full name"
+    },
+    "changePassword": {
+      "heading": "Change Password",
+      "description": "Leave blank if you don't want to change your password",
+      "currentPasswordLabel": "Current Password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm new password"
+    },
+    "accountInfo": {
+      "heading": "Account Information",
+      "emailLabel": "Email Address",
+      "statusLabel": "Account Status",
+      "memberSinceLabel": "Member Since"
+    },
+    "dangerZone": {
+      "heading": "Danger Zone",
+      "deleteAccount": "Delete Account",
+      "deleteAccountDescription": "Permanently delete your account and all associated data",
+      "deleteAccountButton": "Delete Account"
+    },
+    "success": "Profile updated successfully!",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes"
+  },
+  "editor": {
+    "layout": {
+      "files": "Files",
+      "help": "Help",
+      "settings": "Settings",
+      "projects": "Projects",
+      "profile": "Profile",
+      "logout": "Logout"
+    },
+    "index": {
+      "filesHeading": "FILES",
+      "createNewFile": "Create new file",
+      "selectFile": "Select a file from the tree to start editing",
+      "cannotPreview": "Cannot preview this file type. ",
+      "downloadFile": "Download file",
+      "clickCompile": "Click \"Compile\" to generate PDF preview",
+      "documentValid": "Document Valid",
+      "words": "— Words",
+      "characters": "— Characters",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "ready": "Ready",
+      "compile": "Compile",
+      "download": "Download",
+      "backToEditor": "Back to Editor"
+    },
+    "settings": {
+      "heading": "Project Settings",
+      "description": "Manage your project settings and access",
+      "backToEditor": "Back to Editor"
+    },
+    "help": {
+      "meta": {
+        "title": "LaTeX Reference - Editex",
+        "description": "Quick reference for LaTeX commands and syntax"
+      },
+      "heading": "LaTeX Reference Guide",
+      "description": "A quick reference for commonly used LaTeX commands and syntax",
+      "tabs": {
+        "basics": "Basics",
+        "formatting": "Formatting",
+        "math": "Math",
+        "structure": "Structure",
+        "listsAndTables": "Lists & Tables",
+        "figures": "Figures",
+        "references": "References"
+      },
+      "keyboardShortcuts": {
+        "heading": "Keyboard Shortcuts",
+        "description": "The editor supports these keyboard shortcuts for LaTeX formatting:"
+      }
+    }
+  },
+  "settings": {
+    "projectInfo": {
+      "heading": "Project Information",
+      "nameLabel": "Project Name",
+      "namePlaceholder": "Enter project name",
+      "saving": "Saving...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "idLabel": "Project ID",
+      "branchLabel": "Branch",
+      "roleLabel": "Your Role",
+      "createdLabel": "Created",
+      "successMessage": "Project name updated successfully!",
+      "errorMessage": "Failed to update project name"
+    },
+    "access": {
+      "heading": "Access & Permissions",
+      "description": "Permissions are managed per folder. Grant a user VIEWER, EDITOR, or MANAGER access on any folder, and that access cascades into every subfolder beneath it.",
+      "youCanGrant": "You can grant or revoke access on any folder you manage.",
+      "onlyManagers": "Only managers can change permissions.",
+      "manageButton": "Manage permissions"
+    },
+    "dangerZone": {
+      "heading": "Danger Zone",
+      "deleteProject": "Delete Project",
+      "deleteDescription": "Permanently delete this project and all its files",
+      "deleteButton": "Delete Project"
+    },
+    "deleteProject": {
+      "title": "Delete Project",
+      "description": "This action cannot be undone. This will permanently delete the project",
+      "descriptionEnd": "and all its files.",
+      "pleaseType": "Please type",
+      "toConfirm": "to confirm:",
+      "failedToDelete": "Failed to delete project",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "delete": "Delete Project"
+    },
+    "permissions": {
+      "heading": "Permissions",
+      "description": "Grants on a folder cascade into every subfolder. The project owner always has implicit MANAGER on the project root.",
+      "backToSettings": "Back to Settings",
+      "foldersHeading": "Folders",
+      "selectFolder": "Select a folder to inspect its permissions.",
+      "yourRole": "Your effective role:",
+      "editAccess": "Edit access",
+      "effectiveAccess": "Effective access ({{count}})",
+      "noGrants": "No grants on this folder.",
+      "inheritedFrom": "inherited from {{path}}"
+    }
+  },
+  "appLayout": {
+    "general": "General",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "profileSettings": "Profile Settings",
+    "logout": "Logout"
+  },
+  "compilationLog": {
+    "errorsTitle": "Compilation Errors",
+    "logTitle": "Compilation Log",
+    "noLog": "No log available",
+    "close": "Close"
+  },
+  "compilationError": {
+    "title": "Compilation Failed",
+    "errorsFound": "Errors Found:",
+    "fullLog": "Full Compilation Log:",
+    "close": "Close"
+  },
+  "folderAccess": {
+    "title": "Access — {{path}}",
+    "description": "Grants on this folder also apply to every subfolder beneath it. Inherited grants are shown faded.",
+    "grantHeading": "Grant access",
+    "emailPlaceholder": "Enter user email",
+    "granting": "Granting…",
+    "grant": "Grant",
+    "failedToGrant": "Failed to grant access",
+    "effectiveAccess": "Effective access ({{count}})",
+    "loading": "Loading…",
+    "noGrants": "No access grants yet.",
+    "inheritedFrom": "inherited from {{path}}",
+    "openPermissions": "Open full permissions page",
+    "close": "Close"
+  },
+  "fileBranchSelector": {
+    "switchVariant": "Switch variant",
+    "variantsLabel": "Variants",
+    "current": "current",
+    "newVariant": "New variant...",
+    "combine": "Combine...",
+    "newVariantDialog": {
+      "title": "New Variant",
+      "description": "Create a new variant from \"{{branch}}\" for {{file}}",
+      "namePlaceholder": "Variant name",
+      "cancel": "Cancel",
+      "submit": "Create Variant"
+    },
+    "renameVariantDialog": {
+      "title": "Rename Variant",
+      "description": "Enter a new name for this variant.",
+      "namePlaceholder": "Variant name",
+      "cancel": "Cancel",
+      "submit": "Rename"
+    },
+    "saveVersionDialog": {
+      "title": "Save Version",
+      "description": "Save the current state of \"{{file}}\" on variant \"{{branch}}\"",
+      "descriptionPlaceholder": "Description (optional)",
+      "cancel": "Cancel",
+      "submit": "Save Version"
+    },
+    "combineDialog": {
+      "title": "Combine Variants",
+      "description": "Combine content from \"{{branch}}\" into another variant",
+      "targetLabel": "Target variant:",
+      "cancel": "Cancel",
+      "submit": "Combine"
+    },
+    "historyDialog": {
+      "title": "History — {{file}}",
+      "close": "Close"
+    },
+    "saveVersionTooltip": "Save version",
+    "versionHistoryTooltip": "Version history"
+  },
+  "gitTree": {
+    "loading": "Loading...",
+    "noVersions": {
+      "heading": "No Versions Yet",
+      "description": "Save a version to capture a snapshot of your file."
+    },
+    "badges": {
+      "combine": "combine",
+      "newVariant": "new variant",
+      "version": "version",
+      "unsaved": "unsaved"
+    }
+  },
+  "fileTreeNode": {
+    "hasGrants": "This folder has explicit access grants",
+    "deleteFolder": {
+      "title": "Delete folder",
+      "description": "Are you sure you want to delete {{name}} and everything inside it? Files and subfolders will be soft-deleted and can be restored later.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "deleteFile": {
+      "title": "Delete file",
+      "description": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "menu": {
+      "newSubfolder": "New subfolder",
+      "manageAccess": "Manage access…",
+      "rename": "Rename",
+      "deleteFolder": "Delete folder",
+      "download": "Download",
+      "moveTo": "Move to...",
+      "deleteFile": "Delete"
+    }
+  },
+  "editorMode": {
+    "visual": "Visual",
+    "latex": "LaTeX Code"
+  },
+  "editorToolbar": {
+    "reloadFile": "Reload file",
+    "noUnsavedChanges": "No unsaved changes",
+    "saveChanges": "Save {{count}} change(s)",
+    "autosaveOn": "Autosave is on",
+    "autosaveOff": "Autosave is off",
+    "auto": "Auto"
+  },
+  "createFile": {
+    "title": "Create New File",
+    "description": "Create a new file in your project.",
+    "fileNameLabel": "File Name",
+    "fileNamePlaceholder": "e.g., chapter1 or document.tex",
+    "willCreate": "Will create: {{name}}",
+    "folderLabel": "Folder",
+    "errors": {
+      "required": "File name is required",
+      "invalidChars": "File name can only contain letters, numbers, underscores, hyphens, and dots"
+    },
+    "success": "File created successfully!",
+    "cancel": "Cancel",
+    "submit": "Create File"
+  },
+  "fileUpload": {
+    "title": "Upload Files",
+    "description": "Upload files to your project. Drag and drop or click to select files.",
+    "folderLabel": "Upload to Folder",
+    "dropHere": "Drop files here",
+    "dragAndDrop": "Drag and drop files here, or click to select",
+    "selectedFiles": "Selected Files:",
+    "uploading": "Uploading... {{progress}}%",
+    "success": "Files uploaded successfully!",
+    "cancel": "Cancel",
+    "submit": "Upload {{count}} file(s)",
+    "submitting": "Uploading..."
+  },
+  "moveFile": {
+    "title": "Move File",
+    "description": "Select a destination folder for {{name}}",
+    "currentLocation": "Current location:",
+    "moveTo": "Move to:",
+    "destinationPlaceholder": "Select destination folder",
+    "cancel": "Cancel",
+    "moving": "Moving...",
+    "submit": "Move"
+  },
+  "projectFiles": {
+    "newSubfolder": {
+      "title": "New subfolder",
+      "description": "Inside {{path}}",
+      "namePlaceholder": "Folder name",
+      "cancel": "Cancel",
+      "creating": "Creating…",
+      "submit": "Create"
+    },
+    "renameFolder": {
+      "title": "Rename folder",
+      "cancel": "Cancel",
+      "renaming": "Renaming…",
+      "submit": "Rename"
+    }
+  },
+  "folderSelect": {
+    "placeholder": "Select folder",
+    "root": "Root",
+    "newFolder": "+ New folder…",
+    "newFolderPlaceholder": "e.g. /chapters or /images/fig1"
+  },
+  "wysiwygEditor": {
+    "placeholder": "Start writing...",
+    "mathPopup": {
+      "displayMath": "Display Math",
+      "inlineMath": "Inline Math",
+      "ctrlEnter": "Ctrl+Enter to save",
+      "placeholder": "Enter LaTeX math...",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "imagePopup": {
+      "figure": "Figure",
+      "ctrlEnter": "Ctrl+Enter to save",
+      "uploadedImages": "Uploaded images",
+      "imagePath": "Image path",
+      "imagePlaceholder": "e.g. images/diagram.png",
+      "caption": "Caption",
+      "captionPlaceholder": "Figure caption (optional)",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "inputFilePopup": {
+      "title": "Input File",
+      "ctrlEnter": "Ctrl+Enter to save",
+      "projectFiles": "Project files",
+      "filePath": "File path",
+      "filePlaceholder": "e.g. chapters/introduction",
+      "version": "Version",
+      "atVariant": "@ Variant",
+      "hashVersion": "# Version",
+      "noVersions": "No versions in this variant",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "hrefPopup": {
+      "title": "Edit Link",
+      "ctrlEnter": "Ctrl+Enter to save",
+      "urlLabel": "URL",
+      "urlPlaceholder": "https://example.com",
+      "displayTextLabel": "Display text",
+      "displayTextPlaceholder": "Link text (leave empty to use URL)",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "toolbar": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "headings": "Headings",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bulletList": "Bullet list",
+      "orderedList": "Ordered list",
+      "insertTable": "Insert table",
+      "tableOptions": "Table options",
+      "columns": "Columns",
+      "addColumn": "Add column",
+      "removeColumn": "Remove column",
+      "rows": "Rows",
+      "addRow": "Add row",
+      "removeRow": "Remove row",
+      "deleteTable": "Delete table",
+      "insertFigure": "Insert figure",
+      "mathEquation": "Math equation",
+      "insertLink": "Insert link (\\href)",
+      "inputFile": "Input file (\\input)"
+    }
+  },
+  "latexToolbar": {
+    "bold": "Bold (\\textbf)",
+    "italic": "Italic (\\textit)",
+    "underline": "Underline (\\underline)",
+    "sections": "Sections",
+    "section": "\\section",
+    "subsection": "\\subsection",
+    "subsubsection": "\\subsubsection",
+    "bulletList": "Bullet list (itemize)",
+    "orderedList": "Ordered list (enumerate)",
+    "insertTable": "Insert table",
+    "insertFigure": "Insert figure",
+    "mathEquation": "Math equation ($...$)",
+    "inputFile": "Input file (\\input)",
+    "workspace": "workspace"
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  }
+}

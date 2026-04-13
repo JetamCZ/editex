@@ -8,6 +8,7 @@ import {
     AlertDialog,
 } from "@radix-ui/themes";
 import type {Project} from "../../../../types/project";
+import { useTranslation } from 'react-i18next';
 
 interface DeleteProjectDialogProps {
     project: Project;
@@ -26,6 +27,7 @@ export default function DeleteProjectDialog({
     isPending,
     error,
 }: DeleteProjectDialogProps) {
+    const { t } = useTranslation();
     const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
     const handleConfirm = () => {
@@ -37,15 +39,14 @@ export default function DeleteProjectDialog({
     return (
         <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
             <AlertDialog.Content style={{maxWidth: 450}}>
-                <AlertDialog.Title>Delete Project</AlertDialog.Title>
+                <AlertDialog.Title>{t('settings.deleteProject.title')}</AlertDialog.Title>
                 <AlertDialog.Description size="2">
-                    This action cannot be undone. This will permanently delete the project
-                    <strong> {project.name}</strong> and all its files.
+                    {t('settings.deleteProject.description', { name: project.name })}
                 </AlertDialog.Description>
 
                 <Box mt="4">
                     <Text size="2" mb="2" as="div">
-                        Please type <strong>{project.name}</strong> to confirm:
+                        {t('settings.deleteProject.confirmPrompt', { name: project.name })}
                     </Text>
                     <TextField.Root
                         value={deleteConfirmation}
@@ -56,14 +57,14 @@ export default function DeleteProjectDialog({
 
                 {error && (
                     <Text color="red" size="2" mt="2">
-                        {(error as any)?.response?.data?.message || "Failed to delete project"}
+                        {(error as any)?.response?.data?.message || t('settings.deleteProject.errorFallback')}
                     </Text>
                 )}
 
                 <Flex gap="3" mt="4" justify="end">
                     <AlertDialog.Cancel>
                         <Button variant="soft" color="gray">
-                            Cancel
+                            {t('settings.deleteProject.cancel')}
                         </Button>
                     </AlertDialog.Cancel>
                     <Button
@@ -72,7 +73,7 @@ export default function DeleteProjectDialog({
                         onClick={handleConfirm}
                         disabled={deleteConfirmation !== project.name || isPending}
                     >
-                        {isPending ? "Deleting..." : "Delete Project"}
+                        {isPending ? t('settings.deleteProject.deleting') : t('settings.deleteProject.submit')}
                     </Button>
                 </Flex>
             </AlertDialog.Content>

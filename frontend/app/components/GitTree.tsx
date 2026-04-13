@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, type ReactElement } from "react";
 import { Text, Badge } from "@radix-ui/themes";
+import { useTranslation } from 'react-i18next';
 import { GitBranch, GitMerge, Tag, Pencil } from "lucide-react";
 import { useFileBranches } from "~/hooks/useFileBranches";
 import type { FileCommit } from "../../types/file";
@@ -47,6 +48,7 @@ interface GitTreeProps {
 }
 
 const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
+    const { t } = useTranslation();
     const { data: branches = [], isLoading: branchesLoading, refetch: refetchBranches } = useFileBranches(fileId);
 
     // Branches carry a `hasUncommittedChanges` flag; the modal is mounted on
@@ -162,7 +164,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
     if (isLoading) {
         return (
             <div style={{ padding: "20px", textAlign: "center" }}>
-                <Text color="gray">Loading...</Text>
+                <Text color="gray">{t('gitTree.loading')}</Text>
             </div>
         );
     }
@@ -178,10 +180,10 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
             }}>
                 <Tag size={48} color="var(--gray-8)" style={{ marginBottom: "16px" }} />
                 <Text size="3" weight="medium" style={{ display: "block", marginBottom: "8px" }}>
-                    No Versions Yet
+                    {t('gitTree.noVersions.heading')}
                 </Text>
                 <Text size="2" color="gray">
-                    Save a version to capture a snapshot of your file.
+                    {t('gitTree.noVersions.description')}
                 </Text>
             </div>
         );
@@ -396,16 +398,16 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                                         {node.message}
                                     </Text>
                                     {node.type === "merge" && (
-                                        <Badge size="1" color="purple">combine</Badge>
+                                        <Badge size="1" color="purple">{t('gitTree.badges.combine')}</Badge>
                                     )}
                                     {node.type === "branch-start" && (
-                                        <Badge size="1" color="blue">new variant</Badge>
+                                        <Badge size="1" color="blue">{t('gitTree.badges.newVariant')}</Badge>
                                     )}
                                     {node.type === "commit" && (
-                                        <Badge size="1" color="green">version</Badge>
+                                        <Badge size="1" color="green">{t('gitTree.badges.version')}</Badge>
                                     )}
                                     {isUncommitted && (
-                                        <Badge size="1" color="orange" variant="soft">unsaved</Badge>
+                                        <Badge size="1" color="orange" variant="soft">{t('gitTree.badges.unsaved')}</Badge>
                                     )}
                                 </div>
                                 <div style={{

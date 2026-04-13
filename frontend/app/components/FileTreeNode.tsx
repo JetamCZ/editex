@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from 'react-i18next';
 import {
   ChevronRight,
   Folder,
@@ -58,6 +59,7 @@ export function FileTreeNode({
   selectedFileId,
   level = 0,
 }: Props) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isSelected = selectedFileId === node.fileId;
@@ -128,7 +130,7 @@ export function FileTreeNode({
           {renderIcon()}
           <span className={styles.treeItemLabel}>{node.name}</span>
           {isFolder && node.hasExplicitGrants && (
-            <Tooltip content="This folder has explicit access grants">
+            <Tooltip content={t('fileTreeNode.hasGrants')}>
               <Lock
                 size={10}
                 style={{
@@ -172,19 +174,19 @@ export function FileTreeNode({
                     onSelect={() => onCreateSubfolder?.(node.folderId!, node.path)}
                   >
                     <FolderPlus size={14} style={{ marginRight: 8 }} />
-                    New subfolder
+                    {t('fileTreeNode.menu.newSubfolder')}
                   </DropdownMenu.Item>
                 )}
                 <DropdownMenu.Item onSelect={() => onManageFolderAccess?.(node.folderId!, node.path)}>
                   <Lock size={14} style={{ marginRight: 8 }} />
-                  Manage access…
+                  {t('fileTreeNode.menu.manageAccess')}
                 </DropdownMenu.Item>
                 {canManage && !isRootFolder && (
                   <DropdownMenu.Item
                     onSelect={() => onRenameFolder?.(node.folderId!, node.name)}
                   >
                     <Pencil size={14} style={{ marginRight: 8 }} />
-                    Rename
+                    {t('fileTreeNode.menu.rename')}
                   </DropdownMenu.Item>
                 )}
                 {canEdit && !isRootFolder && (
@@ -192,7 +194,7 @@ export function FileTreeNode({
                     <DropdownMenu.Separator />
                     <DropdownMenu.Item color="red" onSelect={() => setDeleteDialogOpen(true)}>
                       <Trash2 size={14} style={{ marginRight: 8 }} />
-                      Delete folder
+                      {t('fileTreeNode.menu.deleteFolder')}
                     </DropdownMenu.Item>
                   </>
                 )}
@@ -212,16 +214,16 @@ export function FileTreeNode({
               <DropdownMenu.Content size="1" align="end" sideOffset={4}>
                 <DropdownMenu.Item onSelect={handleDownload}>
                   <Download size={14} style={{ marginRight: 8 }} />
-                  Download
+                  {t('fileTreeNode.menu.download')}
                 </DropdownMenu.Item>
                 <DropdownMenu.Item onSelect={handleMoveClick}>
                   <FolderInput size={14} style={{ marginRight: 8 }} />
-                  Move to...
+                  {t('fileTreeNode.menu.moveTo')}
                 </DropdownMenu.Item>
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item color="red" onSelect={() => setDeleteDialogOpen(true)}>
                   <Trash2 size={14} style={{ marginRight: 8 }} />
-                  Delete
+                  {t('fileTreeNode.menu.deleteFile')}
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
@@ -250,28 +252,21 @@ export function FileTreeNode({
 
       <AlertDialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialog.Content maxWidth="400px">
-          <AlertDialog.Title>{isFolder ? "Delete folder" : "Delete file"}</AlertDialog.Title>
+          <AlertDialog.Title>{isFolder ? t('fileTreeNode.deleteFolder.title') : t('fileTreeNode.deleteFile.title')}</AlertDialog.Title>
           <AlertDialog.Description size="2">
             {isFolder ? (
-              <>
-                Are you sure you want to delete <strong>{node.path}</strong> and
-                everything inside it? Files and subfolders will be soft-deleted and
-                can be restored later.
-              </>
+              t('fileTreeNode.deleteFolder.description', { name: node.name })
             ) : (
-              <>
-                Are you sure you want to delete <strong>{node.name}</strong>? This
-                action cannot be undone.
-              </>
+              t('fileTreeNode.deleteFile.description', { name: node.name })
             )}
           </AlertDialog.Description>
           <Flex gap="3" mt="4" justify="end">
             <AlertDialog.Cancel>
-              <Button variant="soft" color="gray">Cancel</Button>
+              <Button variant="soft" color="gray">{isFolder ? t('fileTreeNode.deleteFolder.cancel') : t('fileTreeNode.deleteFile.cancel')}</Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action>
               <Button variant="solid" color="red" onClick={handleConfirmDelete}>
-                Delete
+                {isFolder ? t('fileTreeNode.deleteFolder.confirm') : t('fileTreeNode.deleteFile.confirm')}
               </Button>
             </AlertDialog.Action>
           </Flex>
