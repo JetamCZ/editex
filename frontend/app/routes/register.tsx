@@ -1,162 +1,285 @@
-import { Link, type ActionFunctionArgs, Form, useActionData, useNavigation} from 'react-router';
-import { Button, Card, TextField, Flex, Text, Callout } from '@radix-ui/themes';
-import { CheckCircledIcon } from '@radix-ui/react-icons';
+import { useState } from 'react';
+import { Link, type ActionFunctionArgs, Form, useActionData, useNavigation } from 'react-router';
 import api from '../lib/axios.server';
 import delay from "~/lib/delay";
 
 export function meta() {
-    return [
-        { title: "Register - Editex" },
-        { name: "description", content: "Create a new Editex account" },
-    ];
+  return [
+    { title: "Create account – Editex" },
+    { name: "description", content: "Create a new Editex account" },
+  ];
 }
 
-export async function action({request}: ActionFunctionArgs) {
-  await delay(1000)
+export function links() {
+  return [
+    { rel: "preconnect", href: "https://fonts.googleapis.com" },
+    { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" as const },
+    {
+      rel: "stylesheet",
+      href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&family=Lora:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
+    },
+  ];
+}
 
+export async function action({ request }: ActionFunctionArgs) {
+  await delay(1000);
   try {
     const formData = await request.formData();
-
-    if(formData.get("password") !== formData.get("confirm_password")) {
-      return {
-        success: false,
-        error: 'Passwords do not match!',
-      }
+    if (formData.get("password") !== formData.get("confirm_password")) {
+      return { success: false, error: 'Passwords do not match.' };
     }
-
     const response = await api.post<{ message: string }>('/auth/register', formData);
-
     return {
       success: true,
       message: response.data?.message,
       email: formData.get("email") as string,
     };
   } catch (err: any) {
-    console.error("ERROR", "register-action", err.response?.data);
-
     return {
       success: false,
       error: err.response?.data?.error || 'Registration failed. Please try again.',
-      errors: JSON.stringify(err.response?.data),
-    }
+    };
   }
 }
 
+/* ── Sub-components ─────────────────────────────────────────────────────── */
+
+function Alert({ color, children }: { color: 'red' | 'green'; children: React.ReactNode }) {
+  const cfg = {
+    red:   { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.22)',  text: '#c41a1a' },
+    green: { bg: 'rgba(34,197,94,0.08)',  border: 'rgba(34,197,94,0.22)',  text: '#15803d' },
+  }[color];
+  return (
+    <div style={{
+      padding: '11px 15px', borderRadius: '8px',
+      backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`,
+      color: cfg.text, fontSize: '14px', lineHeight: 1.5,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label style={{
+        fontSize: '11.5px', fontWeight: 700, color: '#777',
+        letterSpacing: '0.07em', textTransform: 'uppercase',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}>
+        {label}
+      </label>
+      <input
+        {...props}
+        onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+        onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+        style={{
+          padding: '11px 14px',
+          borderRadius: '8px',
+          border: `1.5px solid ${focused ? '#2563eb' : '#e0ddd7'}`,
+          fontSize: '15px', color: '#1a1a1a',
+          backgroundColor: '#fff', outline: 'none',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          boxShadow: focused ? '0 0 0 3px rgba(37,99,235,0.1)' : 'none',
+          transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          width: '100%', boxSizing: 'border-box' as const,
+        }}
+      />
+    </div>
+  );
+}
+
+/* ── Page ───────────────────────────────────────────────────────────────── */
 
 export default function Register() {
-  const actionData = useActionData<typeof action>()
-  const error = actionData?.error
-  const errors = actionData?.errors
-  const success = actionData?.success
-
+  const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const loading = navigation.state !== "idle"
+  const loading = navigation.state !== "idle";
 
   return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      style={{ minHeight: '100vh', padding: '1rem' }}
-    >
-      <Card size="4" style={{ maxWidth: '400px', width: '100%' }}>
-        <Flex direction="column" gap="4">
-          <img src="/logo.svg" style={{maxHeight: '80px', marginBottom: '1rem'}}/>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
-          {success ? (
-            <>
-              <Callout.Root color="green">
-                <Callout.Icon>
-                  <CheckCircledIcon />
-                </Callout.Icon>
-                <Callout.Text>
-                  Registration successful! Please check your email to verify your account.
-                </Callout.Text>
-              </Callout.Root>
+      {/* ── Left: branding panel ─────────────────────────────────── */}
+      <div
+        className="hidden lg:flex"
+        style={{
+          width: '42%', flexDirection: 'column',
+          backgroundColor: '#09090b',
+          backgroundImage:
+            'radial-gradient(ellipse at 80% 20%, rgba(37,99,235,0.15) 0%, transparent 55%), radial-gradient(ellipse at 20% 85%, rgba(124,58,237,0.1) 0%, transparent 50%)',
+          padding: '48px',
+          position: 'relative', overflow: 'hidden',
+        }}
+      >
+        {/* Grid overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.025,
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }} />
 
-              <Text size="2" align="center">
-                We've sent a verification link to <strong>{actionData?.email}</strong>.
-                Please check your inbox and spam folder.
-              </Text>
+        {/* Logo */}
+        <Link to="/" style={{ position: 'relative', zIndex: 1, display: 'inline-block' }}>
+          <img src="/logo.svg" style={{ height: '30px', filter: 'brightness(0) invert(1)' }} alt="Editex" />
+        </Link>
 
-              <Button asChild size="3" variant="outline">
-                <Link to="/auth/login">Go to Login</Link>
-              </Button>
-            </>
+        {/* Headline */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
+          <h2 style={{
+            fontFamily: "'Lora', serif",
+            fontSize: '38px', fontWeight: 700,
+            color: '#f0ede6', letterSpacing: '-0.025em',
+            lineHeight: 1.18, margin: '0 0 18px',
+          }}>
+            Start writing<br />
+            <em style={{ fontStyle: 'italic', color: '#93c5fd' }}>with your team.</em>
+          </h2>
+          <p style={{ fontSize: '15px', color: 'rgba(240,237,230,0.48)', lineHeight: 1.72, margin: 0, maxWidth: '300px' }}>
+            Create an account and invite collaborators to your LaTeX projects in seconds.
+          </p>
+        </div>
+
+        {/* Feature list */}
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[
+            'Version-controlled LaTeX documents',
+            'Real-time collaborative editing',
+            'Role-based access & permissions',
+          ].map(item => (
+            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: '50%',
+                backgroundColor: 'rgba(37,99,235,0.25)',
+                border: '1px solid rgba(37,99,235,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4L3.5 6.5L9 1" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span style={{ fontSize: '13.5px', color: 'rgba(240,237,230,0.6)' }}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Right: form panel ────────────────────────────────────── */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        backgroundColor: '#faf9f6', padding: '48px 32px',
+        overflowY: 'auto',
+      }}>
+        {/* Mobile logo */}
+        <div className="flex lg:hidden" style={{ marginBottom: '32px' }}>
+          <Link to="/">
+            <img src="/logo.svg" style={{ height: '34px' }} alt="Editex" />
+          </Link>
+        </div>
+
+        <div style={{ width: '100%', maxWidth: '400px' }}>
+
+          {actionData?.success ? (
+            /* ── Success state ── */
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                backgroundColor: 'rgba(34,197,94,0.1)',
+                border: '1px solid rgba(34,197,94,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
+                  <path d="M2 10L8.5 16.5L22 2" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div>
+                <h1 style={{
+                  fontFamily: "'Lora', serif",
+                  fontSize: '26px', fontWeight: 700,
+                  color: '#0c0c0e', letterSpacing: '-0.02em',
+                  margin: '0 0 10px',
+                }}>
+                  Check your inbox
+                </h1>
+                <p style={{ fontSize: '15px', color: '#888', margin: 0, lineHeight: 1.65 }}>
+                  We've sent a verification link to{' '}
+                  <strong style={{ color: '#444' }}>{actionData?.email}</strong>.
+                  Please check your inbox and spam folder.
+                </p>
+              </div>
+              <Link to="/auth/login" style={{ textDecoration: 'none', width: '100%' }}>
+                <button style={{
+                  width: '100%', padding: '12px',
+                  borderRadius: '10px',
+                  backgroundColor: '#09090b', color: 'white',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: '15px', fontWeight: 700, fontFamily: 'inherit',
+                }}>
+                  Go to sign in →
+                </button>
+              </Link>
+            </div>
           ) : (
+            /* ── Registration form ── */
             <>
-              {(error || errors) && (
-                <Callout.Root color="red">
-                  <Callout.Text>{error}</Callout.Text>
-                </Callout.Root>
+              <div style={{ marginBottom: '28px' }}>
+                <h1 style={{
+                  fontFamily: "'Lora', serif",
+                  fontSize: '28px', fontWeight: 700,
+                  color: '#0c0c0e', letterSpacing: '-0.02em',
+                  margin: '0 0 7px',
+                }}>
+                  Create your account
+                </h1>
+                <p style={{ fontSize: '15px', color: '#999', margin: 0, lineHeight: 1.5 }}>
+                  Free to get started, no credit card required.
+                </p>
+              </div>
+
+              {actionData?.error && (
+                <div style={{ marginBottom: 20 }}>
+                  <Alert color="red">{actionData.error}</Alert>
+                </div>
               )}
 
               <Form method="post">
-                <Flex direction="column" gap="3">
-                  <label>
-                    <Text as="div" size="2" mb="1" weight="bold">
-                      Name
-                    </Text>
-                    <TextField.Root
-                      type="text"
-                      placeholder="Enter your name"
-                      required
-                      name={"name"}
-                    />
-                  </label>
-
-                  <label>
-                    <Text as="div" size="2" mb="1" weight="bold">
-                      Email
-                    </Text>
-                    <TextField.Root
-                      type="email"
-                      placeholder="Enter your email"
-                      required
-                      name="email"
-                    />
-                  </label>
-
-                  <label>
-                    <Text as="div" size="2" mb="1" weight="bold">
-                      Password
-                    </Text>
-                    <TextField.Root
-                      type="password"
-                      name="password"
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    <Text as="div" size="2" mb="1" weight="bold">
-                      Confirm Password
-                    </Text>
-                    <TextField.Root
-                      type="password"
-                      name="confirm_password"
-                      placeholder="Confirm your password"
-                      required
-                    />
-                  </label>
-
-                  <Button type="submit" size="3" disabled={loading}>
-                    {loading ? 'Registering...' : 'Register'}
-                  </Button>
-                </Flex>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                  <Field label="Full name" type="text" name="name" placeholder="Ada Lovelace" required autoComplete="name" />
+                  <Field label="Email" type="email" name="email" placeholder="you@example.com" required autoComplete="email" />
+                  <Field label="Password" type="password" name="password" placeholder="••••••••" required autoComplete="new-password" />
+                  <Field label="Confirm password" type="password" name="confirm_password" placeholder="••••••••" required autoComplete="new-password" />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      marginTop: 4, padding: '12px',
+                      borderRadius: '10px',
+                      backgroundColor: '#09090b', color: 'white',
+                      border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: '15px', fontWeight: 700, fontFamily: 'inherit',
+                      opacity: loading ? 0.65 : 1,
+                      transition: 'opacity 0.15s',
+                    }}
+                  >
+                    {loading ? 'Creating account…' : 'Create account →'}
+                  </button>
+                </div>
               </Form>
 
-              <Text size="2" align="center">
+              <p style={{ marginTop: 22, fontSize: '14px', color: '#999', textAlign: 'center', margin: '22px 0 0' }}>
                 Already have an account?{' '}
-                <Link to="/auth/login" style={{ color: 'var(--accent-9)' }}>
-                  Login
+                <Link to="/auth/login" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}>
+                  Sign in
                 </Link>
-              </Text>
+              </p>
             </>
           )}
-        </Flex>
-      </Card>
-    </Flex>
+        </div>
+      </div>
+    </div>
   );
 }

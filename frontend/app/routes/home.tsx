@@ -1,13 +1,23 @@
 import type { Route } from "./+types/home";
 import { Link, useLoaderData } from "react-router";
-import { Button, Flex, Container, Heading, Text, Box } from "@radix-ui/themes";
-import { FileText, GitBranch, Users, Zap, LogIn, LayoutDashboard } from "lucide-react";
+import { FileText, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
 import { getApiClient } from "~/lib/axios.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Editex - Collaborative LaTeX Editor" },
-    { name: "description", content: "Create and manage versions of your LaTeX document projects collaboratively" },
+    { name: "description", content: "LaTeX editing, redesigned for teams. Version control, real-time collaboration, and document management." },
+  ];
+}
+
+export function links() {
+  return [
+    { rel: "preconnect", href: "https://fonts.googleapis.com" },
+    { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" as const },
+    {
+      rel: "stylesheet",
+      href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+    },
   ];
 }
 
@@ -16,125 +26,435 @@ export async function loader({ request }: Route.LoaderArgs) {
     const api = await getApiClient(request);
     const { data: user } = await api.get("/auth/me");
     return { user };
-  } catch (error) {
+  } catch {
     return { user: null };
   }
 }
 
+const features = [
+  {
+    icon: GitBranch,
+    color: "#2563eb",
+    title: "Version Control",
+    description:
+      "Track every change with built-in version control. Save snapshots, work in parallel branches, and never lose your work.",
+  },
+  {
+    icon: Users,
+    color: "#7c3aed",
+    title: "Real-time Collaboration",
+    description:
+      "Work together with your team in real time. See changes as they happen and collaborate on complex documents seamlessly.",
+  },
+  {
+    icon: FileText,
+    color: "#059669",
+    title: "LaTeX Made Easy",
+    description:
+      "Professional document creation with LaTeX syntax support, live preview, and intelligent autocomplete for common commands.",
+  },
+];
+
+const DARK = "#09090b";
+const WARM_WHITE = "#faf9f6";
+const BLUE = "#2563eb";
+
 export default function Home() {
   const { user } = useLoaderData<typeof loader>();
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-1 to-gray-3">
-      {/* Header */}
-      <header className="border-b border-gray-a6 bg-gray-2/80 backdrop-blur-sm sticky top-0 z-10">
-        <Container size="4">
-          <Flex align="center" justify="between" className="h-16">
-            <Flex align="center" gap="2">
-              <img src="/logo.svg" className="h-12"/>
-            </Flex>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", backgroundColor: DARK }}>
 
-            <Flex gap="3" align="center">
-              {user ? (
-                <Link to="/dashboard">
-                  <Button size="2">
-                    <LayoutDashboard className="w-4 h-4" />
-                    Dashboard
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/auth/login">
-                  <Button size="2">
-                    <LogIn className="w-4 h-4" />
-                    Login
-                  </Button>
-                </Link>
-              )}
-            </Flex>
-          </Flex>
-        </Container>
-      </header>
+      {/* ── NAV ──────────────────────────────────────────────────────── */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 50,
+        backgroundColor: "rgba(9,9,11,0.85)",
+        backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+      }}>
+        <div style={{
+          maxWidth: "1160px", margin: "0 auto", padding: "0 32px",
+          height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <img src="/logo.svg" style={{ height: "36px", filter: "brightness(0) invert(1)" }} alt="Editex" />
 
-      {/* Hero Section */}
-      <Container size="3" className="py-20">
-        <Flex direction="column" align="center" gap="6" className="text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-3 text-accent-11 border border-accent-6">
-            <Zap className="w-4 h-4" />
-            <Text size="2" weight="medium">Collaborative LaTeX Editing</Text>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {user ? (
+              <Link to="/dashboard" style={{ textDecoration: "none" }}>
+                <button style={{
+                  padding: "9px 20px", borderRadius: "8px",
+                  backgroundColor: BLUE, color: "white",
+                  border: "none", cursor: "pointer",
+                  fontSize: "14px", fontWeight: 600, fontFamily: "inherit",
+                }}>
+                  Dashboard
+                </button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/auth/login" style={{ textDecoration: "none" }}>
+                  <button style={{
+                    padding: "9px 20px", borderRadius: "8px",
+                    backgroundColor: "transparent",
+                    color: "rgba(255,255,255,0.65)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    cursor: "pointer", fontSize: "14px", fontWeight: 500, fontFamily: "inherit",
+                  }}>
+                    Sign in
+                  </button>
+                </Link>
+                <Link to="/auth/register" style={{ textDecoration: "none" }}>
+                  <button style={{
+                    padding: "9px 20px", borderRadius: "8px",
+                    backgroundColor: BLUE, color: "white",
+                    border: "none", cursor: "pointer",
+                    fontSize: "14px", fontWeight: 600, fontFamily: "inherit",
+                  }}>
+                    Get started
+                  </button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <section style={{
+        backgroundColor: DARK,
+        backgroundImage:
+          "radial-gradient(ellipse at 15% 60%, rgba(37,99,235,0.14) 0%, transparent 55%), radial-gradient(ellipse at 85% 20%, rgba(124,58,237,0.11) 0%, transparent 50%)",
+        padding: "96px 32px 80px",
+        position: "relative", overflow: "hidden",
+      }}>
+        {/* Subtle grid */}
+        <div style={{
+          position: "absolute", inset: 0, opacity: 0.025,
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }} />
+
+        <div style={{ maxWidth: "1160px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+
+          {/* Badge */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: "7px",
+            padding: "5px 14px", borderRadius: "100px",
+            backgroundColor: "rgba(37,99,235,0.15)",
+            border: "1px solid rgba(37,99,235,0.3)",
+            marginBottom: "44px",
+          }}>
+            <Zap size={12} style={{ color: "#60a5fa" }} />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#60a5fa", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              Collaborative LaTeX Editing
+            </span>
           </div>
 
-          <Heading size="9" className="max-w-3xl">
-            Create and Manage Versions of Your LaTeX Documents
-          </Heading>
+          {/* Two-column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-          <Text size="5" className="max-w-2xl text-gray-11">
-            Editex is a collaborative text editor designed for LaTeX projects.
-            Work together with your team, track changes, and manage document versions seamlessly.
-          </Text>
+            {/* Left: copy */}
+            <div>
+              <h1 style={{
+                fontFamily: "'Lora', serif",
+                fontSize: "clamp(40px, 4.5vw, 62px)",
+                fontWeight: 700, lineHeight: 1.12,
+                color: "#f0ede6", letterSpacing: "-0.025em",
+                margin: "0 0 24px",
+              }}>
+                LaTeX editing,<br />
+                <em style={{ fontStyle: "italic", color: "#93c5fd" }}>redesigned</em>{" "}
+                for teams.
+              </h1>
 
-          <Flex gap="3" mt="4">
-            <Link to="/auth/register">
-              <Button size="3">
-                Get Started
-              </Button>
-            </Link>
-            <Link to="/auth/login">
-              <Button size="3" variant="outline">
-                Sign In
-              </Button>
-            </Link>
-          </Flex>
-        </Flex>
+              <p style={{
+                fontSize: "18px", lineHeight: 1.72,
+                color: "rgba(240,237,230,0.55)",
+                margin: "0 0 40px", maxWidth: "430px",
+              }}>
+                Write, collaborate, and version-control your LaTeX documents. Built for researchers, academics, and technical teams.
+              </p>
 
-        {/* Features Grid */}
-        <Flex gap="4" mt="8" wrap="wrap" justify="center">
-          <Box className="flex-1 min-w-[280px] max-w-sm p-6 bg-gray-2 rounded-lg border border-gray-a6">
-            <Flex direction="column" gap="3">
-              <div className="w-12 h-12 rounded-lg bg-accent-3 flex items-center justify-center text-accent-11">
-                <GitBranch className="w-6 h-6" />
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <Link to="/auth/register" style={{ textDecoration: "none" }}>
+                  <button style={{
+                    padding: "13px 22px", borderRadius: "10px",
+                    backgroundColor: BLUE, color: "white",
+                    border: "none", cursor: "pointer",
+                    fontSize: "15px", fontWeight: 700, fontFamily: "inherit",
+                    display: "flex", alignItems: "center", gap: "8px",
+                    boxShadow: "0 0 48px rgba(37,99,235,0.4)",
+                  }}>
+                    Get started free <ArrowRight size={15} />
+                  </button>
+                </Link>
+                <Link to="/auth/login" style={{ textDecoration: "none" }}>
+                  <button style={{
+                    padding: "13px 22px", borderRadius: "10px",
+                    backgroundColor: "rgba(255,255,255,0.06)",
+                    color: "rgba(255,255,255,0.75)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    cursor: "pointer", fontSize: "15px", fontWeight: 500, fontFamily: "inherit",
+                  }}>
+                    Sign in
+                  </button>
+                </Link>
               </div>
-              <Heading size="4">Version Control</Heading>
-              <Text size="3" className="text-gray-11">
-                Track every change with built-in version control. Save versions, work in parallel variants, and never lose your work.
-              </Text>
-            </Flex>
-          </Box>
+            </div>
 
-          <Box className="flex-1 min-w-[280px] max-w-sm p-6 bg-gray-2 rounded-lg border border-gray-a6">
-            <Flex direction="column" gap="3">
-              <div className="w-12 h-12 rounded-lg bg-accent-3 flex items-center justify-center text-accent-11">
-                <Users className="w-6 h-6" />
+            {/* Right: mock editor */}
+            <div style={{ position: "relative" }}>
+              <div style={{
+                borderRadius: "16px", overflow: "hidden",
+                border: "1px solid rgba(255,255,255,0.09)",
+                boxShadow: "0 40px 96px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)",
+                backgroundColor: "#111113",
+              }}>
+                {/* Window chrome */}
+                <div style={{
+                  padding: "12px 16px",
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  display: "flex", alignItems: "center", gap: "8px",
+                  backgroundColor: "#0d0d0f",
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#f59e0b" }} />
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#22c55e" }} />
+                  <span style={{ marginLeft: 12, fontSize: 12, color: "rgba(255,255,255,0.25)", fontFamily: "'JetBrains Mono', monospace" }}>
+                    main.tex
+                  </span>
+                  <span style={{
+                    marginLeft: "auto", fontSize: 11, fontWeight: 600,
+                    color: "#22c55e", letterSpacing: "0.04em",
+                    display: "flex", alignItems: "center", gap: 5,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#22c55e", display: "inline-block" }} />
+                    LIVE
+                  </span>
+                </div>
+
+                {/* Code body */}
+                <div style={{
+                  padding: "28px 28px 32px",
+                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                  fontSize: "13.5px", lineHeight: 2,
+                }}>
+                  <div>
+                    <span style={{ color: "#60a5fa" }}>\documentclass</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"{"}</span>
+                    <span style={{ color: "#f0ede6" }}>article</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"}"}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: "#60a5fa" }}>\usepackage</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"{"}</span>
+                    <span style={{ color: "#f0ede6" }}>amsmath</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"}"}</span>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ color: "#60a5fa" }}>\begin</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"{"}</span>
+                    <span style={{ color: "#a5f3fc" }}>document</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"}"}</span>
+                  </div>
+                  <div style={{ paddingLeft: 20 }}>
+                    <span style={{ color: "#60a5fa" }}>\title</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"{"}</span>
+                    <span style={{ color: "#f0ede6" }}>Research Paper</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"}"}</span>
+                  </div>
+                  <div style={{ paddingLeft: 20 }}>
+                    <span style={{ color: "#60a5fa" }}>\section</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"{"}</span>
+                    <span style={{ color: "#f0ede6" }}>Introduction</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"}"}</span>
+                  </div>
+                  <div style={{ paddingLeft: 20, color: "rgba(255,255,255,0.45)" }}>
+                    Collaborative writing made simple.
+                  </div>
+                  <div style={{ paddingLeft: 20, color: "#fbbf24", marginTop: 4 }}>
+                    $E = mc^2$
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ color: "#60a5fa" }}>\end</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"{"}</span>
+                    <span style={{ color: "#a5f3fc" }}>document</span>
+                    <span style={{ color: "rgba(255,255,255,0.35)" }}>{"}"}</span>
+                  </div>
+                </div>
               </div>
-              <Heading size="4">Real-time Collaboration</Heading>
-              <Text size="3" className="text-gray-11">
-                Work together with your team in real-time. See changes as they happen and collaborate seamlessly.
-              </Text>
-            </Flex>
-          </Box>
 
-          <Box className="flex-1 min-w-[280px] max-w-sm p-6 bg-gray-2 rounded-lg border border-gray-a6">
-            <Flex direction="column" gap="3">
-              <div className="w-12 h-12 rounded-lg bg-accent-3 flex items-center justify-center text-accent-11">
-                <FileText className="w-6 h-6" />
+              {/* Floating: active collaborators */}
+              <div style={{
+                position: "absolute", bottom: -20, left: 20,
+                display: "flex", alignItems: "center", gap: 8,
+                backgroundColor: "#1c1c1f",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "100px", padding: "8px 16px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              }}>
+                <div style={{ display: "flex" }}>
+                  {["#2563eb", "#7c3aed", "#059669"].map((c, i) => (
+                    <div key={i} style={{
+                      width: 24, height: 24, borderRadius: "50%",
+                      backgroundColor: c,
+                      border: "2px solid #1c1c1f",
+                      marginLeft: i > 0 ? -8 : 0,
+                    }} />
+                  ))}
+                </div>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
+                  3 editing now
+                </span>
               </div>
-              <Heading size="4">LaTeX Made Easy</Heading>
-              <Text size="3" className="text-gray-11">
-                Professional document creation with LaTeX syntax support, live preview, and intelligent autocomplete.
-              </Text>
-            </Flex>
-          </Box>
-        </Flex>
-      </Container>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Footer */}
-      <Box className="border-t border-gray-a6 mt-20 py-8 bg-gray-2">
-        <Container size="4">
-          <Flex justify="center" gap="2">
-            <Text size="2" className="text-gray-11">
-              © 2024 Editex. All rights reserved.
-            </Text>
-          </Flex>
-        </Container>
-      </Box>
+      {/* ── FEATURES ─────────────────────────────────────────────────── */}
+      <section style={{ backgroundColor: WARM_WHITE, padding: "96px 32px" }}>
+        <div style={{ maxWidth: "1160px", margin: "0 auto" }}>
+
+          <div style={{ marginBottom: "64px" }}>
+            <p style={{
+              fontSize: "12px", fontWeight: 700, color: BLUE,
+              letterSpacing: "0.1em", textTransform: "uppercase",
+              margin: "0 0 16px",
+            }}>
+              Features
+            </p>
+            <h2 style={{
+              fontFamily: "'Lora', serif",
+              fontSize: "clamp(30px, 3.5vw, 44px)",
+              fontWeight: 700, color: "#0c0c0e",
+              letterSpacing: "-0.025em", lineHeight: 1.2,
+              margin: "0 0 16px", maxWidth: "540px",
+            }}>
+              Everything your team needs to write great documents.
+            </h2>
+            <p style={{ fontSize: "17px", color: "#666", lineHeight: 1.65, margin: 0 }}>
+              Built for academics and researchers who demand precision from their tools.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {features.map(({ icon: Icon, color, title, description }) => (
+              <FeatureCard key={title} icon={<Icon size={22} style={{ color }} />} iconBg={`${color}18`} title={title} description={description} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ──────────────────────────────────────────────────────── */}
+      <section style={{
+        backgroundColor: DARK,
+        backgroundImage: "radial-gradient(ellipse at 50% 110%, rgba(37,99,235,0.25) 0%, transparent 60%)",
+        padding: "104px 32px",
+        textAlign: "center",
+        borderTop: "1px solid rgba(255,255,255,0.05)",
+      }}>
+        <div style={{ maxWidth: "560px", margin: "0 auto" }}>
+          <h2 style={{
+            fontFamily: "'Lora', serif",
+            fontSize: "clamp(34px, 4vw, 50px)",
+            fontWeight: 700, color: "#f0ede6",
+            letterSpacing: "-0.025em", lineHeight: 1.2,
+            margin: "0 0 20px",
+          }}>
+            Ready to write<br />
+            <em style={{ fontStyle: "italic", color: "#93c5fd" }}>together?</em>
+          </h2>
+          <p style={{ fontSize: "18px", color: "rgba(240,237,230,0.5)", margin: "0 0 40px", lineHeight: 1.65 }}>
+            Join teams using Editex to collaborate on LaTeX documents.
+          </p>
+          <Link to="/auth/register" style={{ textDecoration: "none" }}>
+            <button style={{
+              padding: "14px 32px", borderRadius: "12px",
+              backgroundColor: "white", color: "#0c0c0e",
+              border: "none", cursor: "pointer",
+              fontSize: "16px", fontWeight: 700, fontFamily: "inherit",
+              boxShadow: "0 0 80px rgba(255,255,255,0.12)",
+            }}>
+              Start for free →
+            </button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────────────────── */}
+      <footer style={{
+        backgroundColor: DARK,
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        padding: "28px 32px",
+      }}>
+        <div style={{
+          maxWidth: "1160px", margin: "0 auto",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: 16,
+        }}>
+          <img src="/logo.svg" style={{ height: "26px", filter: "brightness(0) invert(1) opacity(0.4)" }} alt="Editex" />
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", fontFamily: "inherit" }}>
+            © 2025 Editex. All rights reserved.
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* ── Sub-component ──────────────────────────────────────────────────────── */
+
+interface FeatureCardProps {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  description: string;
+}
+
+function FeatureCard({ icon, iconBg, title, description }: FeatureCardProps) {
+  return (
+    <div
+      style={{
+        backgroundColor: "white",
+        borderRadius: "16px",
+        padding: "32px",
+        border: "1px solid #e8e5df",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+        transition: "box-shadow 0.2s ease, transform 0.2s ease",
+        cursor: "default",
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.boxShadow = "0 12px 40px rgba(0,0,0,0.09)";
+        el.style.transform = "translateY(-3px)";
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.04)";
+        el.style.transform = "translateY(0)";
+      }}
+    >
+      <div style={{
+        width: 48, height: 48, borderRadius: 12,
+        backgroundColor: iconBg,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        marginBottom: 24,
+      }}>
+        {icon}
+      </div>
+      <h3 style={{
+        fontFamily: "'Lora', serif",
+        fontSize: "20px", fontWeight: 700,
+        color: "#0c0c0e", margin: "0 0 12px",
+        letterSpacing: "-0.015em",
+      }}>
+        {title}
+      </h3>
+      <p style={{ fontSize: "15px", color: "#666", lineHeight: 1.7, margin: 0 }}>
+        {description}
+      </p>
     </div>
   );
 }
