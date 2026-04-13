@@ -146,9 +146,10 @@ export function useMergeBranch() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ sourceBranchId, targetBranchId }: {
+        mutationFn: async ({ sourceBranchId, targetBranchId, fileId }: {
             sourceBranchId: string;
             targetBranchId: string;
+            fileId: string;
         }) => {
             const { data } = await axios.post<FileCommit>(
                 `/api/branches/${sourceBranchId}/merge`,
@@ -157,8 +158,10 @@ export function useMergeBranch() {
             );
             return data;
         },
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['branchCommits'] });
+            queryClient.invalidateQueries({ queryKey: ['fileBranches', variables.fileId] });
+            queryClient.invalidateQueries({ queryKey: ['projectFiles'] });
         },
     });
 }

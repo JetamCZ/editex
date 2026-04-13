@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,4 +24,7 @@ public interface FileCommitRepository extends JpaRepository<FileCommit, Long> {
 
     @Query("SELECT fc FROM FileCommit fc WHERE fc.hash = :hash AND fc.branch.file.project.id = :projectId")
     Optional<FileCommit> findByHashAndProjectId(@Param("hash") String hash, @Param("projectId") Long projectId);
+
+    @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId AND fc.createdAt <= :before ORDER BY fc.createdAt DESC LIMIT 1")
+    Optional<FileCommit> findLatestByBranchIdBefore(@Param("branchId") String branchId, @Param("before") LocalDateTime before);
 }

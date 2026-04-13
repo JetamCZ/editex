@@ -2,7 +2,9 @@ package eu.puhony.latex_editor.controller;
 
 import eu.puhony.latex_editor.dto.CompilationRequest;
 import eu.puhony.latex_editor.dto.CompilationResult;
+import eu.puhony.latex_editor.dto.CompileCommitRequest;
 import eu.puhony.latex_editor.dto.DownloadRequest;
+import eu.puhony.latex_editor.dto.ProjectVersionPdfInfo;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.LatexCompilationService;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -38,6 +41,40 @@ public class LatexCompilationController {
                 branch,
                 targetFile,
                 user.getId()
+            );
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            throw new RuntimeException("Compilation failed: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/pdfs/{baseProject}/{branch}")
+    public ResponseEntity<List<ProjectVersionPdfInfo>> getProjectVersionPdfs(
+            @PathVariable String baseProject,
+            @PathVariable String branch,
+            Authentication authentication) {
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<ProjectVersionPdfInfo> pdfs = compilationService.getProjectVersionPdfs(baseProject, branch, user.getId());
+        return ResponseEntity.ok(pdfs);
+    }
+
+    @PostMapping("/compile-commit")
+    public ResponseEntity<CompilationResult> compileCommit(
+            @Valid @RequestBody CompileCommitRequest request,
+            Authentication authentication) {
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            CompilationResult result = compilationService.compileLatexAtCommit(
+                    request.getBaseProject(),
+                    request.getBranch(),
+                    request.getCommitHash(),
+                    user.getId()
             );
             return ResponseEntity.ok(result);
         } catch (Exception e) {

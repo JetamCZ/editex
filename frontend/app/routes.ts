@@ -23,6 +23,7 @@ export default [
             route("settings", "routes/editor/settings.tsx", {id: "project-settings"}),
             route("settings/permissions", "routes/editor/settings-permissions.tsx", {id: "project-settings-permissions"}),
             route("help", "routes/editor/help.tsx", {id: "project-help"}),
+            route("versions", "routes/editor/versions.tsx", {id: "project-versions"}),
         ]),
 
         route("profile", "routes/profile.tsx"),

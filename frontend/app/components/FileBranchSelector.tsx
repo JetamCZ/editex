@@ -104,15 +104,16 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const handleMerge = useCallback(() => {
         if (!activeBranchId || !mergeTargetBranchId) return;
         mergeBranch.mutate(
-            { sourceBranchId: activeBranchId, targetBranchId: mergeTargetBranchId },
+            { sourceBranchId: activeBranchId, targetBranchId: mergeTargetBranchId, fileId: selectedFile.id },
             {
                 onSuccess: () => {
                     setMergeDialogOpen(false);
                     setMergeTargetBranchId(null);
+                    onBranchChanged?.();
                 },
             }
         );
-    }, [activeBranchId, mergeTargetBranchId, mergeBranch]);
+    }, [activeBranchId, mergeTargetBranchId, mergeBranch, selectedFile.id, onBranchChanged]);
 
     return (
         <>

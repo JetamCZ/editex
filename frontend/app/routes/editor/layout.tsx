@@ -7,6 +7,7 @@ import {
     GearIcon,
     QuestionMarkCircledIcon,
     ExitIcon,
+    ReaderIcon,
 } from "@radix-ui/react-icons";
 import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
@@ -50,6 +51,7 @@ export default function ProjectLayout() {
 
     const iconSidebarItems = [
         {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: t('editor.layout.filesTooltip'), path: ''},
+        {id: 'versions', icon: <ReaderIcon width="20" height="20" />, tooltip: t('editor.layout.versionsTooltip'), path: '/versions'},
     ];
 
     const iconSidebarBottomItems = [
@@ -59,6 +61,7 @@ export default function ProjectLayout() {
 
     const isSettingsPage = location.pathname.endsWith('/settings');
     const isHelpPage = location.pathname.endsWith('/help');
+    const isVersionsPage = location.pathname.endsWith('/versions');
     const handleIconClick = (itemId: string, path: string) => {
         if (path) {
             navigate(`/project/${project.baseProject}/${project.branch}${path}`);
@@ -70,6 +73,7 @@ export default function ProjectLayout() {
     const getActiveItem = () => {
         if (isSettingsPage) return 'settings';
         if (isHelpPage) return 'help';
+        if (isVersionsPage) return 'versions';
         return 'files';
     };
 

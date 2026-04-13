@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -252,8 +253,10 @@ public class FileBranchService {
     }
 
     /**
-     * Merge source branch content into target branch.
+     * Merge source branch content into target branch, then delete the source branch.
      * Simple overwrite: resolves source content, creates commit on target, clears target changes.
+     * The source branch is soft-deleted after merge (unless it is "main").
+     * If the source branch is the active branch, switches active to target first.
      */
     @Transactional
     public FileCommit merge(String sourceBranchId, String targetBranchId, User user) {
@@ -282,6 +285,22 @@ public class FileBranchService {
 
         // Clear target branch changes
         changeRepository.deleteByBranchId(targetBranchId);
+
+        // Delete source branch after merge (skip if it is the protected "main" branch)
+        if (!"main".equals(sourceBranch.getName())) {
+            ProjectFile file = sourceBranch.getFile();
+
+            // If source is the active branch, switch active to target first
+            if (file.getActiveBranch() != null && file.getActiveBranch().getId().equals(sourceBranchId)) {
+                file.setActiveBranch(targetBranch);
+                fileRepository.save(file);
+            }
+
+            // Clear changes and soft-delete the source branch
+            changeRepository.deleteByBranchId(sourceBranchId);
+            sourceBranch.setDeletedAt(java.time.LocalDateTime.now());
+            branchRepository.save(sourceBranch);
+        }
 
         return mergeCommit;
     }
@@ -400,6 +419,40 @@ public class FileBranchService {
                     .map(FileCommit::getContent)
                     .orElse(null);
         }
+    }
+
+    /**
+     * Resolve an \input @branch reference for compilation at a specific point in time.
+     * Returns the content of the latest commit on that branch before or at {@code atTime},
+     * or falls back to the file's S3 original if no commits existed yet.
+     */
+    public String resolveInputReferenceAtTime(Long projectId, String fileName, String branchName, LocalDateTime atTime) {
+        List<ProjectFile> files = fileRepository.findByProjectIdNonDeleted(projectId);
+        ProjectFile targetFile = files.stream()
+                .filter(f -> {
+                    String name = f.getOriginalFileName();
+                    String nameNoExt = name.replaceAll("\\.tex$", "");
+                    String fileNameNoExt = fileName.replaceAll("\\.tex$", "");
+                    return name.equals(fileName) || nameNoExt.equals(fileNameNoExt)
+                            || name.equals(fileName + ".tex");
+                })
+                .findFirst()
+                .orElse(null);
+
+        if (targetFile == null) return null;
+
+        Optional<FileBranch> branch = branchRepository.findByFileIdAndNameNonDeleted(targetFile.getId(), branchName);
+        if (branch.isEmpty()) return null;
+
+        return commitRepository.findLatestByBranchIdBefore(branch.get().getId(), atTime)
+                .map(FileCommit::getContent)
+                .orElseGet(() -> {
+                    try {
+                        return minioService.getFileContent(targetFile.getS3Url());
+                    } catch (Exception e) {
+                        throw new RuntimeException("Error reading base content for " + fileName, e);
+                    }
+                });
     }
 
     /**

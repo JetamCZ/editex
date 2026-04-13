@@ -204,8 +204,13 @@
     },
     "index": {
       "startNew": "Start a new project",
+      "startNewProject": "Start a new project",
       "blank": "Blank project",
+      "blankProject": "Blank project",
       "recentProjects": "Recent projects",
+      "noProjectsHeading": "No projects yet",
+      "noProjectsSubtext": "Create your first LaTeX project to get started.",
+      "createProject": "Create a project",
       "noProjects": {
         "heading": "No projects yet",
         "description": "Create your first LaTeX project to get started.",
@@ -229,7 +234,25 @@
       "description": "Manage your profile settings"
     },
     "heading": "Profile Settings",
+    "subheading": "Manage your personal information and account settings",
     "description": "Manage your personal information and account settings",
+    "successMessage": "Profile updated successfully!",
+    "userInfoHeading": "User information",
+    "fullNameLabel": "Full Name",
+    "fullNamePlaceholder": "Enter your full name",
+    "changePasswordHeading": "Change Password",
+    "changePasswordHint": "Leave blank if you don't want to change your password",
+    "currentPasswordLabel": "Current Password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "newPasswordLabel": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmNewPasswordLabel": "Confirm New Password",
+    "confirmNewPasswordPlaceholder": "Confirm new password",
+    "accountInfoHeading": "Account Information",
+    "emailAddress": "Email Address",
+    "accountStatus": "Account Status",
+    "accountStatusActive": "Active",
+    "memberSince": "Member Since",
     "errors": {
       "passwordRequired": "Current password is required to change password",
       "passwordMismatch": "New passwords do not match",
@@ -259,6 +282,7 @@
     "dangerZone": {
       "heading": "Danger Zone",
       "deleteAccount": "Delete Account",
+      "deleteAccountTitle": "Delete Account",
       "deleteAccountDescription": "Permanently delete your account and all associated data",
       "deleteAccountButton": "Delete Account"
     },
@@ -272,6 +296,7 @@
       "files": "Files",
       "help": "Help",
       "settings": "Settings",
+      "versions": "PDF Versions",
       "projects": "Projects",
       "profile": "Profile",
       "logout": "Logout"
@@ -297,6 +322,20 @@
       "heading": "Project Settings",
       "description": "Manage your project settings and access",
       "backToEditor": "Back to Editor"
+    },
+    "versions": {
+      "meta": {
+        "title": "PDF Versions - Editex"
+      },
+      "heading": "PDF Versions",
+      "description": "Saved versions of main.tex — each can be compiled to a consistent PDF snapshot",
+      "backToEditor": "Back to Editor",
+      "selectVersion": "Select a version to preview",
+      "noCommits": "No saved versions yet. Use \"Save Version\" in the editor.",
+      "noCompile": "Not compiled",
+      "compile": "Compile",
+      "compiling": "Compiling…",
+      "compilingWait": "Compiling PDF, please wait…"
     },
     "help": {
       "meta": {

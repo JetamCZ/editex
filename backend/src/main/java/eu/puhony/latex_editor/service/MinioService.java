@@ -1,6 +1,7 @@
 package eu.puhony.latex_editor.service;
 
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
 import io.minio.messages.Item;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,6 +181,20 @@ public class MinioService {
         }
 
         return getFileUrl(objectName);
+    }
+
+    public boolean objectExists(String objectName) {
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .build());
+            return true;
+        } catch (ErrorResponseException e) {
+            return false;
+        } catch (Exception e) {
+            throw new RuntimeException("Error checking object existence: " + objectName, e);
+        }
     }
 
     /**

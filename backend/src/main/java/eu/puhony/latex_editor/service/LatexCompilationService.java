@@ -1,9 +1,14 @@
 package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.dto.CompilationResult;
+import eu.puhony.latex_editor.dto.ProjectVersionPdfInfo;
 import eu.puhony.latex_editor.entity.DocumentChange;
+import eu.puhony.latex_editor.entity.FileBranch;
+import eu.puhony.latex_editor.entity.FileCommit;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
+import eu.puhony.latex_editor.repository.FileBranchRepository;
+import eu.puhony.latex_editor.repository.FileCommitRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
 import eu.puhony.latex_editor.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +20,11 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -33,6 +42,8 @@ public class LatexCompilationService {
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
     private final FileBranchService fileBranchService;
+    private final FileBranchRepository branchRepository;
+    private final FileCommitRepository commitRepository;
 
     @Value("${latex.temp.directory:/tmp/latex-compilations}")
     private String tempDirectory;
@@ -112,6 +123,226 @@ public class LatexCompilationService {
                 System.out.println("=== CLEANING UP TEMP DIRECTORY ===");
                 System.out.println("Location: " + workDir.getAbsolutePath());
                 cleanupDirectory(workDir);
+            }
+        }
+    }
+
+    /**
+     * Returns all saved commits of main.tex (on its "main" file-branch) for a given project,
+     * along with a presigned PDF URL if that commit has already been compiled.
+     */
+    public List<ProjectVersionPdfInfo> getProjectVersionPdfs(String baseProject, String branch, Long userId) {
+        folderPermissionService.ensureCanReadProject(baseProject, userId);
+
+        Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        // Find main.tex
+        List<ProjectFile> files = projectFileRepository.findByProjectIdNonDeleted(project.getId());
+        ProjectFile mainTexFile = files.stream()
+                .filter(f -> f.getOriginalFileName().equalsIgnoreCase("main.tex"))
+                .findFirst()
+                .orElse(null);
+
+        if (mainTexFile == null) return Collections.emptyList();
+
+        // Find "main" file-branch of main.tex
+        Optional<FileBranch> mainBranch = branchRepository.findByFileIdAndNameNonDeleted(mainTexFile.getId(), "main");
+        if (mainBranch.isEmpty()) return Collections.emptyList();
+
+        List<FileCommit> commits = commitRepository.findByBranchIdOrderByIdDesc(mainBranch.get().getId());
+
+        List<ProjectVersionPdfInfo> result = new ArrayList<>();
+        for (FileCommit commit : commits) {
+            String pdfObjectName = baseProject + "/" + branch + "/compiled/commits/" + commit.getHash() + ".pdf";
+            boolean hasPdf = minioService.objectExists(pdfObjectName);
+            String pdfUrl = hasPdf ? minioService.getFileUrl(pdfObjectName) : null;
+            result.add(new ProjectVersionPdfInfo(commit.getHash(), commit.getMessage(), commit.getCreatedAt(), hasPdf, pdfUrl));
+        }
+
+        return result;
+    }
+
+    /**
+     * Compile a specific commit of main.tex with all imports resolved to their state
+     * at that commit's timestamp, ensuring a fully consistent PDF snapshot.
+     */
+    public CompilationResult compileLatexAtCommit(String baseProject, String branch, String commitHash, Long userId) throws Exception {
+        long startTime = System.currentTimeMillis();
+        File workDir = null;
+
+        try {
+            folderPermissionService.ensureCanReadProject(baseProject, userId);
+
+            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+                    .orElseThrow(() -> new RuntimeException("Project not found"));
+
+            FileCommit targetCommit = commitRepository.findByHashAndProjectId(commitHash, project.getId())
+                    .orElseThrow(() -> new RuntimeException("Commit not found: " + commitHash));
+
+            LocalDateTime commitTime = targetCommit.getCreatedAt();
+            String targetFileId = targetCommit.getBranch().getFile().getId();
+
+            workDir = createCompilationDirectory();
+
+            // Write all project files at the exact commit timestamp
+            downloadProjectFilesAtCommit(project.getId(), workDir, targetCommit, targetFileId, commitTime);
+
+            // Resolve any \input{file@branch} references using time-consistent content
+            resolveInputReferencesAtTime(project.getId(), workDir, commitTime);
+
+            CompilationResult result = executePdfLatex(workDir, "main.tex");
+            result.setSourceFile("main.tex");
+
+            if (result.isSuccess()) {
+                File pdfFile = new File(workDir, "main.pdf");
+                if (pdfFile.exists()) {
+                    String s3Folder = baseProject + "/" + branch + "/compiled/commits";
+                    String pdfUrl = minioService.uploadFileWithName(pdfFile, s3Folder, commitHash + ".pdf", "application/pdf");
+                    result.setPdfFileId(null);
+                    result.setPdfUrl(pdfUrl);
+                } else {
+                    result.setSuccess(false);
+                    result.setErrorMessage("PDF file was not generated");
+                }
+            }
+
+            result.setCompilationTimeMs(System.currentTimeMillis() - startTime);
+            return result;
+
+        } finally {
+            if (workDir != null) cleanupDirectory(workDir);
+        }
+    }
+
+    /**
+     * Download all project files to workDir with contents as of commitTime.
+     * The specific target commit's content is used directly for its file.
+     * All other .tex files are resolved to their latest commit before commitTime.
+     */
+    private void downloadProjectFilesAtCommit(Long projectId, File workDir, FileCommit targetCommit,
+                                               String targetFileId, LocalDateTime commitTime) throws Exception {
+        List<ProjectFile> projectFiles = projectFileRepository.findByProjectIdNonDeleted(projectId);
+
+        for (ProjectFile file : projectFiles) {
+            String sanitizedFileName = sanitizeFilename(file.getOriginalFileName());
+            File destFile = resolveDestinationFile(workDir, file.getProjectFolder(), sanitizedFileName);
+
+            if (sanitizedFileName.endsWith(".tex")) {
+                String content;
+
+                if (file.getId().equals(targetFileId)) {
+                    // Use the exact committed snapshot for the target file (main.tex)
+                    content = targetCommit.getContent();
+                } else {
+                    // For all other .tex files, find their "main" branch's latest commit ≤ commitTime
+                    Optional<FileBranch> fileBranch = branchRepository.findByFileIdAndNameNonDeleted(file.getId(), "main");
+                    if (fileBranch.isPresent()) {
+                        content = commitRepository
+                                .findLatestByBranchIdBefore(fileBranch.get().getId(), commitTime)
+                                .map(FileCommit::getContent)
+                                .orElseGet(() -> {
+                                    try {
+                                        return minioService.getFileContent(file.getS3Url());
+                                    } catch (Exception e) {
+                                        throw new RuntimeException("Error reading base content for " + file.getOriginalFileName(), e);
+                                    }
+                                });
+                    } else if (file.getActiveBranch() != null) {
+                        content = commitRepository
+                                .findLatestByBranchIdBefore(file.getActiveBranch().getId(), commitTime)
+                                .map(FileCommit::getContent)
+                                .orElseGet(() -> {
+                                    try {
+                                        return minioService.getFileContent(file.getS3Url());
+                                    } catch (Exception e) {
+                                        throw new RuntimeException("Error reading base content for " + file.getOriginalFileName(), e);
+                                    }
+                                });
+                    } else {
+                        content = minioService.getFileContent(file.getS3Url());
+                    }
+                }
+
+                Files.writeString(destFile.toPath(), content, StandardCharsets.UTF_8);
+            } else {
+                // Non-.tex files (images, etc.) don't have commit history — download from S3
+                String objectName = minioService.getObjectNameFromUrl(file.getS3Url());
+                if (objectName != null) {
+                    minioService.downloadFileToPath(objectName, destFile);
+                }
+            }
+        }
+    }
+
+    // Patterns for time-consistent \input reference resolution
+    private static final Pattern INPUT_BRANCH_PATTERN_T =
+            Pattern.compile("\\\\(?:input|include)\\{([^}@#]+)@([^}]+)\\}");
+    private static final Pattern INPUT_COMMIT_PATTERN_T =
+            Pattern.compile("\\\\(?:input|include)\\{([^}@#]+)#([^}]+)\\}");
+
+    /**
+     * Like resolveInputReferences but resolves \input{file@branch} to the latest commit
+     * on that branch at or before commitTime, ensuring historical consistency.
+     * \input{file#hash} references are always pinned and resolved normally.
+     */
+    private void resolveInputReferencesAtTime(Long projectId, File workDir, LocalDateTime commitTime) throws IOException {
+        File[] texFiles = findTexFilesRecursively(workDir);
+        if (texFiles == null) return;
+
+        for (File texFile : texFiles) {
+            String content = Files.readString(texFile.toPath(), StandardCharsets.UTF_8);
+            String processed = content;
+            boolean changed = false;
+
+            // Resolve @branch references at commitTime
+            Matcher branchMatcher = INPUT_BRANCH_PATTERN_T.matcher(processed);
+            StringBuffer sb = new StringBuffer();
+            while (branchMatcher.find()) {
+                String filePath = branchMatcher.group(1).trim();
+                String branchName = branchMatcher.group(2).trim();
+                String normalizedFileName = filePath.endsWith(".tex") ? filePath : filePath + ".tex";
+
+                String resolvedContent = fileBranchService.resolveInputReferenceAtTime(
+                        projectId, normalizedFileName, branchName, commitTime);
+
+                if (resolvedContent != null) {
+                    String targetFileName = sanitizeFilename(normalizedFileName);
+                    Files.writeString(new File(workDir, targetFileName).toPath(), resolvedContent, StandardCharsets.UTF_8);
+                }
+
+                String cmd = branchMatcher.group(0).contains("\\include") ? "include" : "input";
+                branchMatcher.appendReplacement(sb, Matcher.quoteReplacement("\\" + cmd + "{" + filePath + "}"));
+                changed = true;
+            }
+            branchMatcher.appendTail(sb);
+            processed = sb.toString();
+
+            // Resolve #hash references (always consistent — no time param needed)
+            Matcher commitMatcher = INPUT_COMMIT_PATTERN_T.matcher(processed);
+            sb = new StringBuffer();
+            while (commitMatcher.find()) {
+                String filePath = commitMatcher.group(1).trim();
+                String hash = commitMatcher.group(2).trim();
+                String normalizedFileName = filePath.endsWith(".tex") ? filePath : filePath + ".tex";
+
+                String resolvedContent = fileBranchService.resolveInputReference(
+                        projectId, normalizedFileName, hash, false);
+
+                if (resolvedContent != null) {
+                    String targetFileName = sanitizeFilename(normalizedFileName);
+                    Files.writeString(new File(workDir, targetFileName).toPath(), resolvedContent, StandardCharsets.UTF_8);
+                }
+
+                String cmd = commitMatcher.group(0).contains("\\include") ? "include" : "input";
+                commitMatcher.appendReplacement(sb, Matcher.quoteReplacement("\\" + cmd + "{" + filePath + "}"));
+                changed = true;
+            }
+            commitMatcher.appendTail(sb);
+            processed = sb.toString();
+
+            if (changed) {
+                Files.writeString(texFile.toPath(), processed, StandardCharsets.UTF_8);
             }
         }
     }

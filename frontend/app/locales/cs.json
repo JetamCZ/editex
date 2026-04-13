@@ -204,8 +204,13 @@
     },
     "index": {
       "startNew": "Začít nový projekt",
+      "startNewProject": "Začít nový projekt",
       "blank": "Prázdný projekt",
+      "blankProject": "Prázdný projekt",
       "recentProjects": "Nedávné projekty",
+      "noProjectsHeading": "Zatím žádné projekty",
+      "noProjectsSubtext": "Vytvořte svůj první LaTeX projekt a začněte.",
+      "createProject": "Vytvořit projekt",
       "noProjects": {
         "heading": "Zatím žádné projekty",
         "description": "Vytvořte svůj první LaTeX projekt a začněte.",
@@ -229,7 +234,25 @@
       "description": "Spravujte nastavení svého profilu"
     },
     "heading": "Nastavení profilu",
+    "subheading": "Spravujte své osobní údaje a nastavení účtu",
     "description": "Spravujte své osobní údaje a nastavení účtu",
+    "successMessage": "Profil byl úspěšně aktualizován!",
+    "userInfoHeading": "Informace o uživateli",
+    "fullNameLabel": "Celé jméno",
+    "fullNamePlaceholder": "Zadejte celé jméno",
+    "changePasswordHeading": "Změna hesla",
+    "changePasswordHint": "Ponechte prázdné, pokud nechcete heslo měnit",
+    "currentPasswordLabel": "Aktuální heslo",
+    "currentPasswordPlaceholder": "Zadejte aktuální heslo",
+    "newPasswordLabel": "Nové heslo",
+    "newPasswordPlaceholder": "Zadejte nové heslo",
+    "confirmNewPasswordLabel": "Potvrdit nové heslo",
+    "confirmNewPasswordPlaceholder": "Potvrďte nové heslo",
+    "accountInfoHeading": "Informace o účtu",
+    "emailAddress": "E-mailová adresa",
+    "accountStatus": "Stav účtu",
+    "accountStatusActive": "Aktivní",
+    "memberSince": "Člen od",
     "errors": {
       "passwordRequired": "Pro změnu hesla je vyžadováno aktuální heslo",
       "passwordMismatch": "Nová hesla se neshodují",
@@ -259,6 +282,7 @@
     "dangerZone": {
       "heading": "Nebezpečná zóna",
       "deleteAccount": "Smazat účet",
+      "deleteAccountTitle": "Smazat účet",
       "deleteAccountDescription": "Trvale smazat váš účet a všechna přidružená data",
       "deleteAccountButton": "Smazat účet"
     },
@@ -272,6 +296,7 @@
       "files": "Soubory",
       "help": "Nápověda",
       "settings": "Nastavení",
+      "versions": "PDF verze",
       "projects": "Projekty",
       "profile": "Profil",
       "logout": "Odhlásit se"
@@ -297,6 +322,20 @@
       "heading": "Nastavení projektu",
       "description": "Spravujte nastavení projektu a přístupy",
       "backToEditor": "Zpět na editor"
+    },
+    "versions": {
+      "meta": {
+        "title": "PDF verze - Editex"
+      },
+      "heading": "PDF verze",
+      "description": "Uložené verze main.tex — každou lze zkompilovat do konzistentního PDF snímku",
+      "backToEditor": "Zpět na editor",
+      "selectVersion": "Vyberte verzi pro náhled",
+      "noCommits": "Zatím žádné uložené verze. Použijte \"Uložit verzi\" v editoru.",
+      "noCompile": "Nezkompilováno",
+      "compile": "Kompilovat",
+      "compiling": "Kompilování…",
+      "compilingWait": "Kompiluji PDF, čekejte prosím…"
     },
     "help": {
       "meta": {
