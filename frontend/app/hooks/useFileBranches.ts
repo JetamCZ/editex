@@ -68,6 +68,30 @@ export function useDeleteBranch() {
     });
 }
 
+export function useRenameBranch() {
+    const config = useAuthHeaders();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ fileId, branchId, name }: {
+            fileId: string;
+            branchId: string;
+            name: string;
+        }) => {
+            const { data } = await axios.patch<FileBranch>(
+                `/api/files/${fileId}/branches/${branchId}`,
+                { name },
+                config
+            );
+            return data;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['fileBranches', variables.fileId] });
+            queryClient.invalidateQueries({ queryKey: ['projectFiles'] });
+        },
+    });
+}
+
 export function useSetActiveBranch() {
     const config = useAuthHeaders();
     const queryClient = useQueryClient();

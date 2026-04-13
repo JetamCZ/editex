@@ -306,6 +306,39 @@ public class FileBranchService {
     }
 
     /**
+     * Rename a branch. Cannot rename "main" and cannot collide with another
+     * existing branch on the same file.
+     */
+    @Transactional
+    public FileBranch renameBranch(String branchId, String newName, Long userId) {
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        ProjectFile file = branch.getFile();
+        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+
+        String trimmed = newName == null ? "" : newName.trim();
+        if (trimmed.isEmpty()) {
+            throw new RuntimeException("Branch name cannot be empty");
+        }
+
+        if ("main".equals(branch.getName())) {
+            throw new RuntimeException("Cannot rename the main branch");
+        }
+
+        if (trimmed.equals(branch.getName())) {
+            return branch;
+        }
+
+        if (branchRepository.findByFileIdAndNameNonDeleted(file.getId(), trimmed).isPresent()) {
+            throw new RuntimeException("Branch '" + trimmed + "' already exists for this file");
+        }
+
+        branch.setName(trimmed);
+        return branchRepository.save(branch);
+    }
+
+    /**
      * Soft-delete a branch. Cannot delete active branch or "main".
      */
     @Transactional

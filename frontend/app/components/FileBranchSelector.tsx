@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { DropdownMenu, Button, Dialog, TextField, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
-import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown } from 'lucide-react';
-import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch } from '~/hooks/useFileBranches';
+import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil } from 'lucide-react';
+import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch, useRenameBranch } from '~/hooks/useFileBranches';
 import type { ProjectFile } from '../../types/file';
 import GitTree from '~/components/GitTree';
 
@@ -15,6 +15,9 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const [commitDialogOpen, setCommitDialogOpen] = useState(false);
     const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+    const [renameBranchId, setRenameBranchId] = useState<string | null>(null);
+    const [renameBranchValue, setRenameBranchValue] = useState('');
     const [newBranchName, setNewBranchName] = useState('');
     const [commitMessage, setCommitMessage] = useState('');
     const [mergeTargetBranchId, setMergeTargetBranchId] = useState<string | null>(null);
@@ -25,6 +28,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const setActiveBranch = useSetActiveBranch();
     const createCommit = useCreateCommit();
     const mergeBranch = useMergeBranch();
+    const renameBranch = useRenameBranch();
 
     const activeBranchName = selectedFile.activeBranchName || 'main';
     const activeBranchId = selectedFile.activeBranchId;
@@ -71,6 +75,29 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             }
         );
     }, [activeBranchId, commitMessage, createCommit]);
+
+    const handleOpenRename = useCallback((branchId: string, currentName: string) => {
+        setRenameBranchId(branchId);
+        setRenameBranchValue(currentName);
+        setRenameDialogOpen(true);
+    }, []);
+
+    const handleRename = useCallback(() => {
+        if (!renameBranchId) return;
+        const trimmed = renameBranchValue.trim();
+        if (!trimmed) return;
+        renameBranch.mutate(
+            { fileId: selectedFile.id, branchId: renameBranchId, name: trimmed },
+            {
+                onSuccess: () => {
+                    setRenameDialogOpen(false);
+                    setRenameBranchId(null);
+                    setRenameBranchValue('');
+                    onBranchChanged?.();
+                },
+            }
+        );
+    }, [renameBranchId, renameBranchValue, renameBranch, selectedFile.id, onBranchChanged]);
 
     const handleMerge = useCallback(() => {
         if (!activeBranchId || !mergeTargetBranchId) return;
@@ -155,6 +182,19 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                                     <Flex align="center" gap="1">
                                         {branch.id === activeBranchId && (
                                             <Text size="1" color="blue">active</Text>
+                                        )}
+                                        {branch.name !== 'main' && (
+                                            <IconButton
+                                                size="1"
+                                                variant="ghost"
+                                                color="gray"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleOpenRename(branch.id, branch.name);
+                                                }}
+                                            >
+                                                <Pencil size={12} strokeWidth={2} />
+                                            </IconButton>
                                         )}
                                         {branch.name !== 'main' && branch.id !== activeBranchId && (
                                             <IconButton
@@ -243,6 +283,37 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                                 loading={createBranch.isPending}
                             >
                                 Create Branch
+                            </Button>
+                        </Flex>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            {/* Rename Branch Dialog */}
+            <Dialog.Root open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+                <Dialog.Content maxWidth="400px">
+                    <Dialog.Title>Rename Branch</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        Enter a new name for this branch.
+                    </Dialog.Description>
+                    <Flex direction="column" gap="3" mt="4">
+                        <TextField.Root
+                            placeholder="Branch name"
+                            value={renameBranchValue}
+                            onChange={(e) => setRenameBranchValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+                            autoFocus
+                        />
+                        <Flex gap="3" justify="end">
+                            <Dialog.Close>
+                                <Button variant="soft" color="gray">Cancel</Button>
+                            </Dialog.Close>
+                            <Button
+                                onClick={handleRename}
+                                disabled={!renameBranchValue.trim() || renameBranch.isPending}
+                                loading={renameBranch.isPending}
+                            >
+                                Rename
                             </Button>
                         </Flex>
                     </Flex>

@@ -64,6 +64,17 @@ public class FileBranchController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/files/{fileId}/branches/{branchId}")
+    public ResponseEntity<BranchResponse> renameBranch(
+            @PathVariable String fileId,
+            @PathVariable String branchId,
+            @RequestBody RenameBranchRequest request,
+            Authentication authentication) {
+        User user = getUser(authentication);
+        FileBranch branch = branchService.renameBranch(branchId, request.getName(), user.getId());
+        return ResponseEntity.ok(mapBranchResponse(branch));
+    }
+
     @PutMapping("/files/{fileId}/active-branch")
     public ResponseEntity<Void> setActiveBranch(
             @PathVariable String fileId,
@@ -231,6 +242,13 @@ public class FileBranchController {
 
         public String getBranchId() { return branchId; }
         public void setBranchId(String branchId) { this.branchId = branchId; }
+    }
+
+    public static class RenameBranchRequest {
+        private String name;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
     }
 
     public static class BranchContentResponse {
