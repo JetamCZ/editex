@@ -2,6 +2,7 @@ package eu.puhony.latex_editor.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,6 +21,9 @@ public class FileCommit {
     @JoinColumn(name = "branch_id", nullable = false)
     private FileBranch branch;
 
+    @Column(name = "hash", nullable = false, length = 8)
+    private String hash;
+
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
@@ -34,9 +38,20 @@ public class FileCommit {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (hash == null) {
+            byte[] bytes = new byte[4];
+            RANDOM.nextBytes(bytes);
+            StringBuilder sb = new StringBuilder();
+            for (byte b : bytes) {
+                sb.append(String.format("%02x", b));
+            }
+            hash = sb.substring(0, 7);
+        }
     }
 
     // Getters and Setters
@@ -46,6 +61,14 @@ public class FileCommit {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public void setHash(String hash) {
+        this.hash = hash;
     }
 
     public FileBranch getBranch() {

@@ -178,6 +178,7 @@ public class FileBranchController {
     private CommitResponse mapCommitResponse(FileCommit commit) {
         CommitResponse resp = new CommitResponse();
         resp.setId(commit.getId());
+        resp.setHash(commit.getHash());
         resp.setBranchId(commit.getBranch().getId());
         resp.setMessage(commit.getMessage());
         resp.setCommittedBy(commit.getCommittedBy().getId());
@@ -244,6 +245,7 @@ public class FileBranchController {
 
     public static class CommitResponse {
         private Long id;
+        private String hash;
         private String branchId;
         private String message;
         private Long committedBy;
@@ -252,6 +254,8 @@ public class FileBranchController {
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
+        public String getHash() { return hash; }
+        public void setHash(String hash) { this.hash = hash; }
         public String getBranchId() { return branchId; }
         public void setBranchId(String branchId) { this.branchId = branchId; }
         public String getMessage() { return message; }

@@ -25,6 +25,7 @@ export interface FileBranch {
 
 export interface FileCommit {
     id: number;
+    hash: string;
     branchId: string;
     message?: string | null;
     committedBy: number;

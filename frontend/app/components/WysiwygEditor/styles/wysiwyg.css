@@ -530,6 +530,25 @@
     color: #555;
 }
 
+.latex-input-ref-badge {
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 4px;
+}
+
+.latex-input-ref-branch {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.latex-input-ref-commit {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
 /* Preamble (hidden) */
 .latex-preamble {
     display: none;

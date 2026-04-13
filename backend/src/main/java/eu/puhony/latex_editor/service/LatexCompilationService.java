@@ -18,6 +18,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -58,6 +60,9 @@ public class LatexCompilationService {
 
             // 3. Download all project files (with changes applied for .tex files)
             downloadProjectDependencies(project.getId(), workDir, userId);
+
+            // 3b. Resolve \input{file@branch} and \input{file#hash} references
+            resolveInputReferences(project.getId(), workDir);
 
             // 4. Resolve target file (default to main.tex if null/empty)
             String mainTexFile = resolveTargetFile(targetFile, workDir);
@@ -226,20 +231,28 @@ public class LatexCompilationService {
             String sanitizedFileName = sanitizeFilename(file.getOriginalFileName());
             File destFile = resolveDestinationFile(workDir, file.getProjectFolder(), sanitizedFileName);
 
-            // For .tex files, get content with changes applied (branch-aware)
+            // For .tex files, get content with changes applied
+            // Default: always use "main" branch. Version references (@branch, #hash) override this later.
             if (sanitizedFileName.endsWith(".tex")) {
                 System.out.println("  -> .tex file detected, fetching content with changes...");
 
                 String currentContent;
-                if (file.getActiveBranch() != null) {
-                    // Use branch-aware content resolution
+                // Try to resolve from "main" branch
+                String mainContent = fileBranchService.resolveInputReference(
+                        projectId, file.getOriginalFileName(), "main", true);
+                if (mainContent != null) {
+                    currentContent = mainContent;
+                    System.out.println("  -> Resolved from branch: main");
+                } else if (file.getActiveBranch() != null) {
+                    // Fallback to active branch if no "main" branch exists
                     currentContent = fileBranchService.resolveContent(file.getActiveBranch());
-                    System.out.println("  -> Resolved from branch: " + file.getActiveBranch().getName());
+                    System.out.println("  -> Resolved from active branch: " + file.getActiveBranch().getName());
                 } else {
                     // Legacy fallback: S3 + all changes
                     String originalContent = minioService.getFileContent(file.getS3Url());
                     List<DocumentChange> changes = documentChangeService.getFileChanges(file.getId(), userId);
                     currentContent = documentChangeService.applyChangesToContent(originalContent, changes);
+                    System.out.println("  -> Resolved from S3 + changes (legacy)");
                 }
 
                 System.out.println("  -> Current content length: " + currentContent.length() + " chars");
@@ -267,6 +280,102 @@ public class LatexCompilationService {
         System.out.println("\n=== FILES IN WORK DIRECTORY ===");
         listFilesRecursively(workDir, "");
         System.out.println("=================================\n");
+    }
+
+    // Patterns: \input{file@branch} and \input{file#hash} (also \include)
+    private static final Pattern INPUT_BRANCH_PATTERN =
+            Pattern.compile("\\\\(?:input|include)\\{([^}@#]+)@([^}]+)\\}");
+    private static final Pattern INPUT_COMMIT_PATTERN =
+            Pattern.compile("\\\\(?:input|include)\\{([^}@#]+)#([^}]+)\\}");
+
+    /**
+     * Post-process all .tex files in workDir to resolve versioned \input references.
+     * - \input{file@branch} → resolves branch content, writes file.tex, strips @branch
+     * - \input{file#hash}   → resolves commit content, writes file.tex, strips #hash
+     */
+    private void resolveInputReferences(Long projectId, File workDir) throws IOException {
+        File[] texFiles = findTexFilesRecursively(workDir);
+        if (texFiles == null) return;
+
+        for (File texFile : texFiles) {
+            String content = Files.readString(texFile.toPath(), StandardCharsets.UTF_8);
+            String processed = content;
+            boolean changed = false;
+
+            // Process @branch references
+            Matcher branchMatcher = INPUT_BRANCH_PATTERN.matcher(processed);
+            StringBuffer sb = new StringBuffer();
+            while (branchMatcher.find()) {
+                String filePath = branchMatcher.group(1).trim();
+                String branchName = branchMatcher.group(2).trim();
+                String cmdPrefix = branchMatcher.group(0).startsWith("\\include") ? "\\\\include" : "\\\\input";
+
+                System.out.println("Resolving @branch reference: " + filePath + "@" + branchName);
+
+                // Resolve content from the branch
+                String resolvedContent = fileBranchService.resolveInputReference(
+                        projectId, filePath.endsWith(".tex") ? filePath : filePath + ".tex",
+                        branchName, true);
+
+                if (resolvedContent != null) {
+                    // Write the resolved content to the target file
+                    String targetFileName = sanitizeFilename(
+                            filePath.endsWith(".tex") ? filePath : filePath + ".tex");
+                    File targetFile = new File(workDir, targetFileName);
+                    Files.writeString(targetFile.toPath(), resolvedContent, StandardCharsets.UTF_8);
+                    System.out.println("  -> Wrote branch content to: " + targetFileName);
+                }
+
+                // Strip @branch from the \input command
+                branchMatcher.appendReplacement(sb,
+                        Matcher.quoteReplacement("\\" + (branchMatcher.group(0).contains("\\include") ? "include" : "input")
+                                + "{" + filePath + "}"));
+                changed = true;
+            }
+            branchMatcher.appendTail(sb);
+            processed = sb.toString();
+
+            // Process #hash references
+            Matcher commitMatcher = INPUT_COMMIT_PATTERN.matcher(processed);
+            sb = new StringBuffer();
+            while (commitMatcher.find()) {
+                String filePath = commitMatcher.group(1).trim();
+                String hash = commitMatcher.group(2).trim();
+
+                System.out.println("Resolving #hash reference: " + filePath + "#" + hash);
+
+                String resolvedContent = fileBranchService.resolveInputReference(
+                        projectId, filePath.endsWith(".tex") ? filePath : filePath + ".tex",
+                        hash, false);
+
+                if (resolvedContent != null) {
+                    String targetFileName = sanitizeFilename(
+                            filePath.endsWith(".tex") ? filePath : filePath + ".tex");
+                    File targetFile = new File(workDir, targetFileName);
+                    Files.writeString(targetFile.toPath(), resolvedContent, StandardCharsets.UTF_8);
+                    System.out.println("  -> Wrote commit content to: " + targetFileName);
+                }
+
+                commitMatcher.appendReplacement(sb,
+                        Matcher.quoteReplacement("\\" + (commitMatcher.group(0).contains("\\include") ? "include" : "input")
+                                + "{" + filePath + "}"));
+                changed = true;
+            }
+            commitMatcher.appendTail(sb);
+            processed = sb.toString();
+
+            if (changed) {
+                Files.writeString(texFile.toPath(), processed, StandardCharsets.UTF_8);
+                System.out.println("Updated " + texFile.getName() + " with resolved references");
+            }
+        }
+    }
+
+    private File[] findTexFilesRecursively(File dir) {
+        return dir.listFiles((d, name) -> {
+            File f = new File(d, name);
+            return f.isFile() && name.endsWith(".tex");
+        });
     }
 
     private void listFilesRecursively(File dir, String indent) {

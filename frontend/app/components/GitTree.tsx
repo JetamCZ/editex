@@ -83,7 +83,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                 const isBranchStart = commit.message?.startsWith("Branch created") ?? false;
                 nodes.push({
                     id: `commit-${commit.id}`,
-                    shortId: String(commit.id),
+                    shortId: commit.hash || String(commit.id),
                     message: commit.message || "No message",
                     author: commit.committedByName || "Unknown",
                     timestamp: new Date(commit.createdAt),

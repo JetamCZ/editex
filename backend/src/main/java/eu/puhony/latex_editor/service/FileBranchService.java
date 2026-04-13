@@ -285,6 +285,45 @@ public class FileBranchService {
     }
 
     /**
+     * Resolve an \input version reference for compilation.
+     * Finds a file by originalFileName in the project, then resolves the @branch or #hash.
+     *
+     * @param projectId the project
+     * @param fileName  the file name (e.g. "chapter1.tex")
+     * @param ref       the reference (branch name or commit hash)
+     * @param isBranch  true if @branch, false if #hash
+     * @return the resolved file content, or null if not found
+     */
+    public String resolveInputReference(Long projectId, String fileName, String ref, boolean isBranch) {
+        // Find the file in the project by original name
+        List<ProjectFile> files = fileRepository.findByProjectIdNonDeleted(projectId);
+        ProjectFile targetFile = files.stream()
+                .filter(f -> {
+                    String name = f.getOriginalFileName();
+                    String nameNoExt = name.replaceAll("\\.tex$", "");
+                    String fileNameNoExt = fileName.replaceAll("\\.tex$", "");
+                    return name.equals(fileName) || nameNoExt.equals(fileNameNoExt)
+                            || name.equals(fileName + ".tex");
+                })
+                .findFirst()
+                .orElse(null);
+
+        if (targetFile == null) return null;
+
+        if (isBranch) {
+            // @branch — resolve branch by name
+            return branchRepository.findByFileIdAndNameNonDeleted(targetFile.getId(), ref)
+                    .map(this::resolveContent)
+                    .orElse(null);
+        } else {
+            // #hash — resolve commit by hash
+            return commitRepository.findByHashAndProjectId(ref, projectId)
+                    .map(FileCommit::getContent)
+                    .orElse(null);
+        }
+    }
+
+    /**
      * Ensure a file has a main branch (used when creating/uploading files).
      */
     @Transactional
