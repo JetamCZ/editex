@@ -100,7 +100,20 @@ public class FileBranchService {
     }
 
     /**
+     * Whether a branch has pending document changes that have not yet been
+     * folded into a commit. Since commit() deletes all changes on the branch,
+     * any remaining change row means the branch has uncommitted work.
+     */
+    public boolean hasUncommittedChanges(String branchId) {
+        return changeRepository.existsByBranchId(branchId);
+    }
+
+    /**
      * Create a new branch from the current state of a source branch.
+     *
+     * The new branch inherits the source's committed state as its first commit,
+     * and any uncommitted document changes on the source are cloned onto the
+     * new branch so the working tree carries over (mirroring `git checkout -b`).
      */
     @Transactional
     public FileBranch createBranch(String fileId, String branchName, String sourceBranchName, User user) {
@@ -119,8 +132,10 @@ public class FileBranchService {
         FileBranch sourceBranch = branchRepository.findByFileIdAndNameNonDeleted(fileId, sourceRef)
                 .orElseThrow(() -> new RuntimeException("Source branch '" + sourceRef + "' not found"));
 
-        // Resolve current content of source branch
-        String sourceContent = resolveContent(sourceBranch);
+        // Use the source's committed base (latest commit, or S3 origin if none)
+        // so pending changes can be replayed on top of the new branch instead
+        // of being baked into its initial commit.
+        String baseContent = resolveCommittedContent(sourceBranch);
 
         // Create new branch
         FileBranch newBranch = new FileBranch();
@@ -130,15 +145,48 @@ public class FileBranchService {
         newBranch.setCreatedBy(user);
         newBranch = branchRepository.save(newBranch);
 
-        // Create initial commit on new branch with source content
+        // Create initial commit on new branch with the source's committed base
         FileCommit initialCommit = new FileCommit();
         initialCommit.setBranch(newBranch);
-        initialCommit.setContent(sourceContent);
+        initialCommit.setContent(baseContent);
         initialCommit.setMessage("Branch created from '" + sourceRef + "'");
         initialCommit.setCommittedBy(user);
         commitRepository.save(initialCommit);
 
+        // Carry over uncommitted changes from the source branch
+        List<DocumentChange> pendingChanges =
+                changeRepository.findByFileIdAndBranchIdOrderById(fileId, sourceBranch.getId());
+        for (DocumentChange src : pendingChanges) {
+            DocumentChange copy = new DocumentChange();
+            copy.setFile(file);
+            copy.setUser(src.getUser());
+            copy.setSessionId(src.getSessionId());
+            copy.setOperation(src.getOperation());
+            copy.setLineNumber(src.getLineNumber());
+            copy.setContent(src.getContent());
+            copy.setBranch(newBranch);
+            copy.setBaseChangeId(src.getBaseChangeId());
+            changeRepository.save(copy);
+        }
+
         return newBranch;
+    }
+
+    /**
+     * Return only the committed base content of a branch (latest commit, or
+     * the original S3 file when the branch has no commits yet). Unlike
+     * {@link #resolveContent}, this does not apply pending document changes.
+     */
+    private String resolveCommittedContent(FileBranch branch) {
+        Optional<FileCommit> latestCommit = commitRepository.findLatestByBranchId(branch.getId());
+        if (latestCommit.isPresent()) {
+            return latestCommit.get().getContent();
+        }
+        try {
+            return minioService.getFileContent(branch.getFile().getS3Url());
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading base content for branch " + branch.getId(), e);
+        }
     }
 
     /**

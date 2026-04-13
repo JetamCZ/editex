@@ -34,6 +34,9 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId AND dc.id > :afterChangeId ORDER BY dc.id ASC")
     List<DocumentChange> findByFileIdAndBranchIdAfterChange(@Param("fileId") String fileId, @Param("branchId") String branchId, @Param("afterChangeId") Long afterChangeId);
 
+    @Query("SELECT CASE WHEN COUNT(dc) > 0 THEN true ELSE false END FROM DocumentChange dc WHERE dc.branch.id = :branchId")
+    boolean existsByBranchId(@Param("branchId") String branchId);
+
     @Query("DELETE FROM DocumentChange dc WHERE dc.branch.id = :branchId")
     @org.springframework.data.jpa.repository.Modifying
     void deleteByBranchId(@Param("branchId") String branchId);

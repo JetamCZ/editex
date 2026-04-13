@@ -21,6 +21,7 @@ export interface FileBranch {
     sourceBranchName?: string | null;
     createdBy: number;
     createdAt: string;
+    hasUncommittedChanges?: boolean;
 }
 
 export interface FileCommit {

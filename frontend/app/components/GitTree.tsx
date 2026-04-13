@@ -1,8 +1,8 @@
 import { useMemo, useState, useEffect, type ReactElement } from "react";
 import { Text, Badge } from "@radix-ui/themes";
-import { GitBranch, GitMerge, Tag } from "lucide-react";
+import { GitBranch, GitMerge, Tag, Pencil } from "lucide-react";
 import { useFileBranches } from "~/hooks/useFileBranches";
-import type { FileBranch, FileCommit } from "../../types/file";
+import type { FileCommit } from "../../types/file";
 import axios from "axios";
 import useAuth from "~/hooks/useAuth";
 
@@ -15,7 +15,7 @@ interface TreeNode {
     timestamp: Date;
     branch: string;
     branchId: string;
-    type: "commit" | "merge" | "branch-start";
+    type: "commit" | "merge" | "branch-start" | "uncommitted";
 }
 
 interface BranchInfo {
@@ -47,7 +47,14 @@ interface GitTreeProps {
 }
 
 const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
-    const { data: branches = [], isLoading: branchesLoading } = useFileBranches(fileId);
+    const { data: branches = [], isLoading: branchesLoading, refetch: refetchBranches } = useFileBranches(fileId);
+
+    // Branches carry a `hasUncommittedChanges` flag; the modal is mounted on
+    // demand so refetch on mount to make sure that flag reflects the current
+    // editor state instead of a stale cache value.
+    useEffect(() => {
+        refetchBranches();
+    }, [refetchBranches]);
     const { bearerToken } = useAuth();
     const [allCommits, setAllCommits] = useState<Map<string, FileCommit[]>>(new Map());
     const [commitsLoading, setCommitsLoading] = useState(false);
@@ -76,6 +83,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
     // Build tree nodes
     const treeNodes = useMemo(() => {
         const nodes: TreeNode[] = [];
+        const now = new Date();
         branches.forEach(branch => {
             const commits = allCommits.get(branch.id) || [];
             commits.forEach(commit => {
@@ -92,6 +100,19 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                     type: isMerge ? "merge" : isBranchStart ? "branch-start" : "commit",
                 });
             });
+
+            if (branch.hasUncommittedChanges) {
+                nodes.push({
+                    id: `uncommitted-${branch.id}`,
+                    shortId: "WIP",
+                    message: "Uncommitted changes",
+                    author: "",
+                    timestamp: now,
+                    branch: branch.name,
+                    branchId: branch.id,
+                    type: "uncommitted",
+                });
+            }
         });
         return nodes;
     }, [branches, allCommits]);
@@ -198,6 +219,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
             );
             if (nextOnBranch !== -1) {
                 const nextY = nextOnBranch * ROW_HEIGHT + ROW_HEIGHT / 2;
+                const isUncommittedLink = node.type === "uncommitted";
                 lines.push(
                     <line
                         key={`line-${node.id}`}
@@ -205,6 +227,8 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                         x2={x} y2={nextY - NODE_RADIUS}
                         stroke={branchInfo.color}
                         strokeWidth={2}
+                        strokeDasharray={isUncommittedLink ? "4 4" : undefined}
+                        opacity={isUncommittedLink ? 0.7 : 1}
                     />
                 );
             }
@@ -304,6 +328,17 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                 );
             }
 
+            if (node.type === "uncommitted") {
+                return (
+                    <g key={node.id}>
+                        <circle cx={x} cy={y} r={NODE_RADIUS + 2}
+                            fill="var(--gray-1)" stroke={branchInfo.color} strokeWidth={2}
+                            strokeDasharray="3 2" />
+                        <Pencil x={x - 5} y={y - 5} size={10} color={branchInfo.color} />
+                    </g>
+                );
+            }
+
             return (
                 <g key={node.id}>
                     <circle cx={x} cy={y} r={NODE_RADIUS + 1}
@@ -330,6 +365,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
             <div style={{ flex: 1, minWidth: 0 }}>
                 {sortedNodes.map((node) => {
                     const branchInfo = branchInfoMap.get(node.branch);
+                    const isUncommitted = node.type === "uncommitted";
 
                     return (
                         <div
@@ -339,6 +375,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                                 display: "flex",
                                 alignItems: "center",
                                 padding: "8px 16px 8px 8px",
+                                opacity: isUncommitted ? 0.85 : 1,
                             }}
                         >
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -352,6 +389,8 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
                                         whiteSpace: "nowrap",
+                                        fontStyle: isUncommitted ? "italic" : undefined,
+                                        color: isUncommitted ? "var(--gray-11)" : undefined,
                                     }}>
                                         {node.message}
                                     </Text>
@@ -363,6 +402,9 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                                     )}
                                     {node.type === "commit" && (
                                         <Badge size="1" color="green">version</Badge>
+                                    )}
+                                    {isUncommitted && (
+                                        <Badge size="1" color="orange" variant="soft">working</Badge>
                                     )}
                                 </div>
                                 <div style={{

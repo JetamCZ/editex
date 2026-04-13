@@ -172,6 +172,7 @@ public class FileBranchController {
         resp.setSourceBranchName(branch.getSourceBranch() != null ? branch.getSourceBranch().getName() : null);
         resp.setCreatedBy(branch.getCreatedBy().getId());
         resp.setCreatedAt(branch.getCreatedAt());
+        resp.setHasUncommittedChanges(branchService.hasUncommittedChanges(branch.getId()));
         return resp;
     }
 
@@ -197,6 +198,7 @@ public class FileBranchController {
         private String sourceBranchName;
         private Long createdBy;
         private LocalDateTime createdAt;
+        private boolean hasUncommittedChanges;
 
         public String getId() { return id; }
         public void setId(String id) { this.id = id; }
@@ -210,6 +212,8 @@ public class FileBranchController {
         public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
         public LocalDateTime getCreatedAt() { return createdAt; }
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        public boolean isHasUncommittedChanges() { return hasUncommittedChanges; }
+        public void setHasUncommittedChanges(boolean hasUncommittedChanges) { this.hasUncommittedChanges = hasUncommittedChanges; }
     }
 
     public static class CreateBranchRequest {
