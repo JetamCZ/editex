@@ -53,10 +53,34 @@ export const LatexInput = Node.create({
                 icon.textContent = '\\input';
                 inner.appendChild(icon);
 
+                // Parse version reference from filePath
+                const fullPath = node.attrs.filePath || 'file.tex';
+                let displayPath = fullPath;
+                let refBadge: HTMLSpanElement | null = null;
+
+                const branchMatch = fullPath.match(/^(.+)@([^#]+)$/);
+                const commitMatch = fullPath.match(/^(.+)#(.+)$/);
+
+                if (branchMatch) {
+                    displayPath = branchMatch[1];
+                    refBadge = document.createElement('span');
+                    refBadge.className = 'latex-input-ref-badge latex-input-ref-branch';
+                    refBadge.textContent = '@' + branchMatch[2];
+                } else if (commitMatch) {
+                    displayPath = commitMatch[1];
+                    refBadge = document.createElement('span');
+                    refBadge.className = 'latex-input-ref-badge latex-input-ref-commit';
+                    refBadge.textContent = '#' + commitMatch[2];
+                }
+
                 const path = document.createElement('span');
                 path.className = 'latex-input-path';
-                path.textContent = node.attrs.filePath || 'file.tex';
+                path.textContent = displayPath;
                 inner.appendChild(path);
+
+                if (refBadge) {
+                    inner.appendChild(refBadge);
+                }
 
                 dom.appendChild(inner);
             };

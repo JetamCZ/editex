@@ -2,6 +2,7 @@ export interface ProjectFile {
     id: string;
     projectId: string;
     projectFolder: string;
+    folderId?: number | null;
     fileName: string;
     originalFileName: string;
     fileSize: number;
@@ -10,4 +11,26 @@ export interface ProjectFile {
     uploadedBy: number;
     createdAt: string;
     lastChangeId?: string | null;
+    activeBranchId?: string | null;
+    activeBranchName?: string | null;
+}
+
+export interface FileBranch {
+    id: string;
+    fileId: string;
+    name: string;
+    sourceBranchName?: string | null;
+    createdBy: number;
+    createdAt: string;
+    hasUncommittedChanges?: boolean;
+}
+
+export interface FileCommit {
+    id: number;
+    hash: string;
+    branchId: string;
+    message?: string | null;
+    committedBy: number;
+    committedByName: string;
+    createdAt: string;
 }

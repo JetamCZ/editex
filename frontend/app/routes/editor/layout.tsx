@@ -1,16 +1,13 @@
 import {Link, Outlet, useLoaderData, useNavigate, useLocation, type LoaderFunctionArgs} from "react-router";
 import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
-import type {ProjectMember} from "../../../types/member";
 import {Text, Avatar, DropdownMenu, Tooltip} from "@radix-ui/themes";
 import {
     FileTextIcon,
-    CounterClockwiseClockIcon,
     GearIcon,
     QuestionMarkCircledIcon,
     ExitIcon,
 } from "@radix-ui/react-icons";
-import { GitBranch } from "lucide-react";
 import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
 import type {ReactNode} from "react";
@@ -29,9 +26,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
     try {
         const {data: project} = await api.get<Project>(`/projects/${baseProject}/${branch}`);
-        const {data: members} = await api.get<ProjectMember[]>(`/projects/${baseProject}/members`);
-
-        return {project, members};
+        return {project};
     } catch (error) {
         console.error("Error loading project:", error);
         throw new Response("Project not found", {status: 404});
@@ -40,8 +35,6 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
 const iconSidebarItems = [
     {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: 'Files', path: ''},
-    {id: 'versions', icon: <GitBranch size={20} />, tooltip: 'Versions', path: '/versions'},
-    {id: 'history', icon: <CounterClockwiseClockIcon width="20" height="20" />, tooltip: 'History', path: '/history'},
 ];
 
 const iconSidebarBottomItems = [
@@ -54,7 +47,7 @@ interface ProjectLayoutProps {
 }
 
 export default function ProjectLayout() {
-    const {project, members} = useLoaderData<typeof loader>();
+    const {project} = useLoaderData<typeof loader>();
     const navigate = useNavigate();
     const location = useLocation();
     const {user} = useAuth();
@@ -62,9 +55,6 @@ export default function ProjectLayout() {
 
     const isSettingsPage = location.pathname.endsWith('/settings');
     const isHelpPage = location.pathname.endsWith('/help');
-    const isVersionsPage = location.pathname.endsWith('/versions');
-    const isHistoryPage = location.pathname.endsWith('/history');
-
     const handleIconClick = (itemId: string, path: string) => {
         if (path) {
             navigate(`/project/${project.baseProject}/${project.branch}${path}`);
@@ -76,8 +66,6 @@ export default function ProjectLayout() {
     const getActiveItem = () => {
         if (isSettingsPage) return 'settings';
         if (isHelpPage) return 'help';
-        if (isVersionsPage) return 'versions';
-        if (isHistoryPage) return 'history';
         return 'files';
     };
 
@@ -216,7 +204,7 @@ export default function ProjectLayout() {
                 </aside>
 
                 {/* Content Area - rendered by child routes */}
-                <Outlet context={{project, members}} />
+                <Outlet context={{project}} />
             </div>
         </div>
     );

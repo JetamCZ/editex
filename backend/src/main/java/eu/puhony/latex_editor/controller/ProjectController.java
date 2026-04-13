@@ -1,25 +1,18 @@
 package eu.puhony.latex_editor.controller;
 
-import eu.puhony.latex_editor.dto.BranchResponse;
-import eu.puhony.latex_editor.dto.CreateBranchRequest;
 import eu.puhony.latex_editor.dto.CreateProjectRequest;
 import eu.puhony.latex_editor.dto.FileUploadResponse;
-import eu.puhony.latex_editor.dto.MergeExecuteRequest;
-import eu.puhony.latex_editor.dto.MergeExecuteResponse;
-import eu.puhony.latex_editor.dto.MergePreviewRequest;
-import eu.puhony.latex_editor.dto.MergePreviewResponse;
 import eu.puhony.latex_editor.dto.ProjectWithRoleResponse;
 import eu.puhony.latex_editor.dto.UpdateProjectRequest;
+import eu.puhony.latex_editor.entity.FolderRole;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
-import eu.puhony.latex_editor.entity.ProjectMember;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.ProjectRepository;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
-import eu.puhony.latex_editor.service.MergeService;
-import eu.puhony.latex_editor.service.ProjectMemberService;
+import eu.puhony.latex_editor.service.FolderPermissionService;
 import eu.puhony.latex_editor.service.ProjectService;
 import eu.puhony.latex_editor.service.TemplateService;
 import jakarta.validation.Valid;
@@ -41,11 +34,10 @@ public class ProjectController {
     private final ProjectService projectService;
     private final UserRepository userRepository;
     private final FileService fileService;
-    private final ProjectMemberService projectMemberService;
+    private final FolderPermissionService folderPermissionService;
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
     private final TemplateService templateService;
-    private final MergeService mergeService;
 
     @GetMapping("/templates")
     public ResponseEntity<List<TemplateService.TemplateInfo>> getTemplates() {
@@ -57,19 +49,15 @@ public class ProjectController {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<Project> projects = projectRepository.findProjectsByMembership(user.getId());
+        List<Project> projects = projectRepository.findProjectsAccessibleByUser(user.getId());
 
         List<ProjectWithRoleResponse> response = new ArrayList<>();
         for (Project project : projects) {
-            ProjectMember.Role userRole = projectMemberService.getProjectMember(project.getBaseProject(), user.getId())
-                    .map(ProjectMember::getRole)
-                    .orElse(null);
-
-            if (userRole != null) {
-                response.add(ProjectWithRoleResponse.from(project, userRole));
+            FolderRole role = folderPermissionService.effectiveRoleOnRoot(project.getBaseProject(), user.getId());
+            if (role != null) {
+                response.add(ProjectWithRoleResponse.from(project, role));
             }
         }
-
         return ResponseEntity.ok(response);
     }
 
@@ -83,10 +71,8 @@ public class ProjectController {
 
         return projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
             .map(project -> {
-                ProjectMember.Role userRole = projectMemberService.getProjectMember(baseProject, user.getId())
-                        .map(ProjectMember::getRole)
-                        .orElse(null);
-                return ResponseEntity.ok(ProjectWithRoleResponse.from(project, userRole));
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(baseProject, user.getId());
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(project, role));
             })
             .orElse(ResponseEntity.notFound().build());
     }
@@ -104,7 +90,7 @@ public class ProjectController {
         project.setBranch("main");
         Project createdProject = projectService.createProjectWithTemplate(project, owner, request.getTemplateId());
 
-        ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, ProjectMember.Role.OWNER);
+        ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, FolderRole.MANAGER);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -122,10 +108,8 @@ public class ProjectController {
 
         return projectService.updateProject(baseProject, branch, project, user.getId())
             .map(updatedProject -> {
-                ProjectMember.Role userRole = projectMemberService.getProjectMember(baseProject, user.getId())
-                        .map(ProjectMember::getRole)
-                        .orElse(null);
-                return ResponseEntity.ok(ProjectWithRoleResponse.from(updatedProject, userRole));
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(baseProject, user.getId());
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(updatedProject, role));
             })
             .orElse(ResponseEntity.notFound().build());
     }
@@ -171,93 +155,12 @@ public class ProjectController {
                             file.getS3Url(),
                             file.getUploadedBy().getId(),
                             file.getCreatedAt(),
-                            lastChangeId
+                            lastChangeId,
+                            file.getActiveBranch() != null ? file.getActiveBranch().getId() : null,
+                            file.getActiveBranch() != null ? file.getActiveBranch().getName() : null
                     );
                 })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/{baseProject}/branches")
-    public ResponseEntity<List<BranchResponse>> getBranches(
-            @PathVariable String baseProject,
-            Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        List<Project> branches = projectService.getBranches(baseProject, user.getId());
-        List<BranchResponse> response = branches.stream()
-                .map(BranchResponse::from)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{baseProject}/branches")
-    public ResponseEntity<BranchResponse> createBranch(
-            @PathVariable String baseProject,
-            @Valid @RequestBody CreateBranchRequest request,
-            Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        String sourceBranch = request.getSourceBranch() != null ? request.getSourceBranch() : "main";
-        Project newBranch = projectService.createBranch(baseProject, sourceBranch, request.getBranchName(), user);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(BranchResponse.from(newBranch));
-    }
-
-    // Merge endpoints
-
-    @PostMapping("/{baseProject}/merge/preview")
-    public ResponseEntity<MergePreviewResponse> previewMerge(
-            @PathVariable String baseProject,
-            @Valid @RequestBody MergePreviewRequest request,
-            Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        MergePreviewResponse response = mergeService.previewMerge(
-                baseProject,
-                request.getSourceBranch(),
-                request.getTargetBranch(),
-                user.getId()
-        );
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{baseProject}/merge/execute")
-    public ResponseEntity<MergeExecuteResponse> executeMerge(
-            @PathVariable String baseProject,
-            @Valid @RequestBody MergeExecuteRequest request,
-            Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        MergeExecuteResponse response = mergeService.executeMerge(baseProject, request, user);
-
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    @GetMapping("/{baseProject}/{branch}/content/{fileId}")
-    public ResponseEntity<String> getFileContent(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
-            @PathVariable String fileId,
-            Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        try {
-            String content = mergeService.getCurrentContent(fileId, user.getId());
-            return ResponseEntity.ok(content);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
     }
 }

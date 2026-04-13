@@ -1,0 +1,433 @@
+import { useState, useCallback } from 'react';
+import { DropdownMenu, Button, Dialog, TextField, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
+import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil } from 'lucide-react';
+import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch, useRenameBranch } from '~/hooks/useFileBranches';
+import type { ProjectFile } from '../../types/file';
+import GitTree from '~/components/GitTree';
+
+interface Props {
+    selectedFile: ProjectFile;
+    onBranchChanged?: () => void;
+}
+
+const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [commitDialogOpen, setCommitDialogOpen] = useState(false);
+    const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+    const [renameBranchId, setRenameBranchId] = useState<string | null>(null);
+    const [renameBranchValue, setRenameBranchValue] = useState('');
+    const [newBranchName, setNewBranchName] = useState('');
+    const [commitMessage, setCommitMessage] = useState('');
+    const [mergeTargetBranchId, setMergeTargetBranchId] = useState<string | null>(null);
+
+    const { data: branches = [] } = useFileBranches(selectedFile.id);
+    const createBranch = useCreateBranch();
+    const deleteBranch = useDeleteBranch();
+    const setActiveBranch = useSetActiveBranch();
+    const createCommit = useCreateCommit();
+    const mergeBranch = useMergeBranch();
+    const renameBranch = useRenameBranch();
+
+    const activeBranchName = selectedFile.activeBranchName || 'main';
+    const activeBranchId = selectedFile.activeBranchId;
+
+    const handleSwitchBranch = useCallback((branchId: string) => {
+        if (branchId === activeBranchId) return;
+        setActiveBranch.mutate(
+            { fileId: selectedFile.id, branchId },
+            { onSuccess: () => onBranchChanged?.() }
+        );
+    }, [activeBranchId, selectedFile.id, setActiveBranch, onBranchChanged]);
+
+    const handleCreateBranch = useCallback(() => {
+        if (!newBranchName.trim()) return;
+        createBranch.mutate(
+            { fileId: selectedFile.id, name: newBranchName.trim(), sourceBranch: activeBranchName },
+            {
+                onSuccess: (branch) => {
+                    setNewBranchName('');
+                    setCreateDialogOpen(false);
+                    setActiveBranch.mutate(
+                        { fileId: selectedFile.id, branchId: branch.id },
+                        { onSuccess: () => onBranchChanged?.() }
+                    );
+                },
+            }
+        );
+    }, [newBranchName, selectedFile.id, activeBranchName, createBranch, setActiveBranch, onBranchChanged]);
+
+    const handleDeleteBranch = useCallback((branchId: string, branchName: string) => {
+        if (!confirm(`Delete variant "${branchName}"?`)) return;
+        deleteBranch.mutate({ fileId: selectedFile.id, branchId });
+    }, [deleteBranch, selectedFile.id]);
+
+    const handleCommit = useCallback(() => {
+        if (!activeBranchId) return;
+        createCommit.mutate(
+            { branchId: activeBranchId, message: commitMessage.trim() || undefined },
+            {
+                onSuccess: () => {
+                    setCommitMessage('');
+                    setCommitDialogOpen(false);
+                },
+            }
+        );
+    }, [activeBranchId, commitMessage, createCommit]);
+
+    const handleOpenRename = useCallback((branchId: string, currentName: string) => {
+        setRenameBranchId(branchId);
+        setRenameBranchValue(currentName);
+        setRenameDialogOpen(true);
+    }, []);
+
+    const handleRename = useCallback(() => {
+        if (!renameBranchId) return;
+        const trimmed = renameBranchValue.trim();
+        if (!trimmed) return;
+        renameBranch.mutate(
+            { fileId: selectedFile.id, branchId: renameBranchId, name: trimmed },
+            {
+                onSuccess: () => {
+                    setRenameDialogOpen(false);
+                    setRenameBranchId(null);
+                    setRenameBranchValue('');
+                    onBranchChanged?.();
+                },
+            }
+        );
+    }, [renameBranchId, renameBranchValue, renameBranch, selectedFile.id, onBranchChanged]);
+
+    const handleMerge = useCallback(() => {
+        if (!activeBranchId || !mergeTargetBranchId) return;
+        mergeBranch.mutate(
+            { sourceBranchId: activeBranchId, targetBranchId: mergeTargetBranchId },
+            {
+                onSuccess: () => {
+                    setMergeDialogOpen(false);
+                    setMergeTargetBranchId(null);
+                },
+            }
+        );
+    }, [activeBranchId, mergeTargetBranchId, mergeBranch]);
+
+    return (
+        <>
+            {/* Toolbar group matching EditorToolbar style */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'var(--gray-3)',
+                borderRadius: '8px',
+                padding: '0 4px',
+                height: '36px',
+                overflow: 'hidden',
+            }}>
+                {/* Branch selector dropdown */}
+                <DropdownMenu.Root>
+                    <Tooltip content="Switch variant">
+                        <DropdownMenu.Trigger>
+                            <button style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '0 8px',
+                                height: '32px',
+                                border: 'none',
+                                background: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: 'var(--gray-12)',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                transition: 'background-color 0.1s',
+                            }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--gray-4)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <GitBranch size={16} strokeWidth={2} style={{ color: 'var(--gray-11)' }} />
+                                <span>{activeBranchName}</span>
+                                {branches.length > 1 && (
+                                    <span style={{
+                                        fontSize: '10px',
+                                        backgroundColor: 'var(--accent-4)',
+                                        color: 'var(--accent-11)',
+                                        borderRadius: '8px',
+                                        padding: '1px 5px',
+                                        fontWeight: 600,
+                                    }}>
+                                        {branches.length}
+                                    </span>
+                                )}
+                                <ChevronDown size={12} strokeWidth={2} style={{ color: 'var(--gray-9)' }} />
+                            </button>
+                        </DropdownMenu.Trigger>
+                    </Tooltip>
+                    <DropdownMenu.Content size="2" align="start">
+                        <DropdownMenu.Label>Variants</DropdownMenu.Label>
+                        {branches.map(branch => (
+                            <DropdownMenu.Item
+                                key={branch.id}
+                                onSelect={() => handleSwitchBranch(branch.id)}
+                            >
+                                <Flex justify="between" align="center" width="100%" gap="3">
+                                    <Flex align="center" gap="2">
+                                        <GitBranch size={14} strokeWidth={2} />
+                                        <Text size="2" weight={branch.id === activeBranchId ? 'bold' : 'regular'}>
+                                            {branch.name}
+                                        </Text>
+                                    </Flex>
+                                    <Flex align="center" gap="1">
+                                        {branch.id === activeBranchId && (
+                                            <Text size="1" color="blue">current</Text>
+                                        )}
+                                        {branch.name !== 'main' && (
+                                            <IconButton
+                                                size="1"
+                                                variant="ghost"
+                                                color="gray"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleOpenRename(branch.id, branch.name);
+                                                }}
+                                            >
+                                                <Pencil size={12} strokeWidth={2} />
+                                            </IconButton>
+                                        )}
+                                        {branch.name !== 'main' && branch.id !== activeBranchId && (
+                                            <IconButton
+                                                size="1"
+                                                variant="ghost"
+                                                color="red"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteBranch(branch.id, branch.name);
+                                                }}
+                                            >
+                                                <Trash2 size={12} strokeWidth={2} />
+                                            </IconButton>
+                                        )}
+                                    </Flex>
+                                </Flex>
+                            </DropdownMenu.Item>
+                        ))}
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item onSelect={() => setCreateDialogOpen(true)}>
+                            <Plus size={14} strokeWidth={2} />
+                            <Text size="2">New variant...</Text>
+                        </DropdownMenu.Item>
+                        {branches.length > 1 && (
+                            <DropdownMenu.Item onSelect={() => setMergeDialogOpen(true)}>
+                                <GitMerge size={14} strokeWidth={2} />
+                                <Text size="2">Combine...</Text>
+                            </DropdownMenu.Item>
+                        )}
+                    </DropdownMenu.Content>
+                </DropdownMenu.Root>
+
+                <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--gray-6)', margin: '0 2px' }} />
+
+                {/* Save version button */}
+                <Tooltip content="Save version">
+                    <IconButton
+                        size="2"
+                        variant="ghost"
+                        color="gray"
+                        onClick={() => setCommitDialogOpen(true)}
+                        disabled={!activeBranchId}
+                        style={{ borderRadius: '6px', width: '32px', height: '32px' }}
+                    >
+                        <Save size={16} strokeWidth={2} />
+                    </IconButton>
+                </Tooltip>
+
+                {/* History / Git tree button */}
+                <Tooltip content="Version history">
+                    <IconButton
+                        size="2"
+                        variant="ghost"
+                        color="gray"
+                        onClick={() => setHistoryOpen(true)}
+                        disabled={!activeBranchId}
+                        style={{ borderRadius: '6px', width: '32px', height: '32px' }}
+                    >
+                        <GitBranch size={16} strokeWidth={2} />
+                    </IconButton>
+                </Tooltip>
+            </div>
+
+            {/* Create Variant Dialog */}
+            <Dialog.Root open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <Dialog.Content maxWidth="400px">
+                    <Dialog.Title>New Variant</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        Create a new variant from "{activeBranchName}" for {selectedFile.originalFileName}
+                    </Dialog.Description>
+                    <Flex direction="column" gap="3" mt="4">
+                        <TextField.Root
+                            placeholder="Variant name"
+                            value={newBranchName}
+                            onChange={(e) => setNewBranchName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreateBranch()}
+                            autoFocus
+                        />
+                        <Flex gap="3" justify="end">
+                            <Dialog.Close>
+                                <Button variant="soft" color="gray">Cancel</Button>
+                            </Dialog.Close>
+                            <Button
+                                onClick={handleCreateBranch}
+                                disabled={!newBranchName.trim() || createBranch.isPending}
+                                loading={createBranch.isPending}
+                            >
+                                Create Variant
+                            </Button>
+                        </Flex>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            {/* Rename Variant Dialog */}
+            <Dialog.Root open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+                <Dialog.Content maxWidth="400px">
+                    <Dialog.Title>Rename Variant</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        Enter a new name for this variant.
+                    </Dialog.Description>
+                    <Flex direction="column" gap="3" mt="4">
+                        <TextField.Root
+                            placeholder="Variant name"
+                            value={renameBranchValue}
+                            onChange={(e) => setRenameBranchValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+                            autoFocus
+                        />
+                        <Flex gap="3" justify="end">
+                            <Dialog.Close>
+                                <Button variant="soft" color="gray">Cancel</Button>
+                            </Dialog.Close>
+                            <Button
+                                onClick={handleRename}
+                                disabled={!renameBranchValue.trim() || renameBranch.isPending}
+                                loading={renameBranch.isPending}
+                            >
+                                Rename
+                            </Button>
+                        </Flex>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            {/* Save Version Dialog */}
+            <Dialog.Root open={commitDialogOpen} onOpenChange={setCommitDialogOpen}>
+                <Dialog.Content maxWidth="400px">
+                    <Dialog.Title>Save Version</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        Save the current state of "{selectedFile.originalFileName}" on variant "{activeBranchName}"
+                    </Dialog.Description>
+                    <Flex direction="column" gap="3" mt="4">
+                        <TextField.Root
+                            placeholder="Description (optional)"
+                            value={commitMessage}
+                            onChange={(e) => setCommitMessage(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
+                            autoFocus
+                        />
+                        <Flex gap="3" justify="end">
+                            <Dialog.Close>
+                                <Button variant="soft" color="gray">Cancel</Button>
+                            </Dialog.Close>
+                            <Button
+                                onClick={handleCommit}
+                                disabled={createCommit.isPending}
+                                loading={createCommit.isPending}
+                            >
+                                Save Version
+                            </Button>
+                        </Flex>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            {/* Combine Dialog */}
+            <Dialog.Root open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+                <Dialog.Content maxWidth="450px">
+                    <Dialog.Title>Combine Variants</Dialog.Title>
+                    <Dialog.Description size="2" color="gray">
+                        Combine content from "{activeBranchName}" into another variant
+                    </Dialog.Description>
+                    <Flex direction="column" gap="2" mt="4">
+                        <Text size="2" weight="medium" color="gray">Target variant:</Text>
+                        {branches
+                            .filter(b => b.id !== activeBranchId)
+                            .map(branch => (
+                                <button
+                                    key={branch.id}
+                                    onClick={() => setMergeTargetBranchId(branch.id)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '10px 12px',
+                                        borderRadius: '6px',
+                                        border: mergeTargetBranchId === branch.id
+                                            ? '2px solid var(--accent-9)'
+                                            : '1px solid var(--gray-5)',
+                                        backgroundColor: mergeTargetBranchId === branch.id
+                                            ? 'var(--accent-2)'
+                                            : 'var(--gray-1)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.1s',
+                                        fontSize: '14px',
+                                        color: 'var(--gray-12)',
+                                    }}
+                                >
+                                    <GitBranch size={14} strokeWidth={2} />
+                                    {branch.name}
+                                </button>
+                            ))}
+                        <Flex gap="3" justify="end" mt="3">
+                            <Dialog.Close>
+                                <Button variant="soft" color="gray">Cancel</Button>
+                            </Dialog.Close>
+                            <Button
+                                color="blue"
+                                onClick={handleMerge}
+                                disabled={!mergeTargetBranchId || mergeBranch.isPending}
+                                loading={mergeBranch.isPending}
+                            >
+                                <GitMerge size={14} strokeWidth={2} />
+                                Combine
+                            </Button>
+                        </Flex>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            {/* Git Tree / History Dialog */}
+            <Dialog.Root open={historyOpen} onOpenChange={setHistoryOpen}>
+                <Dialog.Content maxWidth="600px" style={{ maxHeight: '80vh' }}>
+                    <Dialog.Title>
+                        <Flex align="center" gap="2">
+                            <GitBranch size={18} strokeWidth={2} />
+                            History — {selectedFile.originalFileName}
+                        </Flex>
+                    </Dialog.Title>
+                    <GitTree
+                        fileId={selectedFile.id}
+                        activeBranchId={activeBranchId}
+                    />
+                    <Flex justify="end" mt="4">
+                        <Dialog.Close>
+                            <Button variant="soft" color="gray">Close</Button>
+                        </Dialog.Close>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+        </>
+    );
+};
+
+export default FileBranchSelector;

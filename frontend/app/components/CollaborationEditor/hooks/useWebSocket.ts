@@ -33,13 +33,14 @@ interface ReloadMessage {
 interface WebSocketConfig {
     fileId: string;
     sessionId: string;
+    branchId?: string | null;
     onChangesReceived: (changes: ChangeOperation[], senderSessionId: string | null) => void;
     onCursorUpdate?: (cursor: RemoteCursor) => void;
     onCursorLeave?: (sessionId: string) => void;
     onReload?: (message: ReloadMessage) => void;
 }
 
-export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpdate, onCursorLeave, onReload}: WebSocketConfig) => {
+export const useWebSocket = ({fileId, sessionId, branchId, onChangesReceived, onCursorUpdate, onCursorLeave, onReload}: WebSocketConfig) => {
     const clientRef = useRef<Client | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const sessionIdRef = useRef<string>(sessionId)
@@ -61,10 +62,23 @@ export const useWebSocket = ({fileId, sessionId, onChangesReceived, onCursorUpda
                 console.log('WebSocket connected');
                 setIsConnected(true);
 
-                // Subscribe to document changes
+                // Subscribe to document changes (filter by branch)
                 client.subscribe(`/topic/document/${fileId}`, (message: IMessage) => {
                     const response = JSON.parse(message.body);
+                    // Ignore changes for different branches
+                    if (response.branchId && branchId && response.branchId !== branchId) {
+                        return;
+                    }
                     onChangesReceived(response.changes, response.sessionId || null);
+                });
+
+                // Subscribe to branch change events
+                client.subscribe(`/topic/document/${fileId}/branch-change`, (message: IMessage) => {
+                    const response = JSON.parse(message.body);
+                    console.log('Branch changed:', response);
+                    if (onReload) {
+                        onReload({ branch: response.newActiveBranchId, reason: 'branch-changed' });
+                    }
                 });
 
                 // Subscribe to cursor updates

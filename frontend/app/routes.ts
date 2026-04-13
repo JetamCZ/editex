@@ -17,14 +17,11 @@ export default [
             route("new", "routes/dashboard.new.tsx"),
         ]),
 
-        route("invitations", "routes/invitations.tsx"),
-
         route("project/:baseProject/:branch?", "routes/editor/layout.tsx", {id: "project-layout"}, [
             index("routes/editor/index.tsx"),
             route("file/:fileId", "routes/editor/index.tsx", {id: "project-file"}),
             route("settings", "routes/editor/settings.tsx", {id: "project-settings"}),
-            route("versions", "routes/editor/versions.tsx", {id: "project-versions"}),
-            route("history", "routes/editor/history.tsx", {id: "project-history"}),
+            route("settings/permissions", "routes/editor/settings-permissions.tsx", {id: "project-settings-permissions"}),
             route("help", "routes/editor/help.tsx", {id: "project-help"}),
         ]),
 

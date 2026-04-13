@@ -18,7 +18,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
 
   const getRoleBadgeColor = (role: RoleType) => {
     switch (role) {
-      case Role.OWNER:
+      case Role.MANAGER:
         return 'purple';
       case Role.EDITOR:
         return 'blue';

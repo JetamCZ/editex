@@ -85,7 +85,8 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         updatePreviousLines,
         setEditorContent,
         setIsApplyingRemoteChanges,
-        sessionIdRef.current
+        sessionIdRef.current,
+        props.selectedFile.activeBranchId
     )
 
     const {handleCursorUpdate, handleCursorLeave} = useRemoteCursors({editorRef, monacoRef});
@@ -99,6 +100,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     const {isConnected, sendCursorPosition} = useWebSocket({
         fileId: props.selectedFile.id,
         sessionId: sessionIdRef.current,
+        branchId: props.selectedFile.activeBranchId,
         onChangesReceived,
         onCursorUpdate: handleCursorUpdate,
         onCursorLeave: handleCursorLeave,
@@ -116,6 +118,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         sessionId: sessionIdRef.current,
         autoSave: props.autoSave,
         refetch,
+        branchId: props.selectedFile.activeBranchId,
     });
 
     const handleShowChanges = () => {

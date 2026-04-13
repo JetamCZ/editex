@@ -3,12 +3,14 @@ package eu.puhony.latex_editor.controller;
 import eu.puhony.latex_editor.dto.FileUploadResponse;
 import eu.puhony.latex_editor.dto.MoveFileRequest;
 import eu.puhony.latex_editor.entity.DocumentChange;
+import eu.puhony.latex_editor.entity.FileBranch;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.User;
 import jakarta.validation.Valid;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.DocumentChangeService;
+import eu.puhony.latex_editor.service.FileBranchService;
 import eu.puhony.latex_editor.service.FileService;
 import eu.puhony.latex_editor.service.MinioService;
 import eu.puhony.latex_editor.service.ProjectService;
@@ -46,6 +48,9 @@ public class FileController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private FileBranchService fileBranchService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FileUploadResponse> uploadFile(
@@ -124,14 +129,12 @@ public class FileController {
     @GetMapping("/{fileId}/content")
     public ResponseEntity<FileContentResponse> getFileContent(
             @PathVariable String fileId,
+            @RequestParam(value = "branchId", required = false) String branchId,
             Authentication authentication) {
 
         if (authentication == null || authentication.getName() == null) {
-            System.out.println("Authentication is null or has no name");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        System.out.println("Authenticated user: " + authentication.getName());
 
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -139,29 +142,38 @@ public class FileController {
         return fileService.getFileById(fileId, user.getId())
                 .map(file -> {
                     try {
-                        // Fetch original content from S3
-                        String originalContent = minioService.getFileContent(file.getS3Url());
+                        // Resolve which branch to use
+                        String resolvedBranchId = branchId;
+                        if (resolvedBranchId == null && file.getActiveBranch() != null) {
+                            resolvedBranchId = file.getActiveBranch().getId();
+                        }
 
-                        // Get all changes for this file
-                        List<DocumentChange> changes = documentChangeService.getFileChanges(file.getId(), user.getId());
+                        String currentContent;
+                        Long lastChangeId;
 
-                        // Apply changes to get the current content
-                        String currentContent = documentChangeService.applyChangesToContent(originalContent, changes);
-
-                        // Get last change ID
-                        Long lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
-                                .map(eu.puhony.latex_editor.entity.DocumentChange::getId)
-                                .orElse(null);
-
-                        System.out.println("File content fetched - Original lines: " + originalContent.split("\n").length +
-                                         ", Changes applied: " + changes.size() +
-                                         ", Final lines: " + currentContent.split("\n").length);
+                        if (resolvedBranchId != null) {
+                            // Branch-aware content resolution
+                            currentContent = fileBranchService.getContent(resolvedBranchId, user.getId());
+                            lastChangeId = documentChangeService.getLatestChange(file.getId(), resolvedBranchId, user.getId())
+                                    .map(DocumentChange::getId)
+                                    .orElse(null);
+                        } else {
+                            // Legacy fallback: S3 + all changes
+                            String originalContent = minioService.getFileContent(file.getS3Url());
+                            List<DocumentChange> changes = documentChangeService.getFileChanges(file.getId(), user.getId());
+                            currentContent = documentChangeService.applyChangesToContent(originalContent, changes);
+                            lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
+                                    .map(DocumentChange::getId)
+                                    .orElse(null);
+                        }
 
                         FileContentResponse response = new FileContentResponse();
                         response.setContent(currentContent);
                         response.setLastChangeId(lastChangeId);
                         response.setFileType(file.getFileType());
                         response.setFileName(file.getOriginalFileName());
+                        response.setActiveBranchId(file.getActiveBranch() != null ? file.getActiveBranch().getId() : null);
+                        response.setActiveBranchName(file.getActiveBranch() != null ? file.getActiveBranch().getName() : null);
 
                         return ResponseEntity.ok(response);
                     } catch (Exception e) {
@@ -188,6 +200,7 @@ public class FileController {
                 request.getSessionId(),
                 request.getChanges(),
                 request.getBaseChangeId(),
+                request.getBranchId(),
                 user
         );
 
@@ -217,6 +230,7 @@ public class FileController {
             wsResponse.setSessionId(request.getSessionId());
             wsResponse.setUserId(user.getId());
             wsResponse.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+            wsResponse.setBranchId(request.getBranchId());
             wsResponse.setChanges(chunk);
             wsResponse.setChunkIndex(i);
             wsResponse.setTotalChunks(totalChunks);
@@ -230,6 +244,7 @@ public class FileController {
         response.setSessionId(request.getSessionId());
         response.setUserId(user.getId());
         response.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+        response.setBranchId(request.getBranchId());
         response.setChanges(changeResponses);
         response.setChunkIndex(0);
         response.setTotalChunks(1);
@@ -241,12 +256,15 @@ public class FileController {
     public static class ChangesBatchRequest {
         private String sessionId;
         private Long baseChangeId;
+        private String branchId;
         private List<DocumentChangeService.ChangeData> changes;
 
         public String getSessionId() { return sessionId; }
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
         public Long getBaseChangeId() { return baseChangeId; }
         public void setBaseChangeId(Long baseChangeId) { this.baseChangeId = baseChangeId; }
+        public String getBranchId() { return branchId; }
+        public void setBranchId(String branchId) { this.branchId = branchId; }
         public List<DocumentChangeService.ChangeData> getChanges() { return changes; }
         public void setChanges(List<DocumentChangeService.ChangeData> changes) { this.changes = changes; }
     }
@@ -256,6 +274,7 @@ public class FileController {
         private String sessionId;
         private Long userId;
         private String userName;
+        private String branchId;
         private List<ChangeResponse> changes;
         private Integer chunkIndex;
         private Integer totalChunks;
@@ -268,6 +287,8 @@ public class FileController {
         public void setUserId(Long userId) { this.userId = userId; }
         public String getUserName() { return userName; }
         public void setUserName(String userName) { this.userName = userName; }
+        public String getBranchId() { return branchId; }
+        public void setBranchId(String branchId) { this.branchId = branchId; }
         public List<ChangeResponse> getChanges() { return changes; }
         public void setChanges(List<ChangeResponse> changes) { this.changes = changes; }
         public Integer getChunkIndex() { return chunkIndex; }
@@ -298,38 +319,21 @@ public class FileController {
         private Long lastChangeId;
         private String fileType;
         private String fileName;
+        private String activeBranchId;
+        private String activeBranchName;
 
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
-
-        public Long getLastChangeId() {
-            return lastChangeId;
-        }
-
-        public void setLastChangeId(Long lastChangeId) {
-            this.lastChangeId = lastChangeId;
-        }
-
-        public String getFileType() {
-            return fileType;
-        }
-
-        public void setFileType(String fileType) {
-            this.fileType = fileType;
-        }
-
-        public String getFileName() {
-            return fileName;
-        }
-
-        public void setFileName(String fileName) {
-            this.fileName = fileName;
-        }
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+        public Long getLastChangeId() { return lastChangeId; }
+        public void setLastChangeId(Long lastChangeId) { this.lastChangeId = lastChangeId; }
+        public String getFileType() { return fileType; }
+        public void setFileType(String fileType) { this.fileType = fileType; }
+        public String getFileName() { return fileName; }
+        public void setFileName(String fileName) { this.fileName = fileName; }
+        public String getActiveBranchId() { return activeBranchId; }
+        public void setActiveBranchId(String activeBranchId) { this.activeBranchId = activeBranchId; }
+        public String getActiveBranchName() { return activeBranchName; }
+        public void setActiveBranchName(String activeBranchName) { this.activeBranchName = activeBranchName; }
     }
 
     @PatchMapping("/{fileId}/move")
@@ -367,6 +371,9 @@ public class FileController {
                     .orElse(null);
         }
 
+        String activeBranchId = file.getActiveBranch() != null ? file.getActiveBranch().getId() : null;
+        String activeBranchName = file.getActiveBranch() != null ? file.getActiveBranch().getName() : null;
+
         return new FileUploadResponse(
                 file.getId(),
                 file.getProject().getBaseProject(),
@@ -378,7 +385,9 @@ public class FileController {
                 file.getS3Url(),
                 file.getUploadedBy().getId(),
                 file.getCreatedAt(),
-                lastChangeId
+                lastChangeId,
+                activeBranchId,
+                activeBranchName
         );
     }
 }

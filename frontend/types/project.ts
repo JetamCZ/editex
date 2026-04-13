@@ -1,4 +1,4 @@
-import { Role } from './member';
+import type { FolderRole } from './permission';
 
 export interface Project {
     id: number;
@@ -6,7 +6,7 @@ export interface Project {
     branch: string;
     name: string;
     ownerId: number;
-    userRole: Role;
+    userRole: FolderRole | null;
     createdAt: string;
     updatedAt: string;
     deletedAt?: string;

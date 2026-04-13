@@ -18,11 +18,13 @@ import {
     Plus,
     Minus,
     FileInput,
+    Link,
     type LucideIcon,
 } from 'lucide-react';
 
 interface Props {
     editor: Editor | null;
+    onInsertLink?: () => void;
 }
 
 function ToolbarButton({
@@ -138,7 +140,7 @@ function TableDropdown({editor}: {editor: Editor}) {
     );
 }
 
-export default function WysiwygToolbar({editor}: Props) {
+export default function WysiwygToolbar({editor, onInsertLink}: Props) {
     if (!editor) return null;
 
     const isInTable = editor.isActive('table');
@@ -227,6 +229,11 @@ export default function WysiwygToolbar({editor}: Props) {
                             attrs: {latex: 'x^2', rawLatex: null},
                         }).run();
                     }}
+                />
+                <ToolbarButton
+                    tooltip="Insert link (\\href)"
+                    icon={Link}
+                    onClick={() => onInsertLink?.()}
                 />
                 <ToolbarButton
                     tooltip="Input file (\\input)"

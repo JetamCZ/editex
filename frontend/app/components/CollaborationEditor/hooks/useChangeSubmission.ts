@@ -14,6 +14,7 @@ interface UseChangeSubmissionOptions {
     sessionId: string;
     autoSave?: boolean;
     refetch: () => Promise<void>;
+    branchId?: string | null;
 }
 
 export function useChangeSubmission({
@@ -27,6 +28,7 @@ export function useChangeSubmission({
     sessionId,
     autoSave,
     refetch,
+    branchId,
 }: UseChangeSubmissionOptions) {
     const [isSending, setIsSending] = useState(false);
 
@@ -40,6 +42,7 @@ export function useChangeSubmission({
             const payload = {
                 sessionId,
                 baseChangeId: lastChangeId,
+                branchId: branchId || undefined,
                 changes: changeHistory.map(change => ({
                     operation: change.operation,
                     line: change.line,

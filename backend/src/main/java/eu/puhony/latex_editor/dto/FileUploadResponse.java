@@ -21,4 +21,6 @@ public class FileUploadResponse {
     private Long uploadedBy;
     private LocalDateTime createdAt;
     private Long lastChangeId;
+    private String activeBranchId;
+    private String activeBranchName;
 }

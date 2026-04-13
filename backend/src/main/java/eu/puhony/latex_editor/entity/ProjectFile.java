@@ -23,6 +23,11 @@ public class ProjectFile {
     @Column(name = "project_folder", nullable = false, length = 1024)
     private String projectFolder;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private ProjectFolder folder;
+
     @Column(name = "file_name", nullable = false, length = 512)
     private String fileName;
 
@@ -42,6 +47,10 @@ public class ProjectFile {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by", nullable = false)
     private User uploadedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "active_branch_id")
+    private FileBranch activeBranch;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -127,6 +136,14 @@ public class ProjectFile {
         this.uploadedBy = uploadedBy;
     }
 
+    public FileBranch getActiveBranch() {
+        return activeBranch;
+    }
+
+    public void setActiveBranch(FileBranch activeBranch) {
+        this.activeBranch = activeBranch;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -141,5 +158,13 @@ public class ProjectFile {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public ProjectFolder getFolder() {
+        return folder;
+    }
+
+    public void setFolder(ProjectFolder folder) {
+        this.folder = folder;
     }
 }

@@ -62,6 +62,15 @@ function serializeNode(node: TipTapNode, state: SerializerState): void {
         case 'latexRawInline':
             serializeRawInline(node, state);
             break;
+        case 'latexHref':
+            serializeHref(node, state);
+            break;
+        case 'latexTitle':
+            serializeTitle(node, state);
+            break;
+        case 'latexComment':
+            serializeComment(node, state);
+            break;
         case 'latexInput':
             serializeInput(node, state);
             break;
@@ -273,6 +282,42 @@ function serializePreamble(node: TipTapNode, state: SerializerState): void {
     }
 }
 
+function serializeTitle(node: TipTapNode, state: SerializerState): void {
+    const rawLatex = node.attrs?.rawLatex as string | undefined;
+    if (rawLatex) {
+        state.output += rawLatex;
+    } else {
+        const kind = node.attrs?.kind as string || 'title';
+        const text = node.attrs?.text as string || '';
+        state.output += `\\${kind}{${text}}`;
+    }
+}
+
+function serializeHref(node: TipTapNode, state: SerializerState): void {
+    const rawLatex = node.attrs?.rawLatex as string | undefined;
+    if (rawLatex) {
+        state.output += rawLatex;
+    } else {
+        const url = node.attrs?.url as string || '';
+        const text = node.attrs?.text as string || '';
+        const isUrl = node.attrs?.isUrl as boolean || false;
+        if (isUrl) {
+            state.output += `\\url{${url}}`;
+        } else {
+            state.output += `\\href{${url}}{${text}}`;
+        }
+    }
+}
+
+function serializeComment(node: TipTapNode, state: SerializerState): void {
+    const rawLatex = node.attrs?.rawLatex as string | undefined;
+    if (rawLatex) {
+        state.output += rawLatex;
+    } else {
+        state.output += node.attrs?.content as string || '';
+    }
+}
+
 function serializeInline(node: TipTapNode, state: SerializerState): void {
     if (node.type === 'text') {
         serializeText(node, state);
@@ -280,6 +325,10 @@ function serializeInline(node: TipTapNode, state: SerializerState): void {
         serializeMathInline(node, state);
     } else if (node.type === 'latexRawInline') {
         serializeRawInline(node, state);
+    } else if (node.type === 'latexHref') {
+        serializeHref(node, state);
+    } else if (node.type === 'latexComment') {
+        serializeComment(node, state);
     } else if (node.type === 'hardBreak') {
         state.output += '\n';
     } else {

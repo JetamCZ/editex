@@ -14,7 +14,8 @@ const useContent = (
     updatePreviousLines: (lines: string[]) => void,
     setEditorContent: (newContent: string, changes?: ChangeOperation[]) => void,
     setIsApplyingRemoteChanges: (value: boolean) => void,
-    localSessionId: string
+    localSessionId: string,
+    branchId?: string | null
 ) => {
     const [content, setContent] = useState('');
     const [lastChangeId, setLastChangeId] = useState("");
@@ -25,11 +26,13 @@ const useContent = (
     const changeHistoryRef = useToRef(changeHistory)
 
     const refetch = useCallback(async () => {
+        const params = branchId ? { branchId } : {};
         const {data} = await axios.get<{ content: string, lastChangeId: string }>(`/api/files/${fileId}/content`, {
             headers: {
                 'Authorization': `Bearer ${bearerToken}`,
                 'Content-Type': 'application/json',
             },
+            params,
             baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
         });
 
@@ -47,7 +50,7 @@ const useContent = (
         setEditorContent(data.content);
         setIsApplyingRemoteChanges(false);
 
-    }, [fileId, bearerToken, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges]);
+    }, [fileId, branchId, bearerToken, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges]);
 
     useEffect(() => {
         refetch()

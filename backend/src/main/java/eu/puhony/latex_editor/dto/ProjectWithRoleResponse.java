@@ -1,7 +1,7 @@
 package eu.puhony.latex_editor.dto;
 
+import eu.puhony.latex_editor.entity.FolderRole;
 import eu.puhony.latex_editor.entity.Project;
-import eu.puhony.latex_editor.entity.ProjectMember;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,11 +17,11 @@ public class ProjectWithRoleResponse {
     private String branch;
     private String name;
     private Long ownerId;
-    private ProjectMember.Role userRole;
+    private FolderRole userRole;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static ProjectWithRoleResponse from(Project project, ProjectMember.Role userRole) {
+    public static ProjectWithRoleResponse from(Project project, FolderRole userRole) {
         ProjectWithRoleResponse response = new ProjectWithRoleResponse();
         response.setId(project.getId());
         response.setBaseProject(project.getBaseProject());

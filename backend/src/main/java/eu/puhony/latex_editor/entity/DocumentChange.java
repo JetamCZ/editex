@@ -38,6 +38,11 @@ public class DocumentChange {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private FileBranch branch;
+
     @Column(name = "base_change_id")
     private Long baseChangeId; // Last change ID when this edit session started
 
@@ -104,6 +109,14 @@ public class DocumentChange {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public FileBranch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(FileBranch branch) {
+        this.branch = branch;
     }
 
     public Long getBaseChangeId() {

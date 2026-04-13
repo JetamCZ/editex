@@ -24,24 +24,20 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.sessionId = :sessionId ORDER BY dc.createdAt ASC")
     List<DocumentChange> findBySessionIdOrderByCreatedAt(@Param("sessionId") String sessionId);
 
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC LIMIT 1")
-    Optional<DocumentChange> findLatestByProjectId(@Param("projectId") Long projectId);
+    // Branch-aware queries
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId ORDER BY dc.id ASC")
+    List<DocumentChange> findByFileIdAndBranchIdOrderById(@Param("fileId") String fileId, @Param("branchId") String branchId);
 
-    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.id > :afterChangeId")
-    long countByProjectIdAfterChange(@Param("projectId") Long projectId, @Param("afterChangeId") Long afterChangeId);
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId ORDER BY dc.id DESC LIMIT 1")
+    Optional<DocumentChange> findLatestByFileIdAndBranchId(@Param("fileId") String fileId, @Param("branchId") String branchId);
 
-    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
-    long countByProjectId(@Param("projectId") Long projectId);
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId AND dc.id > :afterChangeId ORDER BY dc.id ASC")
+    List<DocumentChange> findByFileIdAndBranchIdAfterChange(@Param("fileId") String fileId, @Param("branchId") String branchId, @Param("afterChangeId") Long afterChangeId);
 
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId ORDER BY dc.createdAt DESC")
-    List<DocumentChange> findRecentByProjectId(@Param("projectId") Long projectId, org.springframework.data.domain.Pageable pageable);
+    @Query("SELECT CASE WHEN COUNT(dc) > 0 THEN true ELSE false END FROM DocumentChange dc WHERE dc.branch.id = :branchId")
+    boolean existsByBranchId(@Param("branchId") String branchId);
 
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.id > :afterChangeId ORDER BY dc.id ASC")
-    List<DocumentChange> findByProjectIdAfterChange(@Param("projectId") Long projectId, @Param("afterChangeId") Long afterChangeId);
-
-    @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.project.id = :projectId")
-    List<DocumentChange> findAllByProjectId(@Param("projectId") Long projectId);
-
-    @Query("SELECT COUNT(dc) FROM DocumentChange dc WHERE dc.file.project.id = :projectId AND dc.createdAt > :afterTimestamp")
-    long countByProjectIdAfterTimestamp(@Param("projectId") Long projectId, @Param("afterTimestamp") java.time.LocalDateTime afterTimestamp);
+    @Query("DELETE FROM DocumentChange dc WHERE dc.branch.id = :branchId")
+    @org.springframework.data.jpa.repository.Modifying
+    void deleteByBranchId(@Param("branchId") String branchId);
 }

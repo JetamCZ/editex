@@ -11,6 +11,7 @@ import WysiwygToolbar from './WysiwygToolbar';
 import MathPopup from './MathPopup';
 import ImagePopup from './ImagePopup';
 import InputFilePopup from './InputFilePopup';
+import HrefPopup from './HrefPopup';
 import {useProjectFiles} from '~/hooks/useProjectFiles';
 import {getFileContentType, ContentType} from '~/const/ContentType';
 import type {ProjectFile} from '../../../types/file';
@@ -22,6 +23,9 @@ import {
     LatexRawBlock,
     LatexInput,
     LatexPreamble,
+    LatexHref,
+    LatexComment,
+    LatexTitle,
 } from './extensions';
 import {parseLatex} from './latex-parser';
 import {serializeToLatex} from './latex-serializer';
@@ -60,6 +64,13 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
         pos: number;
     } | null>(null);
 
+    const [hrefPopup, setHrefPopup] = useState<{
+        url: string;
+        text: string;
+        pos: number;
+        isNew?: boolean;
+    } | null>(null);
+
     const syncDirectionRef = useRef<'none' | 'monaco-to-tiptap' | 'tiptap-to-monaco'>('none');
     const lastMonacoContentRef = useRef<string>(content);
     const tiptapToMonacoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,6 +106,9 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             LatexRawBlock,
             LatexInput,
             LatexPreamble,
+            LatexHref,
+            LatexComment,
+            LatexTitle,
         ],
         editorProps: {
             attributes: {
@@ -202,14 +216,27 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             }
         };
 
+        const handleHrefClick = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail) {
+                setHrefPopup({
+                    url: detail.url || '',
+                    text: detail.text || '',
+                    pos: detail.pos,
+                });
+            }
+        };
+
         const editorElement = editor.view.dom;
         editorElement.addEventListener('latex-math-click', handleMathClick);
         editorElement.addEventListener('latex-figure-click', handleFigureClick);
         editorElement.addEventListener('latex-input-click', handleInputClick);
+        editorElement.addEventListener('latex-href-click', handleHrefClick);
         return () => {
             editorElement.removeEventListener('latex-math-click', handleMathClick);
             editorElement.removeEventListener('latex-figure-click', handleFigureClick);
             editorElement.removeEventListener('latex-input-click', handleInputClick);
+            editorElement.removeEventListener('latex-href-click', handleHrefClick);
         };
     }, [editor]);
 
@@ -317,11 +344,37 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
         setInputFilePopup(null);
     }, [editor, inputFilePopup]);
 
+    const handleHrefSave = useCallback((url: string, text: string) => {
+        if (!editor || !hrefPopup) return;
+
+        if (hrefPopup.isNew) {
+            editor.chain().focus().insertContent({
+                type: 'latexHref',
+                attrs: {url, text, rawLatex: null, isUrl: false},
+            }).run();
+        } else {
+            const pos = hrefPopup.pos;
+            const tr = editor.state.tr;
+            const node = tr.doc.nodeAt(pos);
+            if (node && node.type.name === 'latexHref') {
+                tr.setNodeMarkup(pos, undefined, {
+                    url,
+                    text,
+                    rawLatex: null,
+                    isUrl: false,
+                });
+                editor.view.dispatch(tr);
+            }
+        }
+
+        setHrefPopup(null);
+    }, [editor, hrefPopup]);
+
     if (!visible) return null;
 
     return (
         <div className="wysiwyg-editor">
-            <WysiwygToolbar editor={editor} />
+            <WysiwygToolbar editor={editor} onInsertLink={() => setHrefPopup({url: '', text: '', pos: 0, isNew: true})} />
             <div className="tiptap-wrapper">
                 <EditorContent editor={editor} />
             </div>
@@ -350,6 +403,14 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
                     onCancel={() => setInputFilePopup(null)}
                     baseProject={baseProject}
                     branch={branch}
+                />
+            )}
+            {hrefPopup && (
+                <HrefPopup
+                    url={hrefPopup.url}
+                    text={hrefPopup.text}
+                    onSave={handleHrefSave}
+                    onCancel={() => setHrefPopup(null)}
                 />
             )}
         </div>
