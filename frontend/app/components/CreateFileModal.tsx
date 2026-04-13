@@ -3,6 +3,7 @@ import { useState } from "react";
 import axios from "axios";
 import useAuth from "~/hooks/useAuth";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import FolderSelect from "~/components/FolderSelect";
 
 interface CreateFileModalProps {
   open: boolean;
@@ -174,18 +175,12 @@ export default function CreateFileModal({
 
           <Box>
             <Text size="2" weight="bold" mb="1">Folder</Text>
-            <TextField.Root
-              placeholder="e.g., / or /chapters"
+            <FolderSelect
+              baseProject={baseProject}
               value={folder}
-              onChange={(e) => setFolder(e.target.value)}
-            >
-              <TextField.Slot side="left">
-                <Text size="1" color="gray">Path:</Text>
-              </TextField.Slot>
-            </TextField.Root>
-            <Text size="1" color="gray" mt="1">
-              Enter a folder path. Use / for root directory.
-            </Text>
+              onChange={setFolder}
+              allowCreate
+            />
           </Box>
 
           {error && (

@@ -1,8 +1,9 @@
-import { Dialog, Button, Flex, Text, Progress, Box, TextField } from "@radix-ui/themes";
+import { Dialog, Button, Flex, Text, Progress, Box } from "@radix-ui/themes";
 import { useState, useRef } from "react";
 import axios from "axios";
 import useAuth from "~/hooks/useAuth";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import FolderSelect from "~/components/FolderSelect";
 
 interface FileUploadModalProps {
   open: boolean;
@@ -149,16 +150,12 @@ export default function FileUploadModal({
         <Flex direction="column" gap="3">
           <Box>
             <Text size="2" weight="bold" mb="1">Upload to Folder</Text>
-            <TextField.Root
-              placeholder="e.g., /images or /chapters"
+            <FolderSelect
+              baseProject={baseProject}
               value={selectedFolder}
-              onChange={(e) => setSelectedFolder(e.target.value)}
-            >
-              <TextField.Slot>📁</TextField.Slot>
-            </TextField.Root>
-            <Text size="1" color="gray" mt="1">
-              Enter a folder path (must start with /). Example: /images, /chapters, /styles
-            </Text>
+              onChange={setSelectedFolder}
+              allowCreate
+            />
           </Box>
 
           <Box

@@ -63,13 +63,6 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
         [uploadedFiles, projectFolders]
     );
 
-    const folders = useMemo(() => {
-        const set = new Set<string>(["/"]);
-        projectFolders.forEach(f => set.add(f.path));
-        uploadedFiles.forEach(f => f.projectFolder && set.add(f.projectFolder));
-        return Array.from(set).sort();
-    }, [uploadedFiles, projectFolders]);
-
     const handleDeleteFile = (fileId: string) => {
         deleteFileMutation.mutate(fileId, {
             onSuccess: () => onFileDeleted?.(fileId),
@@ -143,7 +136,7 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                 onOpenChange={(open) => setMoveDialogState(prev => ({ ...prev, open }))}
                 fileName={moveDialogState.fileName}
                 currentFolder={moveDialogState.currentFolder}
-                folders={folders}
+                baseProject={baseProject}
                 onMove={handleConfirmMove}
                 isMoving={moveFileMutation.isPending}
             />
