@@ -1,6 +1,5 @@
 import {useNavigate, useParams, useOutletContext} from "react-router";
 import type {Project} from "../../../types/project";
-import type {ProjectMember} from "../../../types/member";
 import {useState, useEffect, useRef, useCallback} from "react";
 import {createPortal} from "react-dom";
 import {Box, Text, Select, Tooltip, IconButton} from "@radix-ui/themes";
@@ -31,11 +30,10 @@ export function meta({ matches }: { matches: Array<{ data?: { project?: Project 
 
 interface OutletContextType {
     project: Project;
-    members: ProjectMember[];
 }
 
 const EditorPage = () => {
-    const {project, members} = useOutletContext<OutletContextType>();
+    const {project} = useOutletContext<OutletContextType>();
     const params = useParams();
     const navigate = useNavigate();
     const [selectedFileId, setSelectedFileId] = useState<string | null>(params.fileId || null);

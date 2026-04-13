@@ -1,6 +1,5 @@
 import {useNavigate, useOutletContext} from "react-router";
 import type {Project} from "../../../types/project";
-import type {ProjectMember} from "../../../types/member";
 import {useEffect, useState} from "react";
 import {createPortal} from "react-dom";
 import {
@@ -25,7 +24,6 @@ export function meta() {
 
 interface OutletContextType {
     project: Project;
-    members: ProjectMember[];
 }
 
 interface CodeExampleProps {

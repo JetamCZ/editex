@@ -23,6 +23,11 @@ public class ProjectFile {
     @Column(name = "project_folder", nullable = false, length = 1024)
     private String projectFolder;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private ProjectFolder folder;
+
     @Column(name = "file_name", nullable = false, length = 512)
     private String fileName;
 
@@ -153,5 +158,13 @@ public class ProjectFile {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public ProjectFolder getFolder() {
+        return folder;
+    }
+
+    public void setFolder(ProjectFolder folder) {
+        this.folder = folder;
     }
 }

@@ -4,15 +4,15 @@ import eu.puhony.latex_editor.dto.CreateProjectRequest;
 import eu.puhony.latex_editor.dto.FileUploadResponse;
 import eu.puhony.latex_editor.dto.ProjectWithRoleResponse;
 import eu.puhony.latex_editor.dto.UpdateProjectRequest;
+import eu.puhony.latex_editor.entity.FolderRole;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
-import eu.puhony.latex_editor.entity.ProjectMember;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.ProjectRepository;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.DocumentChangeService;
 import eu.puhony.latex_editor.service.FileService;
-import eu.puhony.latex_editor.service.ProjectMemberService;
+import eu.puhony.latex_editor.service.FolderPermissionService;
 import eu.puhony.latex_editor.service.ProjectService;
 import eu.puhony.latex_editor.service.TemplateService;
 import jakarta.validation.Valid;
@@ -34,7 +34,7 @@ public class ProjectController {
     private final ProjectService projectService;
     private final UserRepository userRepository;
     private final FileService fileService;
-    private final ProjectMemberService projectMemberService;
+    private final FolderPermissionService folderPermissionService;
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
     private final TemplateService templateService;
@@ -49,19 +49,15 @@ public class ProjectController {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<Project> projects = projectRepository.findProjectsByMembership(user.getId());
+        List<Project> projects = projectRepository.findProjectsAccessibleByUser(user.getId());
 
         List<ProjectWithRoleResponse> response = new ArrayList<>();
         for (Project project : projects) {
-            ProjectMember.Role userRole = projectMemberService.getProjectMember(project.getBaseProject(), user.getId())
-                    .map(ProjectMember::getRole)
-                    .orElse(null);
-
-            if (userRole != null) {
-                response.add(ProjectWithRoleResponse.from(project, userRole));
+            FolderRole role = folderPermissionService.effectiveRoleOnRoot(project.getBaseProject(), user.getId());
+            if (role != null) {
+                response.add(ProjectWithRoleResponse.from(project, role));
             }
         }
-
         return ResponseEntity.ok(response);
     }
 
@@ -75,10 +71,8 @@ public class ProjectController {
 
         return projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
             .map(project -> {
-                ProjectMember.Role userRole = projectMemberService.getProjectMember(baseProject, user.getId())
-                        .map(ProjectMember::getRole)
-                        .orElse(null);
-                return ResponseEntity.ok(ProjectWithRoleResponse.from(project, userRole));
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(baseProject, user.getId());
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(project, role));
             })
             .orElse(ResponseEntity.notFound().build());
     }
@@ -96,7 +90,7 @@ public class ProjectController {
         project.setBranch("main");
         Project createdProject = projectService.createProjectWithTemplate(project, owner, request.getTemplateId());
 
-        ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, ProjectMember.Role.OWNER);
+        ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, FolderRole.MANAGER);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -114,10 +108,8 @@ public class ProjectController {
 
         return projectService.updateProject(baseProject, branch, project, user.getId())
             .map(updatedProject -> {
-                ProjectMember.Role userRole = projectMemberService.getProjectMember(baseProject, user.getId())
-                        .map(ProjectMember::getRole)
-                        .orElse(null);
-                return ResponseEntity.ok(ProjectWithRoleResponse.from(updatedProject, userRole));
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(baseProject, user.getId());
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(updatedProject, role));
             })
             .orElse(ResponseEntity.notFound().build());
     }
@@ -171,5 +163,4 @@ public class ProjectController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
-
 }

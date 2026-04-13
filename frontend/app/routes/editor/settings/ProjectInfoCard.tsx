@@ -15,7 +15,7 @@ import {Pencil1Icon, CheckCircledIcon, ExclamationTriangleIcon} from "@radix-ui/
 import {useMutation} from "@tanstack/react-query";
 import axios from "axios";
 import type {Project} from "../../../../types/project";
-import {Role} from "../../../../types/member";
+import {FolderRole} from "../../../../types/permission";
 
 interface ProjectInfoCardProps {
     project: Project;
@@ -23,13 +23,13 @@ interface ProjectInfoCardProps {
     isOwner: boolean;
 }
 
-function getRoleColor(role: Role) {
+function getRoleColor(role: FolderRole | null | undefined) {
     switch (role) {
-        case Role.OWNER:
+        case FolderRole.MANAGER:
             return "blue";
-        case Role.EDITOR:
+        case FolderRole.EDITOR:
             return "green";
-        case Role.VIEWER:
+        case FolderRole.VIEWER:
             return "gray";
         default:
             return "gray";
@@ -151,7 +151,7 @@ export default function ProjectInfoCard({project, bearerToken, isOwner}: Project
                     <Flex justify="between" align="center">
                         <Text size="2" className="text-gray-11">Your Role</Text>
                         <Text size="2" weight="bold" color={getRoleColor(project.userRole)}>
-                            {project.userRole}
+                            {project.userRole ?? "—"}
                         </Text>
                     </Flex>
                     <Flex justify="between" align="center">

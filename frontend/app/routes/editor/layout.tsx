@@ -1,7 +1,6 @@
 import {Link, Outlet, useLoaderData, useNavigate, useLocation, type LoaderFunctionArgs} from "react-router";
 import {getApiClient} from "~/lib/axios.server";
 import type {Project} from "../../../types/project";
-import type {ProjectMember} from "../../../types/member";
 import {Text, Avatar, DropdownMenu, Tooltip} from "@radix-ui/themes";
 import {
     FileTextIcon,
@@ -27,9 +26,7 @@ export async function loader({request, params}: LoaderFunctionArgs) {
 
     try {
         const {data: project} = await api.get<Project>(`/projects/${baseProject}/${branch}`);
-        const {data: members} = await api.get<ProjectMember[]>(`/projects/${baseProject}/members`);
-
-        return {project, members};
+        return {project};
     } catch (error) {
         console.error("Error loading project:", error);
         throw new Response("Project not found", {status: 404});
@@ -50,7 +47,7 @@ interface ProjectLayoutProps {
 }
 
 export default function ProjectLayout() {
-    const {project, members} = useLoaderData<typeof loader>();
+    const {project} = useLoaderData<typeof loader>();
     const navigate = useNavigate();
     const location = useLocation();
     const {user} = useAuth();
@@ -207,7 +204,7 @@ export default function ProjectLayout() {
                 </aside>
 
                 {/* Content Area - rendered by child routes */}
-                <Outlet context={{project, members}} />
+                <Outlet context={{project}} />
             </div>
         </div>
     );

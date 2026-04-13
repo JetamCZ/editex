@@ -28,7 +28,7 @@ import java.util.zip.ZipOutputStream;
 public class LatexCompilationService {
 
     private final MinioService minioService;
-    private final ProjectMemberService projectMemberService;
+    private final FolderPermissionService folderPermissionService;
     private final ProjectFileRepository projectFileRepository;
     private final ProjectRepository projectRepository;
     private final DocumentChangeService documentChangeService;
@@ -49,7 +49,7 @@ public class LatexCompilationService {
 
         try {
             // 1. Validate permissions
-            projectMemberService.ensureCanRead(baseProject, userId);
+            folderPermissionService.ensureCanReadProject(baseProject, userId);
 
             // Get the project to find the numeric ID
             Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
@@ -120,7 +120,7 @@ public class LatexCompilationService {
         File workDir = null;
 
         try {
-            projectMemberService.ensureCanRead(baseProject, userId);
+            folderPermissionService.ensureCanReadProject(baseProject, userId);
 
             Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
                     .orElseThrow(() -> new RuntimeException("Project not found"));

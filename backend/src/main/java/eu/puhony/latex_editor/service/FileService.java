@@ -3,6 +3,7 @@ package eu.puhony.latex_editor.service;
 import eu.puhony.latex_editor.entity.FileBranch;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
+import eu.puhony.latex_editor.entity.ProjectFolder;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.FileBranchRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
@@ -22,25 +23,27 @@ public class FileService {
 
     private final ProjectFileRepository fileRepository;
     private final MinioService minioService;
-    private final ProjectMemberService projectMemberService;
+    private final FolderPermissionService folderPermissionService;
+    private final ProjectFolderService projectFolderService;
     private final FileBranchRepository branchRepository;
 
     private static final String SOURCES_ROOT = "/sources";
 
     @Transactional
-    public ProjectFile uploadFile(MultipartFile file, Project project, String folder, User uploadedBy) throws Exception {
-        projectMemberService.ensureCanEdit(project.getBaseProject(), uploadedBy.getId());
+    public ProjectFile uploadFile(MultipartFile file, Project project, String folderPath, User uploadedBy) throws Exception {
+        String normalizedFolder = ProjectFolderService.normalize(folderPath);
+        ProjectFolder targetFolder = projectFolderService.getOrCreateByPath(project.getBaseProject(), normalizedFolder);
 
-        // Validate and normalize folder path
-        String normalizedFolder = validateAndNormalizeFolder(folder);
+        // EDITOR+ required on the target folder.
+        folderPermissionService.ensureCanEdit(uploadedBy.getId(), targetFolder);
 
-        // S3 path: {baseProject}/{branch}/sources{folder}
         String s3Path = project.getBaseProject() + "/" + project.getBranch() + SOURCES_ROOT + normalizedFolder;
         String s3Url = minioService.uploadFile(file, s3Path);
 
         ProjectFile projectFile = new ProjectFile();
         projectFile.setProject(project);
         projectFile.setProjectFolder(normalizedFolder);
+        projectFile.setFolder(targetFolder);
         projectFile.setFileName(file.getOriginalFilename());
         projectFile.setOriginalFileName(file.getOriginalFilename());
         projectFile.setFileSize(file.getSize());
@@ -50,7 +53,6 @@ public class FileService {
 
         projectFile = fileRepository.save(projectFile);
 
-        // Auto-create "main" branch for the new file
         FileBranch mainBranch = new FileBranch();
         mainBranch.setFile(projectFile);
         mainBranch.setName("main");
@@ -64,20 +66,24 @@ public class FileService {
     }
 
     public List<ProjectFile> getProjectFiles(Long projectId, String baseProject, Long userId) {
-        projectMemberService.ensureCanRead(baseProject, userId);
-        return fileRepository.findByProjectIdNonDeleted(projectId);
+        folderPermissionService.ensureCanReadProject(baseProject, userId);
+        // Hide files inside folders the user cannot read.
+        return fileRepository.findByProjectIdNonDeleted(projectId).stream()
+                .filter(f -> folderPermissionService.canRead(userId, f))
+                .toList();
     }
 
     public List<ProjectFile> getProjectFilesByFolder(Long projectId, String baseProject, String folder, Long userId) {
-        projectMemberService.ensureCanRead(baseProject, userId);
-        return fileRepository.findByProjectIdAndFolderNonDeleted(projectId, folder);
+        folderPermissionService.ensureCanReadProject(baseProject, userId);
+        String normalized = ProjectFolderService.normalize(folder);
+        ProjectFolder target = projectFolderService.getByPath(baseProject, normalized);
+        folderPermissionService.ensureCanRead(userId, target);
+        return fileRepository.findByProjectIdAndFolderNonDeleted(projectId, normalized);
     }
 
     public Optional<ProjectFile> getFileById(String fileId, Long userId) {
         Optional<ProjectFile> file = fileRepository.findByIdNonDeleted(fileId);
-        if (file.isPresent()) {
-            projectMemberService.ensureCanRead(file.get().getProject().getBaseProject(), userId);
-        }
+        file.ifPresent(f -> folderPermissionService.ensureCanRead(userId, f));
         return file;
     }
 
@@ -85,8 +91,7 @@ public class FileService {
     public boolean deleteFile(String fileId, Long userId) {
         return fileRepository.findByIdNonDeleted(fileId)
                 .map(file -> {
-                    projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
-
+                    folderPermissionService.ensureCanEdit(userId, file);
                     try {
                         String objectName = minioService.getObjectNameFromUrl(file.getS3Url());
                         if (objectName != null) {
@@ -103,75 +108,43 @@ public class FileService {
     }
 
     @Transactional
-    public ProjectFile moveFile(String fileId, String targetFolder, Long userId) {
+    public ProjectFile moveFile(String fileId, String targetFolderPath, Long userId) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+        // EDITOR required on source AND destination.
+        folderPermissionService.ensureCanEdit(userId, file);
 
-        // Validate and normalize target folder
-        String normalizedFolder = validateAndNormalizeFolder(targetFolder);
-
+        String normalizedFolder = ProjectFolderService.normalize(targetFolderPath);
         String currentFolder = file.getProjectFolder();
-
-        // Don't move if already in the target folder
         if (currentFolder.equals(normalizedFolder)) {
             return file;
         }
 
+        ProjectFolder destFolder = projectFolderService.getOrCreateByPath(
+                file.getProject().getBaseProject(), normalizedFolder);
+        folderPermissionService.ensureCanEdit(userId, destFolder);
+
         try {
-            // Get the current S3 object name
             String currentObjectName = minioService.getObjectNameFromUrl(file.getS3Url());
             if (currentObjectName == null) {
                 throw new RuntimeException("Could not extract object name from URL");
             }
 
-            // Build new S3 path: {baseProject}/{branch}/sources{folder}
             String baseProject = file.getProject().getBaseProject();
             String branch = file.getProject().getBranch();
             String newS3Path = baseProject + "/" + branch + SOURCES_ROOT + normalizedFolder;
 
-            // Copy file to new location
             String newS3Url = minioService.copyFile(currentObjectName, newS3Path, file.getFileName());
-
-            // Delete old file from S3
             minioService.deleteFile(currentObjectName);
 
-            // Update the database record
             file.setProjectFolder(normalizedFolder);
+            file.setFolder(destFolder);
             file.setS3Url(newS3Url);
-
             return fileRepository.save(file);
         } catch (Exception e) {
             throw new RuntimeException("Error moving file: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Validates and normalizes a folder path.
-     * - Must start with /
-     * - Cannot contain path traversal (..)
-     * - Trailing slashes are removed (except for root /)
-     */
-    private String validateAndNormalizeFolder(String folder) {
-        if (folder == null || folder.isEmpty()) {
-            return "/";
-        }
-
-        // Ensure it starts with /
-        String normalized = folder.startsWith("/") ? folder : "/" + folder;
-
-        // Remove trailing slashes (except for root)
-        while (normalized.length() > 1 && normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-
-        // Check for path traversal attempts
-        if (normalized.contains("..")) {
-            throw new IllegalArgumentException("Invalid folder path: path traversal not allowed");
-        }
-
-        return normalized;
     }
 
     @Transactional
@@ -181,9 +154,12 @@ public class FileService {
                 project.getBaseProject() + "/" + project.getBranch() + "/compiled",
                 "application/pdf");
 
+        ProjectFolder compiledFolder = projectFolderService.getOrCreateByPath(project.getBaseProject(), "/compiled");
+
         ProjectFile projectFile = new ProjectFile();
         projectFile.setProject(project);
         projectFile.setProjectFolder("/compiled");
+        projectFile.setFolder(compiledFolder);
         projectFile.setFileName(pdfFile.getName());
         projectFile.setOriginalFileName(pdfFile.getName());
         projectFile.setFileSize(pdfFile.length());
@@ -193,7 +169,6 @@ public class FileService {
 
         projectFile = fileRepository.save(projectFile);
 
-        // Auto-create "main" branch
         FileBranch mainBranch = new FileBranch();
         mainBranch.setFile(projectFile);
         mainBranch.setName("main");

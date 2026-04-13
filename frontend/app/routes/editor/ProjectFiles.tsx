@@ -1,11 +1,15 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import {useDeleteFile} from "~/hooks/useDeleteFile";
 import {useMoveFile} from "~/hooks/useMoveFile";
+import {useProjectFolders} from "~/hooks/useProjectFolders";
+import {useCreateFolder, useDeleteFolder, useRenameFolder} from "~/hooks/useFolderMutations";
 import buildFileTree from "~/lib/buildFileTree";
-import {Box} from "@radix-ui/themes";
+import {Box, Dialog, Button, Flex, TextField} from "@radix-ui/themes";
 import {FileTreeNode} from "~/components/FileTreeNode";
 import MoveFileDialog from "~/components/MoveFileDialog";
+import FolderAccessModal from "~/components/FolderAccessModal";
+import type {ProjectFolder} from "../../../types/permission";
 
 interface Props {
     baseProject: string
@@ -23,17 +27,23 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
         currentFolder: string;
     }>({ open: false, fileId: "", fileName: "", currentFolder: "" });
 
-    const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
-        baseProject: baseProject,
-        branch: branch
+    const [accessModalFolder, setAccessModalFolder] = useState<ProjectFolder | null>(null);
+    const [createFolderDialog, setCreateFolderDialog] = useState<{open: boolean; parentId: number | null; parentPath: string}>({
+        open: false, parentId: null, parentPath: "/"
     });
+    const [newFolderName, setNewFolderName] = useState("");
+    const [renameFolderDialog, setRenameFolderDialog] = useState<{open: boolean; folderId: number | null; currentName: string}>({
+        open: false, folderId: null, currentName: ""
+    });
+    const [renameFolderName, setRenameFolderName] = useState("");
+
+    const {data: uploadedFiles = []} = useProjectFiles({baseProject, branch});
+    const {data: projectFolders = []} = useProjectFolders(baseProject);
 
     const deleteFileMutation = useDeleteFile({
         baseProject,
         branch,
-        onSuccess: () => {
-            // Called after successful deletion
-        }
+        onSuccess: () => {}
     });
 
     const moveFileMutation = useMoveFile({
@@ -44,42 +54,69 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
         }
     });
 
-    const fileTree = buildFileTree(uploadedFiles);
+    const createFolder = useCreateFolder(baseProject);
+    const deleteFolder = useDeleteFolder(baseProject);
+    const renameFolder = useRenameFolder(baseProject);
 
-    // Extract unique folders from files
+    const fileTree = useMemo(
+        () => buildFileTree(uploadedFiles, projectFolders),
+        [uploadedFiles, projectFolders]
+    );
+
     const folders = useMemo(() => {
-        const folderSet = new Set<string>();
-        folderSet.add("/"); // Always include root
-        uploadedFiles.forEach(file => {
-            if (file.projectFolder) {
-                folderSet.add(file.projectFolder);
-            }
-        });
-        return Array.from(folderSet).sort();
-    }, [uploadedFiles]);
+        const set = new Set<string>(["/"]);
+        projectFolders.forEach(f => set.add(f.path));
+        uploadedFiles.forEach(f => f.projectFolder && set.add(f.projectFolder));
+        return Array.from(set).sort();
+    }, [uploadedFiles, projectFolders]);
 
-    const handleDeleteFile = (fileId: string, fileName: string) => {
+    const handleDeleteFile = (fileId: string) => {
         deleteFileMutation.mutate(fileId, {
-            onSuccess: () => {
-                onFileDeleted?.(fileId);
-            }
+            onSuccess: () => onFileDeleted?.(fileId),
         });
     };
 
     const handleMoveFile = (fileId: string, fileName: string, currentFolder: string) => {
-        setMoveDialogState({
-            open: true,
-            fileId,
-            fileName,
-            currentFolder
-        });
+        setMoveDialogState({ open: true, fileId, fileName, currentFolder });
     };
 
     const handleConfirmMove = (targetFolder: string) => {
-        moveFileMutation.mutate({
-            fileId: moveDialogState.fileId,
-            targetFolder
-        });
+        moveFileMutation.mutate({ fileId: moveDialogState.fileId, targetFolder });
+    };
+
+    const handleManageFolderAccess = (folderId: number) => {
+        const folder = projectFolders.find(f => f.id === folderId) ?? null;
+        setAccessModalFolder(folder);
+    };
+
+    const handleCreateSubfolder = (parentId: number, parentPath: string) => {
+        setCreateFolderDialog({open: true, parentId, parentPath});
+        setNewFolderName("");
+    };
+
+    const handleRenameFolder = (folderId: number, currentName: string) => {
+        setRenameFolderDialog({open: true, folderId, currentName});
+        setRenameFolderName(currentName);
+    };
+
+    const handleDeleteFolder = (folderId: number) => {
+        deleteFolder.mutate(folderId);
+    };
+
+    const submitCreateFolder = () => {
+        if (createFolderDialog.parentId == null || !newFolderName.trim()) return;
+        createFolder.mutate(
+            {parentId: createFolderDialog.parentId, name: newFolderName.trim()},
+            {onSuccess: () => setCreateFolderDialog({open: false, parentId: null, parentPath: "/"})}
+        );
+    };
+
+    const submitRenameFolder = () => {
+        if (renameFolderDialog.folderId == null || !renameFolderName.trim()) return;
+        renameFolder.mutate(
+            {folderId: renameFolderDialog.folderId, name: renameFolderName.trim()},
+            {onSuccess: () => setRenameFolderDialog({open: false, folderId: null, currentName: ""})}
+        );
     };
 
     return (
@@ -92,6 +129,10 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                         onFileClick={handleFileClick}
                         onDeleteFile={handleDeleteFile}
                         onMoveFile={handleMoveFile}
+                        onManageFolderAccess={handleManageFolderAccess}
+                        onCreateSubfolder={handleCreateSubfolder}
+                        onRenameFolder={handleRenameFolder}
+                        onDeleteFolder={handleDeleteFolder}
                         selectedFileId={selectedFileId}
                     />
                 ))}
@@ -106,9 +147,66 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                 onMove={handleConfirmMove}
                 isMoving={moveFileMutation.isPending}
             />
-        </Box>
-    )
 
-}
+            <FolderAccessModal
+                open={!!accessModalFolder}
+                onOpenChange={(open) => !open && setAccessModalFolder(null)}
+                folder={accessModalFolder}
+                baseProject={baseProject}
+                branch={branch}
+            />
+
+            <Dialog.Root
+                open={createFolderDialog.open}
+                onOpenChange={(open) => setCreateFolderDialog(prev => ({ ...prev, open }))}
+            >
+                <Dialog.Content maxWidth="420px">
+                    <Dialog.Title>New subfolder</Dialog.Title>
+                    <Dialog.Description size="2" mb="3" color="gray">
+                        Inside <code>{createFolderDialog.parentPath}</code>
+                    </Dialog.Description>
+                    <TextField.Root
+                        placeholder="Folder name"
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && submitCreateFolder()}
+                        autoFocus
+                    />
+                    <Flex gap="2" mt="4" justify="end">
+                        <Dialog.Close>
+                            <Button variant="soft" color="gray">Cancel</Button>
+                        </Dialog.Close>
+                        <Button onClick={submitCreateFolder} disabled={createFolder.isPending || !newFolderName.trim()}>
+                            {createFolder.isPending ? "Creating…" : "Create"}
+                        </Button>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            <Dialog.Root
+                open={renameFolderDialog.open}
+                onOpenChange={(open) => setRenameFolderDialog(prev => ({ ...prev, open }))}
+            >
+                <Dialog.Content maxWidth="420px">
+                    <Dialog.Title>Rename folder</Dialog.Title>
+                    <TextField.Root
+                        value={renameFolderName}
+                        onChange={(e) => setRenameFolderName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && submitRenameFolder()}
+                        autoFocus
+                    />
+                    <Flex gap="2" mt="4" justify="end">
+                        <Dialog.Close>
+                            <Button variant="soft" color="gray">Cancel</Button>
+                        </Dialog.Close>
+                        <Button onClick={submitRenameFolder} disabled={renameFolder.isPending || !renameFolderName.trim()}>
+                            {renameFolder.isPending ? "Renaming…" : "Rename"}
+                        </Button>
+                    </Flex>
+                </Dialog.Content>
+            </Dialog.Root>
+        </Box>
+    );
+};
 
 export default ProjectFiles;

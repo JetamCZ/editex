@@ -1,7 +1,7 @@
 package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.entity.Project;
-import eu.puhony.latex_editor.entity.ProjectMember;
+import eu.puhony.latex_editor.entity.ProjectFolder;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,8 @@ import java.util.Optional;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectMemberService projectMemberService;
+    private final ProjectFolderService projectFolderService;
+    private final FolderPermissionService folderPermissionService;
     private final TemplateService templateService;
 
     public List<Project> getAllProjects() {
@@ -26,14 +27,12 @@ public class ProjectService {
 
     public Optional<Project> getProjectById(Long id, Long userId) {
         Optional<Project> project = projectRepository.findByIdNonDeleted(id);
-        if (project.isPresent()) {
-            projectMemberService.ensureCanRead(project.get().getBaseProject(), userId);
-        }
+        project.ifPresent(p -> folderPermissionService.ensureCanReadProject(p.getBaseProject(), userId));
         return project;
     }
 
     public Optional<Project> getProjectByBaseProjectAndBranch(String baseProject, String branch, Long userId) {
-        projectMemberService.ensureCanRead(baseProject, userId);
+        folderPermissionService.ensureCanReadProject(baseProject, userId);
         return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch);
     }
 
@@ -45,14 +44,8 @@ public class ProjectService {
     public Project createProject(Project project, User owner) {
         project.setBranch("main");
         Project savedProject = projectRepository.save(project);
-
-        projectMemberService.addMember(
-                savedProject.getBaseProject(),
-                owner.getId(),
-                ProjectMember.Role.OWNER,
-                null
-        );
-
+        // Seed a root folder; owner gets implicit MANAGER via Project.owner, no grant row needed.
+        projectFolderService.initializeForNewProject(savedProject.getBaseProject(), owner);
         return savedProject;
     }
 
@@ -65,7 +58,8 @@ public class ProjectService {
 
     @Transactional
     public Optional<Project> updateProject(String baseProject, String branch, Project updatedProject, Long userId) {
-        projectMemberService.ensureCanEdit(baseProject, userId);
+        ProjectFolder root = projectFolderService.getRoot(baseProject);
+        folderPermissionService.ensureCanManage(userId, root);
 
         return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
             .map(project -> {
@@ -76,15 +70,19 @@ public class ProjectService {
 
     @Transactional
     public boolean deleteProject(String baseProject, String branch, Long userId) {
-        projectMemberService.ensureCanManage(baseProject, userId);
+        // Only the project owner may delete the project.
+        Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, "main")
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+        if (project.getOwner() == null || !project.getOwner().getId().equals(userId)) {
+            throw new SecurityException("Only the project owner can delete this project");
+        }
 
         return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
-            .map(project -> {
-                project.setDeletedAt(LocalDateTime.now());
-                projectRepository.save(project);
+            .map(p -> {
+                p.setDeletedAt(LocalDateTime.now());
+                projectRepository.save(p);
                 return true;
             })
             .orElse(false);
     }
-
 }

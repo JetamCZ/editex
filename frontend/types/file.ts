@@ -2,6 +2,7 @@ export interface ProjectFile {
     id: string;
     projectId: string;
     projectFolder: string;
+    folderId?: number | null;
     fileName: string;
     originalFileName: string;
     fileSize: number;

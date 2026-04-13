@@ -17,7 +17,7 @@ public class FileBranchService {
     private final FileCommitRepository commitRepository;
     private final DocumentChangeRepository changeRepository;
     private final ProjectFileRepository fileRepository;
-    private final ProjectMemberService projectMemberService;
+    private final FolderPermissionService folderPermissionService;
     private final MinioService minioService;
     private final DocumentChangeService documentChangeService;
 
@@ -31,7 +31,7 @@ public class FileBranchService {
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
         ProjectFile file = branch.getFile();
-        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanRead(userId, file);
 
         return resolveContent(branch);
     }
@@ -94,7 +94,7 @@ public class FileBranchService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanRead(file.getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanRead(userId, file);
 
         return branchRepository.findByFileIdNonDeleted(fileId);
     }
@@ -120,7 +120,7 @@ public class FileBranchService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
+        folderPermissionService.ensureCanEdit(user.getId(), file);
 
         // Check branch name doesn't already exist
         if (branchRepository.findByFileIdAndNameNonDeleted(fileId, branchName).isPresent()) {
@@ -199,7 +199,7 @@ public class FileBranchService {
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
         ProjectFile file = branch.getFile();
-        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), user.getId());
+        folderPermissionService.ensureCanEdit(user.getId(), file);
 
         // Resolve current content
         String currentContent = resolveContent(branch);
@@ -225,7 +225,7 @@ public class FileBranchService {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        projectMemberService.ensureCanRead(branch.getFile().getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanRead(userId, branch.getFile());
 
         return commitRepository.findByBranchIdOrderByIdDesc(branchId);
     }
@@ -238,7 +238,7 @@ public class FileBranchService {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
-        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanEdit(userId, file);
 
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
@@ -267,8 +267,7 @@ public class FileBranchService {
             throw new RuntimeException("Branches must belong to the same file");
         }
 
-        projectMemberService.ensureCanEdit(
-                sourceBranch.getFile().getProject().getBaseProject(), user.getId());
+        folderPermissionService.ensureCanEdit(user.getId(), sourceBranch.getFile());
 
         // Resolve source content
         String sourceContent = resolveContent(sourceBranch);
@@ -296,8 +295,7 @@ public class FileBranchService {
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
                 .orElseThrow(() -> new RuntimeException("Target branch not found"));
 
-        projectMemberService.ensureCanRead(
-                sourceBranch.getFile().getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanRead(userId, sourceBranch.getFile());
 
         String sourceContent = resolveContent(sourceBranch);
         String targetContent = resolveContent(targetBranch);
@@ -315,7 +313,7 @@ public class FileBranchService {
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
         ProjectFile file = branch.getFile();
-        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanEdit(userId, file);
 
         String trimmed = newName == null ? "" : newName.trim();
         if (trimmed.isEmpty()) {
@@ -347,7 +345,7 @@ public class FileBranchService {
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
 
         ProjectFile file = branch.getFile();
-        projectMemberService.ensureCanEdit(file.getProject().getBaseProject(), userId);
+        folderPermissionService.ensureCanEdit(userId, file);
 
         if ("main".equals(branch.getName())) {
             throw new RuntimeException("Cannot delete the main branch");

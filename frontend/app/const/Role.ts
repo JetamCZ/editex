@@ -1,9 +1,2 @@
-const Role = {
-    OWNER: 'OWNER',
-    EDITOR: 'EDITOR',
-    VIEWER: 'VIEWER',
-}
-
-export type RoleType = typeof Role[keyof typeof Role];
-
-export default Role
+export { FolderRole as default, FolderRole } from "../../types/permission";
+export type RoleType = "VIEWER" | "EDITOR" | "MANAGER";

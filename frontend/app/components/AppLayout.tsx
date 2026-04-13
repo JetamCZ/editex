@@ -23,7 +23,6 @@ const menuStructure: MenuCategory[] = [
     category: "General",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: <HomeIcon /> },
-      { label: "Invitations", href: "/invitations", icon: <EnvelopeClosedIcon /> },
       { label: "Profile", href: "/profile", icon: <GearIcon /> },
     ],
   },
