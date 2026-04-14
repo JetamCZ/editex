@@ -20,3 +20,23 @@ body {
 .border-gray-a6 {
   border-color: #e6e6e6;
 }
+
+/* Merge-conflict highlights inside the Monaco preview editor */
+.merge-conflict-marker-ours {
+  background-color: rgba(239, 68, 68, 0.25);
+  font-weight: bold;
+}
+.merge-conflict-body-ours {
+  background-color: rgba(239, 68, 68, 0.10);
+}
+.merge-conflict-marker-sep {
+  background-color: rgba(156, 163, 175, 0.35);
+  font-weight: bold;
+}
+.merge-conflict-marker-theirs {
+  background-color: rgba(34, 197, 94, 0.25);
+  font-weight: bold;
+}
+.merge-conflict-body-theirs {
+  background-color: rgba(34, 197, 94, 0.10);
+}

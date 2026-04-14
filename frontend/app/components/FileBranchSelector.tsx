@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DropdownMenu, Button, Dialog, TextField, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
 import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -28,6 +28,50 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const [mergeEditorContent, setMergeEditorContent] = useState('');
     const [mergeConflictCount, setMergeConflictCount] = useState(0);
     const mergeEditorRef = useRef<any>(null);
+    const mergeMonacoRef = useRef<any>(null);
+    const mergeDecorationsRef = useRef<any>(null);
+
+    const updateMergeDecorations = useCallback(() => {
+        const editor = mergeEditorRef.current;
+        const monaco = mergeMonacoRef.current;
+        if (!editor || !monaco) return;
+        const model = editor.getModel();
+        if (!model) return;
+
+        const lines: string[] = model.getLinesContent();
+        const decorations: any[] = [];
+        // 0 = outside conflict, 1 = ours block, 2 = theirs block
+        let mode = 0;
+
+        lines.forEach((line, idx) => {
+            const lineNumber = idx + 1;
+            const range = new monaco.Range(lineNumber, 1, lineNumber, 1);
+            if (line.startsWith('<<<<<<<')) {
+                decorations.push({ range, options: { isWholeLine: true, className: 'merge-conflict-marker-ours' } });
+                mode = 1;
+            } else if (line.startsWith('=======') && mode !== 0) {
+                decorations.push({ range, options: { isWholeLine: true, className: 'merge-conflict-marker-sep' } });
+                mode = 2;
+            } else if (line.startsWith('>>>>>>>')) {
+                decorations.push({ range, options: { isWholeLine: true, className: 'merge-conflict-marker-theirs' } });
+                mode = 0;
+            } else if (mode === 1) {
+                decorations.push({ range, options: { isWholeLine: true, className: 'merge-conflict-body-ours' } });
+            } else if (mode === 2) {
+                decorations.push({ range, options: { isWholeLine: true, className: 'merge-conflict-body-theirs' } });
+            }
+        });
+
+        if (!mergeDecorationsRef.current) {
+            mergeDecorationsRef.current = editor.createDecorationsCollection(decorations);
+        } else {
+            mergeDecorationsRef.current.set(decorations);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (mergeStep === 'preview') updateMergeDecorations();
+    }, [mergeStep, mergeEditorContent, updateMergeDecorations]);
 
     const activeBranchName = selectedFile.activeBranchName || 'main';
     const activeBranchId = selectedFile.activeBranchId;
@@ -129,6 +173,8 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     }, [mergePreview]);
 
     const handleMergeBack = useCallback(() => {
+        mergeDecorationsRef.current?.clear?.();
+        mergeDecorationsRef.current = null;
         setMergeStep('select');
         setMergeEditorContent('');
         setMergeConflictCount(0);
@@ -496,7 +542,11 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                                     language="plaintext"
                                     value={mergeEditorContent}
                                     onChange={(val) => setMergeEditorContent(val ?? '')}
-                                    onMount={(editor) => { mergeEditorRef.current = editor; }}
+                                    onMount={(editor, monaco) => {
+                                        mergeEditorRef.current = editor;
+                                        mergeMonacoRef.current = monaco;
+                                        updateMergeDecorations();
+                                    }}
                                     options={{
                                         minimap: { enabled: false },
                                         lineNumbers: 'on',
