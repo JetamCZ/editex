@@ -332,7 +332,8 @@
       "ready": "Ready",
       "compile": "Compile",
       "download": "Download",
-      "backToEditor": "Back to Editor"
+      "backToEditor": "Back to Editor",
+      "viewOnlyBanner": "View only — you have read access to this file but cannot edit it."
     },
     "settings": {
       "heading": "Project Settings",
@@ -537,6 +538,7 @@
   },
   "fileTreeNode": {
     "hasGrants": "This folder has explicit access grants",
+    "viewOnly": "View only — you don't have edit access to this folder",
     "deleteFolder": {
       "title": "Delete folder",
       "description": "Are you sure you want to delete {{name}} and everything inside it? Files and subfolders will be soft-deleted and can be restored later.",

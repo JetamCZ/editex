@@ -19,6 +19,7 @@ import LatexToolbar from "./LatexToolbar";
 interface Props {
     selectedFile: ProjectFile;
     autoSave?: boolean;
+    readOnly?: boolean;
 }
 
 export interface CollaborativeEditorRef {
@@ -219,6 +220,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         {isTexFile && (
             <LatexToolbar
                 selectedFile={props.selectedFile}
+                hideActions={props.readOnly}
                 onBold={() => editorRef.current && wrapWithLatexCommand(editorRef.current, '\\textbf')}
                 onItalic={() => editorRef.current && wrapWithLatexCommand(editorRef.current, '\\textit')}
                 onUnderline={() => editorRef.current && wrapWithLatexCommand(editorRef.current, '\\underline')}
@@ -244,6 +246,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
                     fontSize: 14,
                     wordWrap: 'on',
                     automaticLayout: true,
+                    readOnly: props.readOnly ?? false,
                 }}
             />
         </div>

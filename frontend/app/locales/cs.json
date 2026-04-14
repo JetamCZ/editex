@@ -332,7 +332,8 @@
       "ready": "Připraveno",
       "compile": "Kompilovat",
       "download": "Stáhnout",
-      "backToEditor": "Zpět na editor"
+      "backToEditor": "Zpět na editor",
+      "viewOnlyBanner": "Pouze ke čtení — k tomuto souboru máte přístup pouze pro čtení."
     },
     "settings": {
       "heading": "Nastavení projektu",
@@ -537,6 +538,7 @@
   },
   "fileTreeNode": {
     "hasGrants": "Tato složka má explicitní přístupová oprávnění",
+    "viewOnly": "Pouze ke čtení — k této složce nemáte oprávnění upravovat",
     "deleteFolder": {
       "title": "Smazat složku",
       "description": "Opravdu chcete smazat {{name}} a vše uvnitř? Soubory a podsložky budou dočasně smazány a lze je obnovit.",

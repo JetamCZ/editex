@@ -35,6 +35,7 @@ function ToolbarButton({
     onClick,
     color,
     iconSize = 18,
+    disabled,
 }: {
     tooltip: string;
     icon: LucideIcon;
@@ -42,6 +43,7 @@ function ToolbarButton({
     onClick: () => void;
     color?: 'gray' | 'red';
     iconSize?: number;
+    disabled?: boolean;
 }) {
     return (
         <Tooltip content={tooltip}>
@@ -50,6 +52,7 @@ function ToolbarButton({
                 variant={isActive ? 'solid' : 'ghost'}
                 color={color ?? 'gray'}
                 onClick={onClick}
+                disabled={disabled}
                 className="wysiwyg-toolbar-btn"
             >
                 <Icon size={iconSize} strokeWidth={2} />
@@ -58,7 +61,7 @@ function ToolbarButton({
     );
 }
 
-function HeadingDropdown({editor}: {editor: Editor}) {
+function HeadingDropdown({editor, disabled}: {editor: Editor; disabled?: boolean}) {
     const { t } = useTranslation();
     const activeLevel = [1, 2, 3].find((l) => editor.isActive('heading', {level: l}));
     const icons = [Heading1, Heading2, Heading3];
@@ -67,8 +70,8 @@ function HeadingDropdown({editor}: {editor: Editor}) {
     return (
         <DropdownMenu.Root>
             <Tooltip content={t('wysiwygEditor.toolbar.headings')}>
-                <DropdownMenu.Trigger>
-                    <button className={`wysiwyg-toolbar-dropdown-trigger ${activeLevel ? 'active' : ''}`}>
+                <DropdownMenu.Trigger disabled={disabled}>
+                    <button className={`wysiwyg-toolbar-dropdown-trigger ${activeLevel ? 'active' : ''}`} disabled={disabled}>
                         <ActiveIcon size={18} strokeWidth={2} />
                         <ChevronDown size={12} strokeWidth={2} />
                     </button>
@@ -148,6 +151,7 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
     if (!editor) return null;
 
     const isInTable = editor.isActive('table');
+    const disabled = !editor.isEditable;
 
     return (
         <div className="wysiwyg-toolbar">
@@ -157,18 +161,21 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
                     tooltip={t('wysiwygEditor.toolbar.bold')}
                     icon={Bold}
                     isActive={editor.isActive('bold')}
+                    disabled={disabled}
                     onClick={() => editor.chain().focus().toggleBold().run()}
                 />
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.italic')}
                     icon={Italic}
                     isActive={editor.isActive('italic')}
+                    disabled={disabled}
                     onClick={() => editor.chain().focus().toggleItalic().run()}
                 />
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.underline')}
                     icon={Underline}
                     isActive={editor.isActive('underline')}
+                    disabled={disabled}
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
                 />
             </div>
@@ -177,7 +184,7 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
 
             {/* Headings */}
             <div className="wysiwyg-toolbar-group">
-                <HeadingDropdown editor={editor} />
+                <HeadingDropdown editor={editor} disabled={disabled} />
             </div>
 
             <div className="wysiwyg-toolbar-separator" />
@@ -188,12 +195,14 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
                     tooltip={t('wysiwygEditor.toolbar.bulletList')}
                     icon={List}
                     isActive={editor.isActive('bulletList')}
+                    disabled={disabled}
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
                 />
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.orderedList')}
                     icon={ListOrdered}
                     isActive={editor.isActive('orderedList')}
+                    disabled={disabled}
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 />
             </div>
@@ -205,9 +214,10 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.insertTable')}
                     icon={Table}
+                    disabled={disabled}
                     onClick={() => editor.chain().focus().insertTable({rows: 3, cols: 3, withHeaderRow: true}).run()}
                 />
-                {isInTable && <TableDropdown editor={editor} />}
+                {isInTable && !disabled && <TableDropdown editor={editor} />}
             </div>
 
             <div className="wysiwyg-toolbar-separator" />
@@ -217,6 +227,7 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.insertFigure')}
                     icon={Image}
+                    disabled={disabled}
                     onClick={() => {
                         editor.chain().focus().insertContent({
                             type: 'latexFigure',
@@ -227,6 +238,7 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.mathEquation')}
                     icon={Sigma}
+                    disabled={disabled}
                     onClick={() => {
                         editor.chain().focus().insertContent({
                             type: 'latexMathInline',
@@ -237,11 +249,13 @@ export default function WysiwygToolbar({editor, onInsertLink}: Props) {
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.insertLink')}
                     icon={Link}
+                    disabled={disabled}
                     onClick={() => onInsertLink?.()}
                 />
                 <ToolbarButton
                     tooltip={t('wysiwygEditor.toolbar.inputFile')}
                     icon={FileInput}
+                    disabled={disabled}
                     onClick={() => {
                         editor.chain().focus().insertContent({
                             type: 'latexInput',

@@ -5,8 +5,11 @@ import {useState, useEffect, useRef, useCallback} from "react";
 import {createPortal} from "react-dom";
 import {Box, Text, Select, Tooltip, IconButton} from "@radix-ui/themes";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
+import {useProjectFolders} from "~/hooks/useProjectFolders";
 import ProjectFiles from "./ProjectFiles";
 import {ContentType, getFileContentType} from "~/const/ContentType";
+import {FolderRole, roleIncludes} from "../../../types/permission";
+import {Eye} from "lucide-react";
 import CollaborativeEditor, {type CollaborativeEditorRef} from "~/components/CollaborationEditor";
 import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
@@ -85,6 +88,7 @@ const EditorPage = () => {
         baseProject: project.baseProject,
         branch: project.branch
     });
+    const {data: projectFolders = []} = useProjectFolders(project.baseProject);
 
     const compilationMutation = useLatexCompilation();
     const downloadMutation = useProjectDownload();
@@ -156,6 +160,13 @@ const EditorPage = () => {
     };
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
+
+    const selectedFileRole: FolderRole | null = (() => {
+        if (!selectedFile) return null;
+        const folderPath = selectedFile.projectFolder || "/";
+        return projectFolders.find(f => f.path === folderPath)?.effectiveRole ?? null;
+    })();
+    const isReadOnly = !roleIncludes(selectedFileRole, FolderRole.EDITOR);
 
     const fileContentType = selectedFile
         ? getFileContentType(selectedFile.fileType, selectedFile.originalFileName)
@@ -406,6 +417,22 @@ const EditorPage = () => {
 
             {/* Editor Area + Content */}
             <div style={{flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative"}}>
+                {selectedFile && isTextFile && isReadOnly && (
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        backgroundColor: "var(--amber-3)",
+                        borderBottom: "1px solid var(--amber-6)",
+                        color: "var(--amber-12)",
+                        fontSize: "13px",
+                        flexShrink: 0,
+                    }}>
+                        <Eye size={14} />
+                        <span>{t('editor.index.viewOnlyBanner')}</span>
+                    </div>
+                )}
                 <div style={{flex: 1, display: "flex", minHeight: 0}}>
                     {/* CollaborativeEditor — always mounted for text files, hidden in WYSIWYG mode */}
                     {selectedFile && isTextFile && (
@@ -425,6 +452,7 @@ const EditorPage = () => {
                                 ref={editorRef}
                                 selectedFile={selectedFile}
                                 autoSave={autoSave}
+                                readOnly={isReadOnly}
                             />
                         </div>
                     )}
@@ -443,6 +471,7 @@ const EditorPage = () => {
                                 visible={effectiveMode === 'wysiwyg'}
                                 baseProject={project.baseProject}
                                 branch={project.branch}
+                                readOnly={isReadOnly}
                             />
                         </div>
                     )}

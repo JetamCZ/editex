@@ -13,6 +13,7 @@ import {
   Lock,
   FolderPlus,
   Pencil,
+  Eye,
 } from "lucide-react";
 import { DropdownMenu, AlertDialog, Button, Flex, Tooltip } from "@radix-ui/themes";
 import styles from "./FileTreeNode.module.css";
@@ -30,6 +31,7 @@ export type FileNode = {
   activeBranchName?: string | null;
   // Folder-only metadata
   folderId?: number;
+  // Folders carry their own effectiveRole; files inherit the parent folder's.
   effectiveRole?: FolderRole | null;
   hasExplicitGrants?: boolean;
 };
@@ -66,8 +68,9 @@ export function FileTreeNode({
   const isFolder = node.type === "folder";
   const isRootFolder = isFolder && node.path === "/";
 
-  const canEdit = isFolder && roleIncludes(node.effectiveRole, FolderRoleEnum.EDITOR);
-  const canManage = isFolder && roleIncludes(node.effectiveRole, FolderRoleEnum.MANAGER);
+  const canEdit = roleIncludes(node.effectiveRole, FolderRoleEnum.EDITOR);
+  const canManage = roleIncludes(node.effectiveRole, FolderRoleEnum.MANAGER);
+  const isViewOnlyFile = !isFolder && !canEdit;
 
   const handleClick = () => {
     if (isFolder) {
@@ -119,7 +122,10 @@ export function FileTreeNode({
       <div
         className={`${styles.treeItem} ${isSelected ? styles.selected : ""}`}
         onClick={handleClick}
-        style={{ paddingLeft: `${level * 1 + 0.5}rem` }}
+        style={{
+          paddingLeft: `${level * 1 + 0.5}rem`,
+          opacity: isViewOnlyFile ? 0.7 : undefined,
+        }}
       >
         {isFolder && (
           <ChevronRight
@@ -136,6 +142,18 @@ export function FileTreeNode({
                 style={{
                   marginLeft: 4,
                   color: "var(--purple-11)",
+                  flexShrink: 0,
+                }}
+              />
+            </Tooltip>
+          )}
+          {isViewOnlyFile && (
+            <Tooltip content={t('fileTreeNode.viewOnly')}>
+              <Eye
+                size={11}
+                style={{
+                  marginLeft: 4,
+                  color: "var(--gray-10)",
                   flexShrink: 0,
                 }}
               />
@@ -216,15 +234,21 @@ export function FileTreeNode({
                   <Download size={14} style={{ marginRight: 8 }} />
                   {t('fileTreeNode.menu.download')}
                 </DropdownMenu.Item>
-                <DropdownMenu.Item onSelect={handleMoveClick}>
-                  <FolderInput size={14} style={{ marginRight: 8 }} />
-                  {t('fileTreeNode.menu.moveTo')}
-                </DropdownMenu.Item>
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item color="red" onSelect={() => setDeleteDialogOpen(true)}>
-                  <Trash2 size={14} style={{ marginRight: 8 }} />
-                  {t('fileTreeNode.menu.deleteFile')}
-                </DropdownMenu.Item>
+                {canEdit && (
+                  <DropdownMenu.Item onSelect={handleMoveClick}>
+                    <FolderInput size={14} style={{ marginRight: 8 }} />
+                    {t('fileTreeNode.menu.moveTo')}
+                  </DropdownMenu.Item>
+                )}
+                {canEdit && (
+                  <>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item color="red" onSelect={() => setDeleteDialogOpen(true)}>
+                      <Trash2 size={14} style={{ marginRight: 8 }} />
+                      {t('fileTreeNode.menu.deleteFile')}
+                    </DropdownMenu.Item>
+                  </>
+                )}
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           </div>

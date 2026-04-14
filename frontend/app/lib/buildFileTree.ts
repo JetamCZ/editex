@@ -75,6 +75,7 @@ function buildFileTree(files: ProjectFile[], folders: ProjectFolder[] = []): Fil
             s3Url: file.s3Url,
             folder: file.projectFolder,
             activeBranchName: file.activeBranchName,
+            effectiveRole: parentNode.effectiveRole ?? null,
         };
 
         if (!parentNode.children) parentNode.children = [];

@@ -45,9 +45,11 @@ interface WysiwygEditorProps {
     baseProject?: string;
     /** Branch name for fetching uploaded files */
     branch?: string;
+    /** When true, the editor is non-editable (used for view-only files) */
+    readOnly?: boolean;
 }
 
-export default function WysiwygEditor({content, onContentChange, visible, baseProject, branch}: WysiwygEditorProps) {
+export default function WysiwygEditor({content, onContentChange, visible, baseProject, branch, readOnly}: WysiwygEditorProps) {
     const [mathPopup, setMathPopup] = useState<{
         latex: string;
         pos: number;
@@ -78,6 +80,7 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
     const monacoToTiptapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const editor = useEditor({
+        editable: !readOnly,
         extensions: [
             StarterKit.configure({
                 // Disable built-in code block to avoid conflict with raw blocks
@@ -143,6 +146,10 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             }, 150);
         },
     });
+
+    useEffect(() => {
+        if (editor) editor.setEditable(!readOnly);
+    }, [editor, readOnly]);
 
     // Fetch project files for image resolution
     const {data: projectFiles = []} = useProjectFiles({
@@ -375,7 +382,9 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
 
     return (
         <div className="wysiwyg-editor">
-            <WysiwygToolbar editor={editor} onInsertLink={() => setHrefPopup({url: '', text: '', pos: 0, isNew: true})} />
+            {!readOnly && (
+                <WysiwygToolbar editor={editor} onInsertLink={() => setHrefPopup({url: '', text: '', pos: 0, isNew: true})} />
+            )}
             <div className="tiptap-wrapper">
                 <EditorContent editor={editor} />
             </div>

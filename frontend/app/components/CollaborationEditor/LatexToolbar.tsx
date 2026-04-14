@@ -21,6 +21,8 @@ import "./latex-toolbar.css";
 
 interface LatexToolbarProps {
     selectedFile: ProjectFile;
+    /** When true, hide the formatting action row (used for view-only files) */
+    hideActions?: boolean;
     onBold: () => void;
     onItalic: () => void;
     onUnderline: () => void;
@@ -91,6 +93,7 @@ function HeadingDropdown({onSection}: {onSection: (level: number) => void}) {
 
 export default function LatexToolbar({
     selectedFile,
+    hideActions,
     onBold,
     onItalic,
     onUnderline,
@@ -105,45 +108,47 @@ export default function LatexToolbar({
     const { t } = useTranslation();
     return (
         <>
-            <div className="latex-toolbar">
-                {/* Text formatting */}
-                <div className="latex-toolbar-group">
-                    <ToolbarButton tooltip={t('latexToolbar.bold')} icon={Bold} onClick={onBold} />
-                    <ToolbarButton tooltip={t('latexToolbar.italic')} icon={Italic} onClick={onItalic} />
-                    <ToolbarButton tooltip={t('latexToolbar.underline')} icon={Underline} onClick={onUnderline} />
+            {!hideActions && (
+                <div className="latex-toolbar">
+                    {/* Text formatting */}
+                    <div className="latex-toolbar-group">
+                        <ToolbarButton tooltip={t('latexToolbar.bold')} icon={Bold} onClick={onBold} />
+                        <ToolbarButton tooltip={t('latexToolbar.italic')} icon={Italic} onClick={onItalic} />
+                        <ToolbarButton tooltip={t('latexToolbar.underline')} icon={Underline} onClick={onUnderline} />
+                    </div>
+
+                    <div className="latex-toolbar-separator" />
+
+                    {/* Headings */}
+                    <div className="latex-toolbar-group">
+                        <HeadingDropdown onSection={onSection} />
+                    </div>
+
+                    <div className="latex-toolbar-separator" />
+
+                    {/* Lists */}
+                    <div className="latex-toolbar-group">
+                        <ToolbarButton tooltip={t('latexToolbar.bulletList')} icon={List} onClick={onBulletList} />
+                        <ToolbarButton tooltip={t('latexToolbar.orderedList')} icon={ListOrdered} onClick={onOrderedList} />
+                    </div>
+
+                    <div className="latex-toolbar-separator" />
+
+                    {/* Table */}
+                    <div className="latex-toolbar-group">
+                        <ToolbarButton tooltip={t('latexToolbar.insertTable')} icon={Table} onClick={onTable} />
+                    </div>
+
+                    <div className="latex-toolbar-separator" />
+
+                    {/* Insert */}
+                    <div className="latex-toolbar-group">
+                        <ToolbarButton tooltip={t('latexToolbar.insertFigure')} icon={Image} onClick={onImage} />
+                        <ToolbarButton tooltip={t('latexToolbar.mathEquation')} icon={Sigma} onClick={onMath} />
+                        <ToolbarButton tooltip={t('latexToolbar.inputFile')} icon={FileInput} onClick={onInput} />
+                    </div>
                 </div>
-
-                <div className="latex-toolbar-separator" />
-
-                {/* Headings */}
-                <div className="latex-toolbar-group">
-                    <HeadingDropdown onSection={onSection} />
-                </div>
-
-                <div className="latex-toolbar-separator" />
-
-                {/* Lists */}
-                <div className="latex-toolbar-group">
-                    <ToolbarButton tooltip={t('latexToolbar.bulletList')} icon={List} onClick={onBulletList} />
-                    <ToolbarButton tooltip={t('latexToolbar.orderedList')} icon={ListOrdered} onClick={onOrderedList} />
-                </div>
-
-                <div className="latex-toolbar-separator" />
-
-                {/* Table */}
-                <div className="latex-toolbar-group">
-                    <ToolbarButton tooltip={t('latexToolbar.insertTable')} icon={Table} onClick={onTable} />
-                </div>
-
-                <div className="latex-toolbar-separator" />
-
-                {/* Insert */}
-                <div className="latex-toolbar-group">
-                    <ToolbarButton tooltip={t('latexToolbar.insertFigure')} icon={Image} onClick={onImage} />
-                    <ToolbarButton tooltip={t('latexToolbar.mathEquation')} icon={Sigma} onClick={onMath} />
-                    <ToolbarButton tooltip={t('latexToolbar.inputFile')} icon={FileInput} onClick={onInput} />
-                </div>
-            </div>
+            )}
 
             {/* File path breadcrumb */}
             <div style={{
