@@ -492,6 +492,18 @@ class ParserContext {
         }
 
         flushParagraph();
+
+        // Ensure \end{document} is always the last node. Any content that
+        // appeared after it in the source (previously lost to the compiler)
+        // is surfaced inside the document body so the user can see and fix it.
+        const endDocIdx = nodes.findIndex(
+            n => n.type === 'latexPreamble' && n.attrs?.content === '\\end{document}',
+        );
+        if (endDocIdx !== -1 && endDocIdx !== nodes.length - 1) {
+            const [endDocNode] = nodes.splice(endDocIdx, 1);
+            nodes.push(endDocNode);
+        }
+
         return nodes;
     }
 

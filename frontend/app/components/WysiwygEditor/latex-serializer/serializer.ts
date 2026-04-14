@@ -9,13 +9,25 @@ export function serializeDoc(doc: {type: string; content?: TipTapNode[]}): strin
 
     if (!doc.content) return '';
 
-    for (let i = 0; i < doc.content.length; i++) {
-        const node = doc.content[i];
+    // TipTap allows placing the cursor past the hidden \end{document} preamble
+    // node and typing there. Anything serialized after \end{document} would be
+    // silently ignored by the LaTeX compiler, so reorder to guarantee
+    // \end{document} is the last top-level node.
+    const content = [...doc.content];
+    const endDocIdx = content.findIndex(
+        n => n.type === 'latexPreamble' && n.attrs?.content === '\\end{document}',
+    );
+    if (endDocIdx !== -1 && endDocIdx !== content.length - 1) {
+        const [endDocNode] = content.splice(endDocIdx, 1);
+        content.push(endDocNode);
+    }
+
+    for (let i = 0; i < content.length; i++) {
+        const node = content[i];
         serializeNode(node, state);
 
         // Add blank line between block-level nodes (paragraph separation)
-        if (i < doc.content.length - 1) {
-            const next = doc.content[i + 1];
+        if (i < content.length - 1) {
             // Don't double-space if current node already ends with newlines
             if (!state.output.endsWith('\n\n')) {
                 state.output += '\n\n';
