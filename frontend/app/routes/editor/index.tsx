@@ -55,7 +55,9 @@ const EditorPage = () => {
         changeHistory: any[];
         isConnected: boolean;
         sessionId: string;
-    }>({changeHistory: [], isConnected: false, sessionId: ''});
+        words: number;
+        characters: number;
+    }>({changeHistory: [], isConnected: false, sessionId: '', words: 0, characters: 0});
     const [debugPanelOpen, setDebugPanelOpen] = useState(false);
 
     const [autoSave, setAutoSave] = useState<boolean>(true);
@@ -102,11 +104,17 @@ const EditorPage = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             if (editorRef.current) {
+                const content = editorRef.current.getContent?.() ?? '';
+                const words = content.trim() === '' ? 0 : content.trim().split(/\s+/).length;
                 setEditorState({
                     changeHistory: editorRef.current.changeHistory,
                     isConnected: editorRef.current.isConnected,
                     sessionId: editorRef.current.sessionId,
+                    words,
+                    characters: content.length,
                 });
+            } else {
+                setEditorState(prev => (prev.words === 0 && prev.characters === 0 ? prev : {...prev, words: 0, characters: 0}));
             }
         }, 500);
 
@@ -554,12 +562,12 @@ const EditorPage = () => {
                     fontSize: "12px"
                 }}>
                     <div style={{display: "flex", alignItems: "center", gap: "16px"}}>
-                        <span style={{display: "flex", alignItems: "center", gap: "4px", color: "var(--green-11)"}}>
-                            <span style={{width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "var(--green-9)"}} />
-                            {t('editor.index.documentValid')}
-                        </span>
-                        <span style={{color: "var(--gray-11)"}}>— {t('editor.index.words')}</span>
-                        <span style={{color: "var(--gray-11)"}}>— {t('editor.index.characters')}</span>
+                        {selectedFile && isTextFile && (
+                            <>
+                                <span style={{color: "var(--gray-11)"}}>{t('editor.index.words', { n: editorState.words })}</span>
+                                <span style={{color: "var(--gray-11)"}}>{t('editor.index.characters', { n: editorState.characters })}</span>
+                            </>
+                        )}
                     </div>
                     <div style={{display: "flex", alignItems: "center", gap: "16px"}}>
                         {selectedFile && isTextFile ? (
