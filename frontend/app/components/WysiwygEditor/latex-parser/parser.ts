@@ -374,6 +374,27 @@ class ParserContext {
                     continue;
                 }
 
+                // \includegraphics — bare (no surrounding figure environment)
+                if (cmdName === 'includegraphics') {
+                    flushParagraph();
+                    this.advance();
+                    let raw = '\\includegraphics';
+                    if (this.peek().type === TokenType.OPEN_BRACKET) {
+                        const opt = this.skipOptionalArg() || '';
+                        raw += `[${opt}]`;
+                    }
+                    let imagePath = '';
+                    if (this.peek().type === TokenType.OPEN_BRACE) {
+                        imagePath = this.readBraceGroupText();
+                        raw += `{${imagePath}}`;
+                    }
+                    nodes.push({
+                        type: 'latexFigure',
+                        attrs: {imagePath, caption: '', bare: true, rawLatex: raw},
+                    });
+                    continue;
+                }
+
                 // \input / \include — dedicated node with file path
                 if (cmdName === 'input' || cmdName === 'include') {
                     flushParagraph();

@@ -10,6 +10,9 @@ export const LatexFigure = Node.create({
             caption: {default: ''},
             imagePath: {default: ''},
             rawLatex: {default: null},
+            // True when this node represents a standalone \includegraphics
+            // (no surrounding \begin{figure} environment).
+            bare: {default: false},
         };
     },
 

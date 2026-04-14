@@ -327,6 +327,7 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
             tr.setNodeMarkup(pos, undefined, {
                 imagePath,
                 caption,
+                bare: node.attrs.bare,
                 rawLatex: null,
             });
             editor.view.dispatch(tr);

@@ -180,6 +180,9 @@ function serializeFigure(node: TipTapNode, state: SerializerState): void {
     const rawLatex = node.attrs?.rawLatex as string | undefined;
     if (rawLatex) {
         state.output += rawLatex;
+    } else if (node.attrs?.bare) {
+        const imagePath = node.attrs?.imagePath as string || 'image.png';
+        state.output += `\\includegraphics{${imagePath}}`;
     } else {
         const caption = node.attrs?.caption as string || 'Caption';
         const imagePath = node.attrs?.imagePath as string || 'image.png';
