@@ -4,6 +4,7 @@ import { FileText, GitBranch, Users, Zap, ArrowRight } from "lucide-react";
 import { getApiClient } from "~/lib/axios.server";
 import { useTranslation } from 'react-i18next';
 import i18n from '~/i18n';
+import { LanguageSwitcher } from '~/components/LanguageSwitcher';
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -80,6 +81,9 @@ export default function Home() {
           <img src="/logo.svg" style={{ height: "36px", filter: "brightness(0) invert(1)" }} alt="Editex" />
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ color: "rgba(255,255,255,0.65)", marginRight: "4px" }}>
+              <LanguageSwitcher />
+            </div>
             {user ? (
               <Link to="/dashboard" style={{ textDecoration: "none" }}>
                 <button style={{

@@ -293,10 +293,10 @@
   },
   "editor": {
     "layout": {
-      "files": "Files",
-      "help": "Help",
-      "settings": "Settings",
-      "versions": "PDF Versions",
+      "filesTooltip": "Files",
+      "helpTooltip": "Help",
+      "settingsTooltip": "Settings",
+      "versionsTooltip": "PDF Versions",
       "projects": "Projects",
       "profile": "Profile",
       "logout": "Logout"
@@ -307,12 +307,13 @@
       "selectFile": "Select a file from the tree to start editing",
       "cannotPreview": "Cannot preview this file type. ",
       "downloadFile": "Download file",
-      "clickCompile": "Click \"Compile\" to generate PDF preview",
+      "compileTip": "Click \"Compile\" to generate PDF preview",
       "documentValid": "Document Valid",
       "words": "— Words",
       "characters": "— Characters",
       "connected": "Connected",
       "disconnected": "Disconnected",
+      "session": "Session {{id}}",
       "ready": "Ready",
       "compile": "Compile",
       "download": "Download",
@@ -344,6 +345,7 @@
       },
       "heading": "LaTeX Reference Guide",
       "description": "A quick reference for commonly used LaTeX commands and syntax",
+      "backToEditor": "Back to Editor",
       "tabs": {
         "basics": "Basics",
         "formatting": "Formatting",

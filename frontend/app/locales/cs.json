@@ -293,10 +293,10 @@
   },
   "editor": {
     "layout": {
-      "files": "Soubory",
-      "help": "Nápověda",
-      "settings": "Nastavení",
-      "versions": "PDF verze",
+      "filesTooltip": "Soubory",
+      "helpTooltip": "Nápověda",
+      "settingsTooltip": "Nastavení",
+      "versionsTooltip": "PDF verze",
       "projects": "Projekty",
       "profile": "Profil",
       "logout": "Odhlásit se"
@@ -307,12 +307,13 @@
       "selectFile": "Vyberte soubor ze stromu a začněte editovat",
       "cannotPreview": "Tento typ souboru nelze zobrazit. ",
       "downloadFile": "Stáhnout soubor",
-      "clickCompile": "Klikněte na \"Kompilovat\" pro vygenerování náhledu PDF",
+      "compileTip": "Klikněte na \"Kompilovat\" pro vygenerování náhledu PDF",
       "documentValid": "Dokument je v pořádku",
       "words": "— Slova",
       "characters": "— Znaky",
       "connected": "Připojeno",
       "disconnected": "Odpojeno",
+      "session": "Relace {{id}}",
       "ready": "Připraveno",
       "compile": "Kompilovat",
       "download": "Stáhnout",
@@ -344,6 +345,7 @@
       },
       "heading": "Průvodce LaTeX referencí",
       "description": "Rychlá reference pro běžně používané příkazy a syntaxi LaTeXu",
+      "backToEditor": "Zpět na editor",
       "tabs": {
         "basics": "Základy",
         "formatting": "Formátování",
