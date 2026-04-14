@@ -355,9 +355,14 @@
         "figures": "Figures",
         "references": "References"
       },
-      "keyboardShortcuts": {
+      "shortcuts": {
         "heading": "Keyboard Shortcuts",
-        "description": "The editor supports these keyboard shortcuts for LaTeX formatting:"
+        "description": "The editor supports these keyboard shortcuts for LaTeX formatting:",
+        "bold": "Bold text",
+        "italic": "Italic text",
+        "underline": "Underline text",
+        "bulletList": "Bullet list",
+        "numberedList": "Numbered list"
       }
     }
   },

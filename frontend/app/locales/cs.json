@@ -355,9 +355,14 @@
         "figures": "Obrázky",
         "references": "Reference"
       },
-      "keyboardShortcuts": {
+      "shortcuts": {
         "heading": "Klávesové zkratky",
-        "description": "Editor podporuje tyto klávesové zkratky pro formátování LaTeXu:"
+        "description": "Editor podporuje tyto klávesové zkratky pro formátování LaTeXu:",
+        "bold": "Tučný text",
+        "italic": "Kurzíva",
+        "underline": "Podtržený text",
+        "bulletList": "Odrážkový seznam",
+        "numberedList": "Číslovaný seznam"
       }
     }
   },

@@ -88,7 +88,7 @@ const HelpPage = () => {
         <Button
             size="2"
             variant="soft"
-            onClick={() => navigate(`/project/${project.id}`)}
+            onClick={() => navigate(`/project/${project.baseProject}/${project.branch}`)}
         >
             {t('editor.help.backToEditor')}
         </Button>,
@@ -112,7 +112,7 @@ const HelpPage = () => {
                             <Tabs.Trigger value="formatting">{t('editor.help.tabs.formatting')}</Tabs.Trigger>
                             <Tabs.Trigger value="math">{t('editor.help.tabs.math')}</Tabs.Trigger>
                             <Tabs.Trigger value="structure">{t('editor.help.tabs.structure')}</Tabs.Trigger>
-                            <Tabs.Trigger value="lists">{t('editor.help.tabs.lists')}</Tabs.Trigger>
+                            <Tabs.Trigger value="lists">{t('editor.help.tabs.listsAndTables')}</Tabs.Trigger>
                             <Tabs.Trigger value="figures">{t('editor.help.tabs.figures')}</Tabs.Trigger>
                             <Tabs.Trigger value="references">{t('editor.help.tabs.references')}</Tabs.Trigger>
                         </Tabs.List>
