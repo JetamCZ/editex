@@ -11,11 +11,12 @@ import "@radix-ui/themes/styles.css";
 import { Theme } from "@radix-ui/themes";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from "react";
-import { I18nextProvider, useTranslation } from "react-i18next";
+import { I18nextProvider } from "react-i18next";
 import i18n, { initLanguage } from "./i18n";
 
 import type {Route} from "./+types/root";
 import "./app.css";
+import ErrorPage from "./components/ErrorPage";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -72,31 +73,23 @@ export default function App() {
 }
 
 export function ErrorBoundary({error}: Route.ErrorBoundaryProps) {
-    const { t } = useTranslation();
-    let message = t("errors.oops");
-    let details = t("errors.unexpectedError");
-    let stack: string | undefined;
+    let status = 500;
+    let title: string | undefined;
+    let description: string | undefined;
 
     if (isRouteErrorResponse(error)) {
-        message = error.status === 404 ? t("errors.notFound") : t("errors.error");
-        details =
-            error.status === 404
-                ? t("errors.pageNotFound")
-                : error.statusText || details;
-    } else if (import.meta.env.DEV && error && error instanceof Error) {
-        details = error.message;
-        stack = error.stack;
+        status = error.status;
+        if (error.statusText) {
+            title = error.statusText;
+        }
+        if (typeof error.data === "string" && error.data.length > 0) {
+            description = error.data;
+        } else if (error.data && typeof error.data === "object" && "message" in error.data) {
+            description = String((error.data as { message: unknown }).message);
+        }
+    } else if (import.meta.env.DEV && error instanceof Error) {
+        description = error.message;
     }
 
-    return (
-        <main className="pt-16 p-4 container mx-auto">
-            <h1>{message}</h1>
-            <p>{details}</p>
-            {stack && (
-                <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-            )}
-        </main>
-    );
+    return <ErrorPage status={status} title={title} description={description} />;
 }

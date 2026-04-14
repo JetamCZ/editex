@@ -35,11 +35,23 @@
     "no": "Ne"
   },
   "errors": {
-    "oops": "Ups!",
-    "unexpectedError": "Došlo k neočekávané chybě.",
+    "oops": "Něco se pokazilo",
+    "unexpectedError": "Došlo k neočekávané chybě. Zkuste to prosím znovu za chvíli.",
     "notFound": "404",
     "error": "Chyba",
-    "pageNotFound": "Požadovaná stránka nebyla nalezena."
+    "pageNotFound": "Požadovaná stránka nebyla nalezena.",
+    "errorCode": "Chyba {{status}}",
+    "backHome": "Zpět na úvod",
+    "goBack": "Jít zpět",
+    "tryAgain": "Zkusit znovu",
+    "notFoundTitle": "Stránka nenalezena",
+    "notFoundDescription": "Stránka, kterou hledáte, neexistuje nebo byla přesunuta. Zkontrolujte URL nebo se vraťte zpět.",
+    "forbiddenTitle": "Přístup odepřen",
+    "forbiddenDescription": "Nemáte oprávnění zobrazit tuto stránku. Pokud si myslíte, že jde o chybu, kontaktujte vlastníka projektu.",
+    "unauthorizedTitle": "Vyžadováno přihlášení",
+    "unauthorizedDescription": "Pro přístup k této stránce musíte být přihlášeni.",
+    "serverErrorTitle": "Chyba serveru",
+    "serverErrorDescription": "Na naší straně došlo k problému. Již na tom pracujeme."
   },
   "home": {
     "meta": {
@@ -185,10 +197,14 @@
         "title": "Ověření e-mailu - Editex",
         "description": "Ověřte svou e-mailovou adresu Editex"
       },
-      "successMessage": "Váš e-mail byl úspěšně ověřen!",
-      "successSubtext": "Nyní se můžete přihlásit ke svému účtu.",
+      "successMessage": "E-mail ověřen!",
+      "successSubtext": "Vaše e-mailová adresa byla úspěšně ověřena. Nyní se můžete přihlásit ke svému účtu.",
+      "failureHeading": "Ověření se nezdařilo",
+      "failureSubtext": "Vaši e-mailovou adresu se nepodařilo ověřit. Odkaz může být neplatný nebo již byl použit.",
       "goToLogin": "Přejít k přihlášení",
-      "expiredMessage": "Platnost vašeho ověřovacího odkazu vypršela. Požádejte o nový."
+      "expiredMessage": "Platnost vašeho ověřovacího odkazu vypršela. Požádejte o nový na stránce přihlášení.",
+      "noAccount": "Nemáte účet?",
+      "createAccount": "Vytvořte si ho"
     }
   },
   "dashboard": {

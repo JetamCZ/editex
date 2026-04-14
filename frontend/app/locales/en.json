@@ -35,11 +35,23 @@
     "no": "No"
   },
   "errors": {
-    "oops": "Oops!",
-    "unexpectedError": "An unexpected error occurred.",
+    "oops": "Something went wrong",
+    "unexpectedError": "An unexpected error occurred. Please try again in a moment.",
     "notFound": "404",
     "error": "Error",
-    "pageNotFound": "The requested page could not be found."
+    "pageNotFound": "The requested page could not be found.",
+    "errorCode": "Error {{status}}",
+    "backHome": "Back to home",
+    "goBack": "Go back",
+    "tryAgain": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The page you're looking for doesn't exist or has been moved. Double-check the URL or head back to safety.",
+    "forbiddenTitle": "Access denied",
+    "forbiddenDescription": "You don't have permission to view this page. If you believe this is a mistake, contact the project owner.",
+    "unauthorizedTitle": "Sign in required",
+    "unauthorizedDescription": "You need to be signed in to access this page.",
+    "serverErrorTitle": "Server error",
+    "serverErrorDescription": "Something went wrong on our end. We've been notified and are looking into it."
   },
   "home": {
     "meta": {
@@ -185,10 +197,14 @@
         "title": "Verify Email - Editex",
         "description": "Verify your Editex email address"
       },
-      "successMessage": "Your email has been verified successfully!",
-      "successSubtext": "You can now log in to your account.",
-      "goToLogin": "Go to Login",
-      "expiredMessage": "Your verification link has expired. Please request a new one."
+      "successMessage": "Email verified!",
+      "successSubtext": "Your email has been verified successfully. You can now log in to your account.",
+      "failureHeading": "Verification failed",
+      "failureSubtext": "We couldn't verify your email address. The link may be invalid or have already been used.",
+      "goToLogin": "Go to login",
+      "expiredMessage": "Your verification link has expired. Please request a new one from the login page.",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create one"
     }
   },
   "dashboard": {
