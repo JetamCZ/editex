@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class DownloadRequest {
     private String baseProject;
     private String branch = "main";
+    private String commitHash;
 }

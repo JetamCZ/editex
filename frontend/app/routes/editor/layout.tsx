@@ -7,7 +7,7 @@ import {
     GearIcon,
     QuestionMarkCircledIcon,
     ExitIcon,
-    ReaderIcon,
+    CounterClockwiseClockIcon,
 } from "@radix-ui/react-icons";
 import useAuth from "~/hooks/useAuth";
 import getInitials from "~/lib/getInitials";
@@ -51,7 +51,7 @@ export default function ProjectLayout() {
 
     const iconSidebarItems = [
         {id: 'files', icon: <FileTextIcon width="20" height="20" />, tooltip: t('editor.layout.filesTooltip'), path: ''},
-        {id: 'versions', icon: <ReaderIcon width="20" height="20" />, tooltip: t('editor.layout.versionsTooltip'), path: '/versions'},
+        {id: 'versions', icon: <CounterClockwiseClockIcon width="20" height="20" />, tooltip: t('editor.layout.versionsTooltip'), path: '/versions'},
     ];
 
     const iconSidebarBottomItems = [

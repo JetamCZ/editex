@@ -382,6 +382,45 @@ public class LatexCompilationService {
         }
     }
 
+    public String downloadProjectAtCommitAsZip(String baseProject, String branch, String commitHash, Long userId) throws Exception {
+        File workDir = null;
+
+        try {
+            folderPermissionService.ensureCanReadProject(baseProject, userId);
+
+            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+                    .orElseThrow(() -> new RuntimeException("Project not found"));
+
+            FileCommit targetCommit = commitRepository.findByHashAndProjectId(commitHash, project.getId())
+                    .orElseThrow(() -> new RuntimeException("Commit not found: " + commitHash));
+
+            LocalDateTime commitTime = targetCommit.getCreatedAt();
+            String targetFileId = targetCommit.getBranch().getFile().getId();
+
+            workDir = createCompilationDirectory();
+
+            downloadProjectFilesAtCommit(project.getId(), workDir, targetCommit, targetFileId, commitTime);
+            resolveInputReferencesAtTime(project.getId(), workDir, commitTime);
+
+            File zipFile = new File(workDir.getParentFile(), workDir.getName() + ".zip");
+            try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+                addDirectoryToZip(workDir, workDir, zos);
+            }
+
+            String s3Folder = baseProject + "/" + branch + "/downloads/commits";
+            String zipFileName = commitHash + ".zip";
+            String zipUrl = minioService.uploadFileWithName(zipFile, s3Folder, zipFileName, "application/zip");
+
+            zipFile.delete();
+
+            return zipUrl;
+        } finally {
+            if (workDir != null) {
+                cleanupDirectory(workDir);
+            }
+        }
+    }
+
     private void addDirectoryToZip(File rootDir, File currentDir, ZipOutputStream zos) throws IOException {
         File[] files = currentDir.listFiles();
         if (files == null) return;

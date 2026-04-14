@@ -5,6 +5,7 @@ import { useRouteLoaderData } from 'react-router';
 interface DownloadRequest {
     baseProject: string;
     branch?: string;
+    commitHash?: string;
 }
 
 export function useProjectDownload() {

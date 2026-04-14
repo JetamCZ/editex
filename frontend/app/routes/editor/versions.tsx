@@ -13,9 +13,10 @@ import {
     ScrollArea,
     Spinner,
 } from "@radix-ui/themes";
-import {DownloadIcon, ArrowLeftIcon, PlayIcon} from "@radix-ui/react-icons";
+import {DownloadIcon, ArrowLeftIcon, PlayIcon, ArchiveIcon} from "@radix-ui/react-icons";
 import {useProjectVersionPdfs} from "~/hooks/useProjectPdfs";
 import {useCompileCommit} from "~/hooks/useCompileCommit";
+import {useProjectDownload} from "~/hooks/useProjectDownload";
 import PdfViewer from "~/components/PdfViewer";
 import { useTranslation } from 'react-i18next';
 import i18n from '~/i18n';
@@ -40,6 +41,8 @@ export default function VersionsPage() {
 
     const {data: versions = [], isLoading} = useProjectVersionPdfs(project.baseProject, project.branch);
     const compileCommit = useCompileCommit();
+    const downloadZip = useProjectDownload();
+    const [downloadingHash, setDownloadingHash] = useState<string | null>(null);
 
     useEffect(() => {
         const container = document.getElementById('header-actions');
@@ -65,6 +68,25 @@ export default function VersionsPage() {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+    };
+
+    const handleDownloadZip = (hash: string) => {
+        setDownloadingHash(hash);
+        downloadZip.mutate(
+            {baseProject: project.baseProject, branch: project.branch, commitHash: hash},
+            {
+                onSuccess: (result) => {
+                    const link = document.createElement('a');
+                    link.href = result.zipUrl;
+                    link.download = `${project.baseProject}-${hash}.zip`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setDownloadingHash(null);
+                },
+                onError: () => setDownloadingHash(null),
+            }
+        );
     };
 
     const handleCompile = (hash: string) => {
@@ -171,7 +193,7 @@ export default function VersionsPage() {
                                                     {formatDate(v.createdAt)}
                                                 </Text>
 
-                                                <Flex gap="1" onClick={(e) => e.stopPropagation()}>
+                                                <Flex gap="1" wrap="wrap" onClick={(e) => e.stopPropagation()}>
                                                     {v.hasPdf && v.pdfUrl ? (
                                                         <Button
                                                             size="1"
@@ -195,6 +217,19 @@ export default function VersionsPage() {
                                                             )}
                                                         </Button>
                                                     )}
+                                                    <Button
+                                                        size="1"
+                                                        variant="soft"
+                                                        color="gray"
+                                                        disabled={downloadingHash === v.hash}
+                                                        onClick={() => handleDownloadZip(v.hash)}
+                                                    >
+                                                        {downloadingHash === v.hash ? (
+                                                            <><Spinner size="1" /> {t('editor.versions.downloadingZip')}</>
+                                                        ) : (
+                                                            <><ArchiveIcon /> {t('editor.versions.downloadZip')}</>
+                                                        )}
+                                                    </Button>
                                                 </Flex>
                                             </Flex>
                                         </Card>

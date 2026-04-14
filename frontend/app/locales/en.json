@@ -351,7 +351,9 @@
       "noCompile": "Not compiled",
       "compile": "Compile",
       "compiling": "Compiling…",
-      "compilingWait": "Compiling PDF, please wait…"
+      "compilingWait": "Compiling PDF, please wait…",
+      "downloadZip": "Download ZIP",
+      "downloadingZip": "Preparing…"
     },
     "help": {
       "meta": {

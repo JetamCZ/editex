@@ -108,11 +108,22 @@ public class LatexCompilationController {
 
         try {
             String branch = request.getBranch() != null ? request.getBranch() : "main";
-            String zipUrl = compilationService.downloadProjectAsZip(
-                request.getBaseProject(),
-                branch,
-                user.getId()
-            );
+            String commitHash = request.getCommitHash();
+            String zipUrl;
+            if (commitHash != null && !commitHash.isBlank()) {
+                zipUrl = compilationService.downloadProjectAtCommitAsZip(
+                    request.getBaseProject(),
+                    branch,
+                    commitHash,
+                    user.getId()
+                );
+            } else {
+                zipUrl = compilationService.downloadProjectAsZip(
+                    request.getBaseProject(),
+                    branch,
+                    user.getId()
+                );
+            }
             return ResponseEntity.ok(Map.of("zipUrl", zipUrl));
         } catch (Exception e) {
             throw new RuntimeException("Download failed: " + e.getMessage(), e);
