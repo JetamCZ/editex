@@ -142,13 +142,30 @@ public class FileBranchController {
 
     // === Merge & Diff ===
 
+    @GetMapping("/branches/{sourceBranchId}/merge-preview/{targetBranchId}")
+    public ResponseEntity<MergePreviewResponse> getMergePreview(
+            @PathVariable String sourceBranchId,
+            @PathVariable String targetBranchId,
+            Authentication authentication) {
+        User user = getUser(authentication);
+        FileBranchService.MergePreviewResult preview =
+                branchService.getMergePreview(sourceBranchId, targetBranchId, user.getId());
+
+        MergePreviewResponse response = new MergePreviewResponse();
+        response.setContent(preview.content());
+        response.setHasConflicts(preview.hasConflicts());
+        response.setConflictCount(preview.conflictCount());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/branches/{branchId}/merge")
     public ResponseEntity<CommitResponse> mergeBranch(
             @PathVariable String branchId,
             @RequestBody MergeRequest request,
             Authentication authentication) {
         User user = getUser(authentication);
-        FileCommit mergeCommit = branchService.merge(branchId, request.getTargetBranchId(), user);
+        FileCommit mergeCommit = branchService.merge(
+                branchId, request.getTargetBranchId(), request.getResolvedContent(), user);
 
         return ResponseEntity.ok(mapCommitResponse(mergeCommit));
     }
@@ -292,9 +309,26 @@ public class FileBranchController {
 
     public static class MergeRequest {
         private String targetBranchId;
+        /** Optional. When provided the caller has already resolved conflicts in this content. */
+        private String resolvedContent;
 
         public String getTargetBranchId() { return targetBranchId; }
         public void setTargetBranchId(String targetBranchId) { this.targetBranchId = targetBranchId; }
+        public String getResolvedContent() { return resolvedContent; }
+        public void setResolvedContent(String resolvedContent) { this.resolvedContent = resolvedContent; }
+    }
+
+    public static class MergePreviewResponse {
+        private String content;
+        private boolean hasConflicts;
+        private int conflictCount;
+
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+        public boolean isHasConflicts() { return hasConflicts; }
+        public void setHasConflicts(boolean hasConflicts) { this.hasConflicts = hasConflicts; }
+        public int getConflictCount() { return conflictCount; }
+        public void setConflictCount(int conflictCount) { this.conflictCount = conflictCount; }
     }
 
     public static class DiffResponse {

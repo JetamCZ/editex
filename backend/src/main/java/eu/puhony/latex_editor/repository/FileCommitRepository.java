@@ -19,6 +19,9 @@ public interface FileCommitRepository extends JpaRepository<FileCommit, Long> {
     @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId ORDER BY fc.id DESC LIMIT 1")
     Optional<FileCommit> findLatestByBranchId(@Param("branchId") String branchId);
 
+    @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId ORDER BY fc.id ASC LIMIT 1")
+    Optional<FileCommit> findOldestByBranchId(@Param("branchId") String branchId);
+
     @Query("SELECT fc FROM FileCommit fc WHERE fc.hash = :hash")
     Optional<FileCommit> findByHash(@Param("hash") String hash);
 

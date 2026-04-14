@@ -3,6 +3,12 @@ import axios from 'axios';
 import type { FileBranch, FileCommit } from '../../types/file';
 import useAuth from '~/hooks/useAuth';
 
+export interface MergePreviewResponse {
+    content: string;
+    hasConflicts: boolean;
+    conflictCount: number;
+}
+
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 
 function useAuthHeaders() {
@@ -141,19 +147,37 @@ export function useCreateCommit() {
     });
 }
 
+export function useMergePreviewQuery(sourceBranchId: string | null, targetBranchId: string | null) {
+    const config = useAuthHeaders();
+    return useQuery({
+        queryKey: ['mergePreview', sourceBranchId, targetBranchId],
+        queryFn: async () => {
+            const { data } = await axios.get<MergePreviewResponse>(
+                `/api/branches/${sourceBranchId}/merge-preview/${targetBranchId}`,
+                config
+            );
+            return data;
+        },
+        enabled: false, // only fetched via refetch()
+        staleTime: 0,
+        retry: false,
+    });
+}
+
 export function useMergeBranch() {
     const config = useAuthHeaders();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ sourceBranchId, targetBranchId, fileId }: {
+        mutationFn: async ({ sourceBranchId, targetBranchId, fileId, resolvedContent }: {
             sourceBranchId: string;
             targetBranchId: string;
             fileId: string;
+            resolvedContent: string;
         }) => {
             const { data } = await axios.post<FileCommit>(
                 `/api/branches/${sourceBranchId}/merge`,
-                { targetBranchId },
+                { targetBranchId, resolvedContent },
                 config
             );
             return data;

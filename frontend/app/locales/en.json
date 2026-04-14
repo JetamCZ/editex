@@ -477,7 +477,12 @@
       "description": "Combine content from \"{{branch}}\" into another variant",
       "targetLabel": "Target variant:",
       "cancel": "Cancel",
-      "submit": "Combine"
+      "submit": "Combine",
+      "previewButton": "Preview Merge",
+      "backButton": "Back",
+      "conflictsFound": "{{count}} conflict(s) found — resolve the markers below, then click Merge",
+      "cleanMerge": "No conflicts — clean merge ready",
+      "mergeButton": "Merge"
     },
     "historyDialog": {
       "title": "History — {{file}}",

@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DropdownMenu, Button, Dialog, TextField, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
-import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil } from 'lucide-react';
-import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch, useRenameBranch } from '~/hooks/useFileBranches';
+import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil, AlertTriangle, CheckCircle } from 'lucide-react';
+import Editor from '@monaco-editor/react';
+import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch, useRenameBranch, useMergePreviewQuery } from '~/hooks/useFileBranches';
 import type { ProjectFile } from '../../types/file';
 import GitTree from '~/components/GitTree';
 
@@ -23,6 +24,13 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const [newBranchName, setNewBranchName] = useState('');
     const [commitMessage, setCommitMessage] = useState('');
     const [mergeTargetBranchId, setMergeTargetBranchId] = useState<string | null>(null);
+    const [mergeStep, setMergeStep] = useState<'select' | 'preview'>('select');
+    const [mergeEditorContent, setMergeEditorContent] = useState('');
+    const [mergeConflictCount, setMergeConflictCount] = useState(0);
+    const mergeEditorRef = useRef<any>(null);
+
+    const activeBranchName = selectedFile.activeBranchName || 'main';
+    const activeBranchId = selectedFile.activeBranchId;
 
     const { data: branches = [] } = useFileBranches(selectedFile.id);
     const createBranch = useCreateBranch();
@@ -31,9 +39,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const createCommit = useCreateCommit();
     const mergeBranch = useMergeBranch();
     const renameBranch = useRenameBranch();
-
-    const activeBranchName = selectedFile.activeBranchName || 'main';
-    const activeBranchId = selectedFile.activeBranchId;
+    const mergePreview = useMergePreviewQuery(activeBranchId ?? null, mergeTargetBranchId);
 
     const handleSwitchBranch = useCallback((branchId: string) => {
         if (branchId === activeBranchId) return;
@@ -101,19 +107,51 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
         );
     }, [renameBranchId, renameBranchValue, renameBranch, selectedFile.id, onBranchChanged]);
 
+    const resetMergeDialog = useCallback(() => {
+        setMergeStep('select');
+        setMergeTargetBranchId(null);
+        setMergeEditorContent('');
+        setMergeConflictCount(0);
+    }, []);
+
+    const handleMergeDialogChange = useCallback((open: boolean) => {
+        setMergeDialogOpen(open);
+        if (!open) resetMergeDialog();
+    }, [resetMergeDialog]);
+
+    const handleMergePreview = useCallback(async () => {
+        const result = await mergePreview.refetch();
+        if (result.data) {
+            setMergeEditorContent(result.data.content);
+            setMergeConflictCount(result.data.conflictCount);
+            setMergeStep('preview');
+        }
+    }, [mergePreview]);
+
+    const handleMergeBack = useCallback(() => {
+        setMergeStep('select');
+        setMergeEditorContent('');
+        setMergeConflictCount(0);
+    }, []);
+
     const handleMerge = useCallback(() => {
         if (!activeBranchId || !mergeTargetBranchId) return;
         mergeBranch.mutate(
-            { sourceBranchId: activeBranchId, targetBranchId: mergeTargetBranchId, fileId: selectedFile.id },
+            {
+                sourceBranchId: activeBranchId,
+                targetBranchId: mergeTargetBranchId,
+                fileId: selectedFile.id,
+                resolvedContent: mergeEditorContent,
+            },
             {
                 onSuccess: () => {
                     setMergeDialogOpen(false);
-                    setMergeTargetBranchId(null);
+                    resetMergeDialog();
                     onBranchChanged?.();
                 },
             }
         );
-    }, [activeBranchId, mergeTargetBranchId, mergeBranch, selectedFile.id, onBranchChanged]);
+    }, [activeBranchId, mergeTargetBranchId, mergeBranch, selectedFile.id, mergeEditorContent, resetMergeDialog, onBranchChanged]);
 
     return (
         <>
@@ -355,57 +393,137 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
             </Dialog.Root>
 
             {/* Combine Dialog */}
-            <Dialog.Root open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
-                <Dialog.Content maxWidth="450px">
+            <Dialog.Root open={mergeDialogOpen} onOpenChange={handleMergeDialogChange}>
+                <Dialog.Content maxWidth={mergeStep === 'preview' ? '860px' : '450px'} style={{ transition: 'max-width 0.2s' }}>
                     <Dialog.Title>{t('fileBranchSelector.combineDialog.title')}</Dialog.Title>
-                    <Dialog.Description size="2" color="gray">
-                        {t('fileBranchSelector.combineDialog.description', { branch: activeBranchName })}
-                    </Dialog.Description>
-                    <Flex direction="column" gap="2" mt="4">
-                        <Text size="2" weight="medium" color="gray">{t('fileBranchSelector.combineDialog.targetLabel')}</Text>
-                        {branches
-                            .filter(b => b.id !== activeBranchId)
-                            .map(branch => (
-                                <button
-                                    key={branch.id}
-                                    onClick={() => setMergeTargetBranchId(branch.id)}
+
+                    {/* ── Step 1: Select target branch ── */}
+                    {mergeStep === 'select' && (
+                        <>
+                            <Dialog.Description size="2" color="gray">
+                                {t('fileBranchSelector.combineDialog.description', { branch: activeBranchName })}
+                            </Dialog.Description>
+                            <Flex direction="column" gap="2" mt="4">
+                                <Text size="2" weight="medium" color="gray">{t('fileBranchSelector.combineDialog.targetLabel')}</Text>
+                                {branches
+                                    .filter(b => b.id !== activeBranchId)
+                                    .map(branch => (
+                                        <button
+                                            key={branch.id}
+                                            onClick={() => setMergeTargetBranchId(branch.id)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                padding: '10px 12px',
+                                                borderRadius: '6px',
+                                                border: mergeTargetBranchId === branch.id
+                                                    ? '2px solid var(--accent-9)'
+                                                    : '1px solid var(--gray-5)',
+                                                backgroundColor: mergeTargetBranchId === branch.id
+                                                    ? 'var(--accent-2)'
+                                                    : 'var(--gray-1)',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.1s',
+                                                fontSize: '14px',
+                                                color: 'var(--gray-12)',
+                                            }}
+                                        >
+                                            <GitBranch size={14} strokeWidth={2} />
+                                            {branch.name}
+                                        </button>
+                                    ))}
+                                <Flex gap="3" justify="end" mt="3">
+                                    <Dialog.Close>
+                                        <Button variant="soft" color="gray">{t('fileBranchSelector.combineDialog.cancel')}</Button>
+                                    </Dialog.Close>
+                                    <Button
+                                        color="blue"
+                                        onClick={handleMergePreview}
+                                        disabled={!mergeTargetBranchId || mergePreview.isFetching}
+                                        loading={mergePreview.isFetching}
+                                    >
+                                        <GitMerge size={14} strokeWidth={2} />
+                                        {t('fileBranchSelector.combineDialog.previewButton')}
+                                    </Button>
+                                </Flex>
+                            </Flex>
+                        </>
+                    )}
+
+                    {/* ── Step 2: Preview & conflict resolution ── */}
+                    {mergeStep === 'preview' && (
+                        <Flex direction="column" gap="3" mt="3">
+                            {/* Status banner */}
+                            {mergeConflictCount > 0 ? (
+                                <Flex
+                                    align="center"
+                                    gap="2"
                                     style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
                                         padding: '10px 12px',
                                         borderRadius: '6px',
-                                        border: mergeTargetBranchId === branch.id
-                                            ? '2px solid var(--accent-9)'
-                                            : '1px solid var(--gray-5)',
-                                        backgroundColor: mergeTargetBranchId === branch.id
-                                            ? 'var(--accent-2)'
-                                            : 'var(--gray-1)',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.1s',
-                                        fontSize: '14px',
-                                        color: 'var(--gray-12)',
+                                        backgroundColor: 'var(--red-2)',
+                                        border: '1px solid var(--red-6)',
+                                        color: 'var(--red-11)',
+                                        fontSize: '13px',
                                     }}
                                 >
-                                    <GitBranch size={14} strokeWidth={2} />
-                                    {branch.name}
-                                </button>
-                            ))}
-                        <Flex gap="3" justify="end" mt="3">
-                            <Dialog.Close>
-                                <Button variant="soft" color="gray">{t('fileBranchSelector.combineDialog.cancel')}</Button>
-                            </Dialog.Close>
-                            <Button
-                                color="blue"
-                                onClick={handleMerge}
-                                disabled={!mergeTargetBranchId || mergeBranch.isPending}
-                                loading={mergeBranch.isPending}
-                            >
-                                <GitMerge size={14} strokeWidth={2} />
-                                {t('fileBranchSelector.combineDialog.submit')}
-                            </Button>
+                                    <AlertTriangle size={15} strokeWidth={2} />
+                                    {t('fileBranchSelector.combineDialog.conflictsFound', { count: mergeConflictCount })}
+                                </Flex>
+                            ) : (
+                                <Flex
+                                    align="center"
+                                    gap="2"
+                                    style={{
+                                        padding: '10px 12px',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'var(--green-2)',
+                                        border: '1px solid var(--green-6)',
+                                        color: 'var(--green-11)',
+                                        fontSize: '13px',
+                                    }}
+                                >
+                                    <CheckCircle size={15} strokeWidth={2} />
+                                    {t('fileBranchSelector.combineDialog.cleanMerge')}
+                                </Flex>
+                            )}
+
+                            {/* Monaco editor */}
+                            <div style={{ border: '1px solid var(--gray-5)', borderRadius: '6px', overflow: 'hidden' }}>
+                                <Editor
+                                    height="420px"
+                                    language="plaintext"
+                                    value={mergeEditorContent}
+                                    onChange={(val) => setMergeEditorContent(val ?? '')}
+                                    onMount={(editor) => { mergeEditorRef.current = editor; }}
+                                    options={{
+                                        minimap: { enabled: false },
+                                        lineNumbers: 'on',
+                                        wordWrap: 'on',
+                                        scrollBeyondLastLine: false,
+                                        fontSize: 13,
+                                        renderLineHighlight: 'all',
+                                    }}
+                                />
+                            </div>
+
+                            <Flex gap="3" justify="between">
+                                <Button variant="soft" color="gray" onClick={handleMergeBack}>
+                                    {t('fileBranchSelector.combineDialog.backButton')}
+                                </Button>
+                                <Button
+                                    color="blue"
+                                    onClick={handleMerge}
+                                    disabled={mergeBranch.isPending}
+                                    loading={mergeBranch.isPending}
+                                >
+                                    <GitMerge size={14} strokeWidth={2} />
+                                    {t('fileBranchSelector.combineDialog.mergeButton')}
+                                </Button>
+                            </Flex>
                         </Flex>
-                    </Flex>
+                    )}
                 </Dialog.Content>
             </Dialog.Root>
 

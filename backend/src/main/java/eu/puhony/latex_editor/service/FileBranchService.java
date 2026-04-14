@@ -253,13 +253,67 @@ public class FileBranchService {
     }
 
     /**
-     * Merge source branch content into target branch, then delete the source branch.
-     * Simple overwrite: resolves source content, creates commit on target, clears target changes.
-     * The source branch is soft-deleted after merge (unless it is "main").
-     * If the source branch is the active branch, switches active to target first.
+     * Result of a merge preview: the merged text (possibly containing conflict markers)
+     * and the number of conflicts that require manual resolution.
+     */
+    public record MergePreviewResult(String content, int conflictCount) {
+        public boolean hasConflicts() { return conflictCount > 0; }
+    }
+
+    /**
+     * Compute a 3-way merge preview between two branches without persisting anything.
+     * The merge base is the first (oldest) commit of the source branch, which is the
+     * snapshot taken from the target at branch-creation time.
+     */
+    public MergePreviewResult getMergePreview(String sourceBranchId, String targetBranchId, Long userId) {
+        FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
+                .orElseThrow(() -> new RuntimeException("Source variant not found"));
+        FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
+                .orElseThrow(() -> new RuntimeException("Target variant not found"));
+
+        if (!sourceBranch.getFile().getId().equals(targetBranch.getFile().getId())) {
+            throw new RuntimeException("Variants must belong to the same file");
+        }
+
+        folderPermissionService.ensureCanRead(userId, sourceBranch.getFile());
+
+        return computePreview(sourceBranch, targetBranch);
+    }
+
+    private MergePreviewResult computePreview(FileBranch sourceBranch, FileBranch targetBranch) {
+        // Base = content at the moment source was branched off target (its first commit)
+        String base = commitRepository.findOldestByBranchId(sourceBranch.getId())
+                .map(FileCommit::getContent)
+                .orElseGet(() -> {
+                    try { return minioService.getFileContent(sourceBranch.getFile().getS3Url()); }
+                    catch (Exception e) { throw new RuntimeException("Cannot resolve merge base", e); }
+                });
+
+        String ours   = resolveContent(targetBranch); // what the target looks like now
+        String theirs = resolveContent(sourceBranch); // what the source looks like now
+
+        ThreeWayMergeUtil.MergeResult result = ThreeWayMergeUtil.merge(
+                base, ours, theirs,
+                targetBranch.getName(),
+                sourceBranch.getName()
+        );
+        return new MergePreviewResult(result.content(), result.conflictCount());
+    }
+
+    /**
+     * Merge source branch into target using a 3-way merge, then soft-delete the source branch.
+     *
+     * <p>If {@code resolvedContent} is provided (non-null) the caller has already resolved any
+     * conflicts in the preview and that content is committed directly.  If it is {@code null}
+     * the service performs the 3-way merge automatically; a {@link RuntimeException} is thrown
+     * when unresolved conflicts are detected.</p>
+     *
+     * <p>The source branch is soft-deleted after a successful merge unless it is {@code "main"}.
+     * If the source happens to be the active branch the file's active branch is switched to the
+     * target first.</p>
      */
     @Transactional
-    public FileCommit merge(String sourceBranchId, String targetBranchId, User user) {
+    public FileCommit merge(String sourceBranchId, String targetBranchId, String resolvedContent, User user) {
         FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
                 .orElseThrow(() -> new RuntimeException("Source variant not found"));
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
@@ -272,21 +326,30 @@ public class FileBranchService {
 
         folderPermissionService.ensureCanEdit(user.getId(), sourceBranch.getFile());
 
-        // Resolve source content
-        String sourceContent = resolveContent(sourceBranch);
+        String contentToCommit;
+        if (resolvedContent != null) {
+            contentToCommit = resolvedContent;
+        } else {
+            MergePreviewResult preview = computePreview(sourceBranch, targetBranch);
+            if (preview.hasConflicts()) {
+                throw new RuntimeException(
+                        "Merge has " + preview.conflictCount() + " conflict(s). Resolve them in the preview before merging.");
+            }
+            contentToCommit = preview.content();
+        }
 
         // Create merge commit on target
         FileCommit mergeCommit = new FileCommit();
         mergeCommit.setBranch(targetBranch);
-        mergeCommit.setContent(sourceContent);
+        mergeCommit.setContent(contentToCommit);
         mergeCommit.setMessage("Combined from '" + sourceBranch.getName() + "' into '" + targetBranch.getName() + "'");
         mergeCommit.setCommittedBy(user);
         mergeCommit = commitRepository.save(mergeCommit);
 
-        // Clear target branch changes
+        // Clear target branch pending changes
         changeRepository.deleteByBranchId(targetBranchId);
 
-        // Delete source branch after merge (skip if it is the protected "main" branch)
+        // Soft-delete source branch after merge (skip if it is the protected "main" branch)
         if (!"main".equals(sourceBranch.getName())) {
             ProjectFile file = sourceBranch.getFile();
 
@@ -296,7 +359,6 @@ public class FileBranchService {
                 fileRepository.save(file);
             }
 
-            // Clear changes and soft-delete the source branch
             changeRepository.deleteByBranchId(sourceBranchId);
             sourceBranch.setDeletedAt(java.time.LocalDateTime.now());
             branchRepository.save(sourceBranch);

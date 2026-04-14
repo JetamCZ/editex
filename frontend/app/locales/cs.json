@@ -477,7 +477,12 @@
       "description": "Sloučit obsah z \"{{branch}}\" do jiné varianty",
       "targetLabel": "Cílová varianta:",
       "cancel": "Zrušit",
-      "submit": "Sloučit"
+      "submit": "Sloučit",
+      "previewButton": "Náhled sloučení",
+      "backButton": "Zpět",
+      "conflictsFound": "Nalezeno {{count}} konflikt(ů) — vyřešte značky níže a klikněte na Sloučit",
+      "cleanMerge": "Žádné konflikty — sloučení je připraveno",
+      "mergeButton": "Sloučit"
     },
     "historyDialog": {
       "title": "Historie — {{file}}",
