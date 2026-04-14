@@ -659,6 +659,9 @@ const EditorPage = () => {
                 onOpenChange={(open) => setCompilationError(prev => ({ ...prev, open }))}
                 errorMessage={compilationError.errorMessage}
                 compilationLog={compilationError.compilationLog}
+                baseProject={project.baseProject}
+                branch={project.branch}
+                sourceFile={compileTarget}
             />
         </>
     );

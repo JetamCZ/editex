@@ -432,6 +432,13 @@
     "fullLog": "Full Compilation Log:",
     "close": "Close"
   },
+  "aiDebug": {
+    "title": "AI Debug Assistant",
+    "button": "Fix with AI",
+    "analyzing": "Analyzing…",
+    "hint": "Ask AI to explain the error and suggest a fix.",
+    "genericError": "AI debug failed. Please try again."
+  },
   "folderAccess": {
     "title": "Access — {{path}}",
     "description": "Grants on this folder also apply to every subfolder beneath it. Inherited grants are shown faded.",

@@ -432,6 +432,13 @@
     "fullLog": "Celý protokol kompilace:",
     "close": "Zavřít"
   },
+  "aiDebug": {
+    "title": "AI asistent ladění",
+    "button": "Opravit pomocí AI",
+    "analyzing": "Analyzuji…",
+    "hint": "Nechte AI vysvětlit chybu a navrhnout opravu.",
+    "genericError": "AI ladění selhalo. Zkuste to prosím znovu."
+  },
   "folderAccess": {
     "title": "Přístup — {{path}}",
     "description": "Přístupy na této složce platí i pro každou podsložku. Zděděné přístupy jsou zobrazeny vybledlé.",
