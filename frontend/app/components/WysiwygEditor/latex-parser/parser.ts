@@ -820,9 +820,10 @@ class ParserContext {
 
     /** Parse \begin{figure} */
     private parseFigureEnvironment(): TipTapNode {
-        this.skipOptionalArg(); // [h], [t], etc.
+        const placement = this.skipOptionalArg(); // [h], [t], etc.
         const content = this.readUntilEnd('figure');
-        const rawLatex = `\\begin{figure}${content}\\end{figure}`;
+        const placementSuffix = placement !== null ? `[${placement}]` : '';
+        const rawLatex = `\\begin{figure}${placementSuffix}${content}\\end{figure}`;
 
         // Try to extract caption and image path
         let caption = '';
