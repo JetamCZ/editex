@@ -14,6 +14,7 @@ const useContent = (
     updatePreviousLines: (lines: string[]) => void,
     setEditorContent: (newContent: string, changes?: ChangeOperation[]) => void,
     setIsApplyingRemoteChanges: (value: boolean) => void,
+    setIsDocumentLoaded: (value: boolean) => void,
     localSessionId: string,
     branchId?: string | null
 ) => {
@@ -26,6 +27,8 @@ const useContent = (
     const changeHistoryRef = useToRef(changeHistory)
 
     const refetch = useCallback(async () => {
+        setIsDocumentLoaded(false);
+
         const params = branchId ? { branchId } : {};
         const {data} = await axios.get<{ content: string, lastChangeId: string }>(`/api/files/${fileId}/content`, {
             headers: {
@@ -50,11 +53,16 @@ const useContent = (
         setEditorContent(data.content);
         setIsApplyingRemoteChanges(false);
 
-    }, [fileId, branchId, bearerToken, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges]);
+        setIsDocumentLoaded(true);
+    }, [fileId, branchId, bearerToken, updatePreviousLines, setChangeHistory, setEditorContent, setIsApplyingRemoteChanges, setIsDocumentLoaded]);
 
     useEffect(() => {
+        // Synchronously close the gate before kicking off the async fetch so
+        // that any in-flight autosave debounce or change event from the
+        // previous file cannot leak into the new file.
+        setIsDocumentLoaded(false);
         refetch()
-    }, [fileId, refetch]);
+    }, [fileId, refetch, setIsDocumentLoaded]);
 
     const handleChanges = useCallback((changes: ChangeOperation[], senderSessionId: string | null) => {
         // Skip changes from our own session - we already applied them locally via HTTP

@@ -42,7 +42,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     const contentListenersRef = useRef<Set<(content: string) => void>>(new Set());
 
     const {bearerToken} = useAuth();
-    const {changeHistory, setChangeHistory, detectChanges, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, undo, redo} = useChangeTracking();
+    const {changeHistory, setChangeHistory, detectChanges, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, isDocumentLoadedRef, setIsDocumentLoaded, undo, redo} = useChangeTracking();
 
     const setEditorContent = useCallback((newContent: string, changes?: ChangeOperation[]) => {
         if (editorRef.current) {
@@ -86,6 +86,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         updatePreviousLines,
         setEditorContent,
         setIsApplyingRemoteChanges,
+        setIsDocumentLoaded,
         sessionIdRef.current,
         props.selectedFile.activeBranchId
     )
@@ -120,6 +121,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         autoSave: props.autoSave,
         refetch,
         branchId: props.selectedFile.activeBranchId,
+        isDocumentLoadedRef,
     });
 
     const handleShowChanges = () => {

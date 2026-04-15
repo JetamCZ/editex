@@ -15,6 +15,7 @@ interface UseChangeSubmissionOptions {
     autoSave?: boolean;
     refetch: () => Promise<void>;
     branchId?: string | null;
+    isDocumentLoadedRef: React.MutableRefObject<boolean>;
 }
 
 export function useChangeSubmission({
@@ -29,11 +30,15 @@ export function useChangeSubmission({
     autoSave,
     refetch,
     branchId,
+    isDocumentLoadedRef,
 }: UseChangeSubmissionOptions) {
     const [isSending, setIsSending] = useState(false);
 
     const handleSendChanges = useCallback(async () => {
-        if (changeHistory.length === 0 || isSending) {
+        // Refuse to send anything until the initial document load has
+        // completed. Otherwise a pre-load change event (or a stale debounce
+        // from a previous file) could push DELETEs against the wrong content.
+        if (changeHistory.length === 0 || isSending || !isDocumentLoadedRef.current) {
             return;
         }
 

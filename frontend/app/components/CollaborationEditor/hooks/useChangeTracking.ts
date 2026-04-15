@@ -10,13 +10,18 @@ export const useChangeTracking = () => {
     const [changeHistory, setChangeHistory] = useState<ChangeOperation[]>([]);
     const previousLinesRef = useRef<string[]>([]);
     const isApplyingRemoteChanges = useRef(false);
+    const isDocumentLoadedRef = useRef(false);
     const undoStackRef = useRef<string[][]>([]);
     const redoStackRef = useRef<string[][]>([]);
     const isUndoingRef = useRef(false);
 
     const detectChanges = useCallback((e: editor.IModelContentChangedEvent, model: editor.ITextModel) => {
-        // Skip detection if we're applying remote changes or undoing
-        if (isApplyingRemoteChanges.current || isUndoingRef.current) {
+        // Skip detection if we're applying remote changes, undoing, or
+        // the document hasn't finished its initial load yet. Without the
+        // load guard, any change event fired during the window between
+        // editor mount and refetch() completion would diff against an
+        // empty previousLinesRef and emit DELETEs that wipe the file.
+        if (isApplyingRemoteChanges.current || isUndoingRef.current || !isDocumentLoadedRef.current) {
             return;
         }
 
@@ -121,6 +126,10 @@ export const useChangeTracking = () => {
 
     const setIsApplyingRemoteChanges = useCallback((value: boolean) => {
         isApplyingRemoteChanges.current = value;
+    }, []);
+
+    const setIsDocumentLoaded = useCallback((value: boolean) => {
+        isDocumentLoadedRef.current = value;
     }, []);
 
     const undo = useCallback((editor: editor.IStandaloneCodeEditor | null): boolean => {
@@ -228,6 +237,8 @@ export const useChangeTracking = () => {
         resetTracking,
         updatePreviousLines,
         previousLinesRef,
+        isDocumentLoadedRef,
+        setIsDocumentLoaded,
         setIsApplyingRemoteChanges,
         undo,
         redo,
