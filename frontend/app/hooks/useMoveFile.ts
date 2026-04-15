@@ -9,13 +9,12 @@ interface MoveFileParams {
 }
 
 interface UseMoveFileOptions {
-    baseProject: string;
-    branch: string;
+    projectId: number;
     onSuccess?: () => void;
     onError?: (error: Error) => void;
 }
 
-export function useMoveFile({ baseProject, branch, onSuccess, onError }: UseMoveFileOptions) {
+export function useMoveFile({ projectId, onSuccess, onError }: UseMoveFileOptions) {
     const { bearerToken } = useRouteLoaderData("auth-user") as { user: User; bearerToken: string };
     const queryClient = useQueryClient();
 
@@ -34,7 +33,7 @@ export function useMoveFile({ baseProject, branch, onSuccess, onError }: UseMove
             return response.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['projectFiles', baseProject, branch] });
+            queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
             onSuccess?.();
         },
         onError: (error: Error) => {

@@ -36,7 +36,7 @@ export default function ProjectAccessCard({project, canManageAccess}: Props) {
 
                 <Flex gap="3">
                     <Button asChild>
-                        <Link to={`/project/${project.baseProject}/${project.branch}/settings/permissions`}>
+                        <Link to={`/project/${project.baseProject}/settings/permissions`}>
                             {t('settings.access.manageButton')}
                         </Link>
                     </Button>

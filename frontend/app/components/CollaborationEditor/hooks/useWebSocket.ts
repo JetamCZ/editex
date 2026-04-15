@@ -33,7 +33,7 @@ interface ReloadMessage {
 interface WebSocketConfig {
     fileId: string;
     sessionId: string;
-    branchId?: string | null;
+    branchId?: number | null;
     onChangesReceived: (changes: ChangeOperation[], senderSessionId: string | null) => void;
     onCursorUpdate?: (cursor: RemoteCursor) => void;
     onCursorLeave?: (sessionId: string) => void;

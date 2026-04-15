@@ -15,7 +15,7 @@ interface TreeNode {
     author: string;
     timestamp: Date;
     branch: string;
-    branchId: string;
+    branchId: number;
     type: "commit" | "merge" | "branch-start" | "uncommitted";
 }
 
@@ -44,7 +44,7 @@ const getBranchColor = (branchName: string): string => {
 
 interface GitTreeProps {
     fileId: string;
-    activeBranchId?: string | null;
+    activeBranchId?: number | null;
 }
 
 const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
@@ -58,7 +58,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
         refetchBranches();
     }, [refetchBranches]);
     const { bearerToken } = useAuth();
-    const [allCommits, setAllCommits] = useState<Map<string, FileCommit[]>>(new Map());
+    const [allCommits, setAllCommits] = useState<Map<number, FileCommit[]>>(new Map());
     const [commitsLoading, setCommitsLoading] = useState(false);
 
     // Fetch commits for all branches
@@ -76,7 +76,7 @@ const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
                 }).then(res => ({ branchId: branch.id, commits: res.data }))
             )
         ).then(results => {
-            const map = new Map<string, FileCommit[]>();
+            const map = new Map<number, FileCommit[]>();
             results.forEach(r => map.set(r.branchId, r.commits));
             setAllCommits(map);
         }).finally(() => setCommitsLoading(false));

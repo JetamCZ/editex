@@ -49,7 +49,7 @@ public class FolderPermissionController {
         }
 
         // Also surface the project owner as an implicit MANAGER row at the root level.
-        Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(folder.getBaseProject(), "main").orElse(null);
+        Project project = folder.getProject();
         if (project != null && project.getOwner() != null) {
             Long ownerId = project.getOwner().getId();
             boolean alreadyListed = response.stream().anyMatch(r -> ownerId.equals(r.getUserId()));
@@ -62,7 +62,7 @@ public class FolderPermissionController {
                 owner.setUserName(project.getOwner().getName());
                 owner.setRole(FolderRole.MANAGER);
                 owner.setInherited(!folder.isRoot());
-                ProjectFolder root = projectFolderService.getRoot(folder.getBaseProject());
+                ProjectFolder root = projectFolderService.getRoot(project.getId());
                 owner.setSourceFolderId(root.getId());
                 owner.setSourceFolderPath(root.getPath());
                 response.add(owner);
@@ -118,17 +118,18 @@ public class FolderPermissionController {
      * Returns the folder tree alongside the effective role of each user that
      * has any grant in the project.
      */
-    @GetMapping("/projects/{baseProject}/access-summary")
+    @GetMapping("/projects/{projectId}/access-summary")
     public ResponseEntity<AccessSummaryResponse> accessSummary(
-            @PathVariable String baseProject,
+            @PathVariable Long projectId,
             Authentication authentication) {
         User user = currentUser(authentication);
-        folderPermissionService.ensureCanReadProject(baseProject, user.getId());
+        Project project = projectRepository.findByIdNonDeleted(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+        folderPermissionService.ensureCanReadProject(project.getId(), user.getId());
 
-        List<ProjectFolder> folders = projectFolderService.listAll(baseProject);
+        List<ProjectFolder> folders = projectFolderService.listAll(project.getId());
         // Collect every distinct user that has any grant in the project, plus the owner.
-        ProjectFolder root = projectFolderService.getRoot(baseProject);
-        Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, "main").orElse(null);
+        ProjectFolder root = projectFolderService.getRoot(project.getId());
 
         List<UserSummary> users = new ArrayList<>();
         java.util.Set<Long> seen = new java.util.HashSet<>();

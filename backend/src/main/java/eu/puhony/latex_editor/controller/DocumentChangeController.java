@@ -106,15 +106,15 @@ public class DocumentChangeController {
     public static class ChangesBatchRequest {
         private String sessionId;
         private Long baseChangeId;
-        private String branchId;
+        private Long branchId;
         private List<DocumentChangeService.ChangeData> changes;
 
         public String getSessionId() { return sessionId; }
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
         public Long getBaseChangeId() { return baseChangeId; }
         public void setBaseChangeId(Long baseChangeId) { this.baseChangeId = baseChangeId; }
-        public String getBranchId() { return branchId; }
-        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public List<DocumentChangeService.ChangeData> getChanges() { return changes; }
         public void setChanges(List<DocumentChangeService.ChangeData> changes) { this.changes = changes; }
     }
@@ -124,7 +124,7 @@ public class DocumentChangeController {
         private String sessionId;
         private Long userId;
         private String userName;
-        private String branchId;
+        private Long branchId;
         private List<ChangeResponse> changes;
         private Integer chunkIndex;
         private Integer totalChunks;
@@ -137,8 +137,8 @@ public class DocumentChangeController {
         public void setUserId(Long userId) { this.userId = userId; }
         public String getUserName() { return userName; }
         public void setUserName(String userName) { this.userName = userName; }
-        public String getBranchId() { return branchId; }
-        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public List<ChangeResponse> getChanges() { return changes; }
         public void setChanges(List<ChangeResponse> changes) { this.changes = changes; }
         public Integer getChunkIndex() { return chunkIndex; }

@@ -2,6 +2,7 @@ package eu.puhony.latex_editor.service;
 
 import eu.puhony.latex_editor.entity.FolderPermission;
 import eu.puhony.latex_editor.entity.FolderRole;
+import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
 import eu.puhony.latex_editor.entity.ProjectFolder;
 import eu.puhony.latex_editor.entity.User;
@@ -32,15 +33,15 @@ public class ProjectFolderService {
                 .orElseThrow(() -> new IllegalArgumentException("Folder not found: " + id));
     }
 
-    public ProjectFolder getRoot(String baseProject) {
-        return folderRepository.findRoot(baseProject)
-                .orElseThrow(() -> new IllegalStateException("Project root folder missing: " + baseProject));
+    public ProjectFolder getRoot(Long projectId) {
+        return folderRepository.findRoot(projectId)
+                .orElseThrow(() -> new IllegalStateException("Project root folder missing: " + projectId));
     }
 
-    public ProjectFolder getRootOrCreate(String baseProject) {
-        return folderRepository.findRoot(baseProject).orElseGet(() -> {
+    public ProjectFolder getRootOrCreate(Project project) {
+        return folderRepository.findRoot(project.getId()).orElseGet(() -> {
             ProjectFolder root = new ProjectFolder();
-            root.setBaseProject(baseProject);
+            root.setProject(project);
             root.setParent(null);
             root.setName("");
             root.setPath("/");
@@ -48,19 +49,19 @@ public class ProjectFolderService {
         });
     }
 
-    public ProjectFolder getByPath(String baseProject, String path) {
-        return folderRepository.findByBaseProjectAndPath(baseProject, normalize(path))
+    public ProjectFolder getByPath(Long projectId, String path) {
+        return folderRepository.findByProjectIdAndPath(projectId, normalize(path))
                 .orElseThrow(() -> new IllegalArgumentException("Folder not found: " + path));
     }
 
-    public ProjectFolder getOrCreateByPath(String baseProject, String path) {
+    public ProjectFolder getOrCreateByPath(Project project, String path) {
         String normalized = normalize(path);
-        return folderRepository.findByBaseProjectAndPath(baseProject, normalized)
-                .orElseGet(() -> createChain(baseProject, normalized));
+        return folderRepository.findByProjectIdAndPath(project.getId(), normalized)
+                .orElseGet(() -> createChain(project, normalized));
     }
 
-    public List<ProjectFolder> listAll(String baseProject) {
-        return folderRepository.findAllByBaseProject(baseProject);
+    public List<ProjectFolder> listAll(Long projectId) {
+        return folderRepository.findAllByProjectId(projectId);
     }
 
     public List<ProjectFolder> children(ProjectFolder folder) {
@@ -69,14 +70,9 @@ public class ProjectFolderService {
 
     // ---------------- Project bootstrap ----------------
 
-    /**
-     * Called when a project is created. Creates the root folder and seeds the creating user
-     * as MANAGER on root (actually, owner has implicit MANAGER so no row is required — but
-     * we return the root for callers that want it).
-     */
     @Transactional
-    public ProjectFolder initializeForNewProject(String baseProject, User owner) {
-        return getRootOrCreate(baseProject);
+    public ProjectFolder initializeForNewProject(Project project, User owner) {
+        return getRootOrCreate(project);
     }
 
     // ---------------- CRUD ----------------
@@ -91,12 +87,12 @@ public class ProjectFolderService {
         folderPermissionService.ensureCanEdit(actorUserId, parent);
         String cleanName = sanitizeSegment(name);
         String newPath = parent.isRoot() ? "/" + cleanName : parent.getPath() + "/" + cleanName;
-        folderRepository.findByBaseProjectAndPath(parent.getBaseProject(), newPath).ifPresent(f -> {
+        folderRepository.findByProjectIdAndPath(parent.getProject().getId(), newPath).ifPresent(f -> {
             throw new IllegalStateException("Folder already exists: " + newPath);
         });
 
         ProjectFolder folder = new ProjectFolder();
-        folder.setBaseProject(parent.getBaseProject());
+        folder.setProject(parent.getProject());
         folder.setParent(parent);
         folder.setName(cleanName);
         folder.setPath(newPath);
@@ -121,8 +117,10 @@ public class ProjectFolderService {
         folder.setPath(newPath);
         folderRepository.save(folder);
 
+        Long projectId = folder.getProject().getId();
+
         // Update descendants
-        for (ProjectFolder f : folderRepository.findAllByBaseProject(folder.getBaseProject())) {
+        for (ProjectFolder f : folderRepository.findAllByProjectId(projectId)) {
             if (f.getId().equals(folder.getId())) continue;
             if (f.getPath().equals(oldPath) || f.getPath().startsWith(oldPath + "/")) {
                 f.setPath(newPath + f.getPath().substring(oldPath.length()));
@@ -131,7 +129,7 @@ public class ProjectFolderService {
         }
         // Also update denormalized projectFolder string on files in this subtree
         for (ProjectFile file : fileRepository.findAllNonDeleted()) {
-            if (!folder.getBaseProject().equals(file.getProject().getBaseProject())) continue;
+            if (!projectId.equals(file.getProject().getId())) continue;
             String cur = file.getProjectFolder();
             if (cur == null) continue;
             if (cur.equals(oldPath) || cur.startsWith(oldPath + "/")) {
@@ -182,8 +180,8 @@ public class ProjectFolderService {
 
     // ---------------- Utilities ----------------
 
-    private ProjectFolder createChain(String baseProject, String path) {
-        ProjectFolder parent = getRootOrCreate(baseProject);
+    private ProjectFolder createChain(Project project, String path) {
+        ProjectFolder parent = getRootOrCreate(project);
         if ("/".equals(path)) return parent;
 
         String[] segments = path.substring(1).split("/");
@@ -193,9 +191,9 @@ public class ProjectFolderService {
             final String curPath = cur;
             final ProjectFolder curParent = parent;
             final String segName = seg;
-            parent = folderRepository.findByBaseProjectAndPath(baseProject, curPath).orElseGet(() -> {
+            parent = folderRepository.findByProjectIdAndPath(project.getId(), curPath).orElseGet(() -> {
                 ProjectFolder f = new ProjectFolder();
-                f.setBaseProject(baseProject);
+                f.setProject(project);
                 f.setParent(curParent);
                 f.setName(segName);
                 f.setPath(curPath);

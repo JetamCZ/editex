@@ -4,8 +4,7 @@ import { useRouteLoaderData } from 'react-router';
 import type { CompilationResult } from './useLatexCompilation';
 
 interface CompileCommitRequest {
-    baseProject: string;
-    branch: string;
+    projectId: number;
     commitHash: string;
 }
 
@@ -30,7 +29,7 @@ export function useCompileCommit() {
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ['projectVersionPdfs', variables.baseProject, variables.branch]
+                queryKey: ['projectVersionPdfs', variables.projectId]
             });
         }
     });

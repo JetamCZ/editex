@@ -38,12 +38,9 @@ public class LatexCompilationController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         try {
-            String branch = request.getBranch() != null ? request.getBranch() : "main";
-            String targetFile = request.getTargetFile();
             CompilationResult result = compilationService.compileLatex(
-                request.getBaseProject(),
-                branch,
-                targetFile,
+                request.getProjectId(),
+                request.getTargetFile(),
                 user.getId()
             );
             return ResponseEntity.ok(result);
@@ -52,16 +49,15 @@ public class LatexCompilationController {
         }
     }
 
-    @GetMapping("/pdfs/{baseProject}/{branch}")
+    @GetMapping("/pdfs/{projectId}")
     public ResponseEntity<List<ProjectVersionPdfInfo>> getProjectVersionPdfs(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+            @PathVariable Long projectId,
             Authentication authentication) {
 
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<ProjectVersionPdfInfo> pdfs = compilationService.getProjectVersionPdfs(baseProject, branch, user.getId());
+        List<ProjectVersionPdfInfo> pdfs = compilationService.getProjectVersionPdfs(projectId, user.getId());
         return ResponseEntity.ok(pdfs);
     }
 
@@ -75,8 +71,7 @@ public class LatexCompilationController {
 
         try {
             CompilationResult result = compilationService.compileLatexAtCommit(
-                    request.getBaseProject(),
-                    request.getBranch(),
+                    request.getProjectId(),
                     request.getCommitHash(),
                     user.getId()
             );
@@ -107,20 +102,17 @@ public class LatexCompilationController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         try {
-            String branch = request.getBranch() != null ? request.getBranch() : "main";
             String commitHash = request.getCommitHash();
             String zipUrl;
             if (commitHash != null && !commitHash.isBlank()) {
                 zipUrl = compilationService.downloadProjectAtCommitAsZip(
-                    request.getBaseProject(),
-                    branch,
+                    request.getProjectId(),
                     commitHash,
                     user.getId()
                 );
             } else {
                 zipUrl = compilationService.downloadProjectAsZip(
-                    request.getBaseProject(),
-                    branch,
+                    request.getProjectId(),
                     user.getId()
                 );
             }

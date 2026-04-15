@@ -11,12 +11,12 @@ export interface ProjectFile {
     uploadedBy: number;
     createdAt: string;
     lastChangeId?: string | null;
-    activeBranchId?: string | null;
+    activeBranchId?: number | null;
     activeBranchName?: string | null;
 }
 
 export interface FileBranch {
-    id: string;
+    id: number;
     fileId: string;
     name: string;
     sourceBranchName?: string | null;
@@ -28,7 +28,7 @@ export interface FileBranch {
 export interface FileCommit {
     id: number;
     hash: string;
-    branchId: string;
+    branchId: number;
     message?: string | null;
     committedBy: number;
     committedByName: string;

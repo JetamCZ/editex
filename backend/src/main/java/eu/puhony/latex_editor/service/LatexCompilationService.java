@@ -54,17 +54,16 @@ public class LatexCompilationService {
     @Value("${latex.compiler.path:pdflatex}")
     private String compilerPath;
 
-    public CompilationResult compileLatex(String baseProject, String branch, String targetFile, Long userId) throws Exception {
+    public CompilationResult compileLatex(Long projectId, String targetFile, Long userId) throws Exception {
         long startTime = System.currentTimeMillis();
         File workDir = null;
 
         try {
             // 1. Validate permissions
-            folderPermissionService.ensureCanReadProject(baseProject, userId);
-
-            // Get the project to find the numeric ID
-            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+            Project project = projectRepository.findByIdNonDeleted(projectId)
                     .orElseThrow(() -> new RuntimeException("Project not found"));
+            String baseProject = project.getBaseProject();
+            folderPermissionService.ensureCanReadProject(project.getId(), userId);
 
             // 2. Create temp directory
             workDir = createCompilationDirectory();
@@ -93,7 +92,7 @@ public class LatexCompilationService {
 
                 if (pdfFile.exists()) {
                     // Upload PDF with name derived from source (overwrites previous version)
-                    String s3Folder = baseProject + "/" + branch + "/compiled";
+                    String s3Folder = baseProject + "/main/compiled";
                     String s3PdfFileName = baseName + ".pdf";
 
                     System.out.println("Uploading PDF to S3:");
@@ -131,11 +130,11 @@ public class LatexCompilationService {
      * Returns all saved commits of main.tex (on its "main" file-branch) for a given project,
      * along with a presigned PDF URL if that commit has already been compiled.
      */
-    public List<ProjectVersionPdfInfo> getProjectVersionPdfs(String baseProject, String branch, Long userId) {
-        folderPermissionService.ensureCanReadProject(baseProject, userId);
-
-        Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+    public List<ProjectVersionPdfInfo> getProjectVersionPdfs(Long projectId, Long userId) {
+        Project project = projectRepository.findByIdNonDeleted(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+        String baseProject = project.getBaseProject();
+        folderPermissionService.ensureCanReadProject(project.getId(), userId);
 
         // Find main.tex
         List<ProjectFile> files = projectFileRepository.findByProjectIdNonDeleted(project.getId());
@@ -154,7 +153,7 @@ public class LatexCompilationService {
 
         List<ProjectVersionPdfInfo> result = new ArrayList<>();
         for (FileCommit commit : commits) {
-            String pdfObjectName = baseProject + "/" + branch + "/compiled/commits/" + commit.getHash() + ".pdf";
+            String pdfObjectName = baseProject + "/main/compiled/commits/" + commit.getHash() + ".pdf";
             boolean hasPdf = minioService.objectExists(pdfObjectName);
             String pdfUrl = hasPdf ? minioService.getFileUrl(pdfObjectName) : null;
             result.add(new ProjectVersionPdfInfo(commit.getHash(), commit.getMessage(), commit.getCreatedAt(), hasPdf, pdfUrl));
@@ -167,15 +166,15 @@ public class LatexCompilationService {
      * Compile a specific commit of main.tex with all imports resolved to their state
      * at that commit's timestamp, ensuring a fully consistent PDF snapshot.
      */
-    public CompilationResult compileLatexAtCommit(String baseProject, String branch, String commitHash, Long userId) throws Exception {
+    public CompilationResult compileLatexAtCommit(Long projectId, String commitHash, Long userId) throws Exception {
         long startTime = System.currentTimeMillis();
         File workDir = null;
 
         try {
-            folderPermissionService.ensureCanReadProject(baseProject, userId);
-
-            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+            Project project = projectRepository.findByIdNonDeleted(projectId)
                     .orElseThrow(() -> new RuntimeException("Project not found"));
+            String baseProject = project.getBaseProject();
+            folderPermissionService.ensureCanReadProject(project.getId(), userId);
 
             FileCommit targetCommit = commitRepository.findByHashAndProjectId(commitHash, project.getId())
                     .orElseThrow(() -> new RuntimeException("Commit not found: " + commitHash));
@@ -197,7 +196,7 @@ public class LatexCompilationService {
             if (result.isSuccess()) {
                 File pdfFile = new File(workDir, "main.pdf");
                 if (pdfFile.exists()) {
-                    String s3Folder = baseProject + "/" + branch + "/compiled/commits";
+                    String s3Folder = baseProject + "/main/compiled/commits";
                     String pdfUrl = minioService.uploadFileWithName(pdfFile, s3Folder, commitHash + ".pdf", "application/pdf");
                     result.setPdfFileId(null);
                     result.setPdfUrl(pdfUrl);
@@ -232,15 +231,14 @@ public class LatexCompilationService {
                 String content;
 
                 if (file.getId().equals(targetFileId)) {
-                    // Use the exact committed snapshot for the target file (main.tex)
-                    content = targetCommit.getContent();
+                    content = fileBranchService.resolveCommitContent(targetCommit);
                 } else {
                     // For all other .tex files, find their "main" branch's latest commit ≤ commitTime
                     Optional<FileBranch> fileBranch = branchRepository.findByFileIdAndNameNonDeleted(file.getId(), "main");
                     if (fileBranch.isPresent()) {
                         content = commitRepository
                                 .findLatestByBranchIdBefore(fileBranch.get().getId(), commitTime)
-                                .map(FileCommit::getContent)
+                                .map(fileBranchService::resolveCommitContent)
                                 .orElseGet(() -> {
                                     try {
                                         return minioService.getFileContent(file.getS3Url());
@@ -251,7 +249,7 @@ public class LatexCompilationService {
                     } else if (file.getActiveBranch() != null) {
                         content = commitRepository
                                 .findLatestByBranchIdBefore(file.getActiveBranch().getId(), commitTime)
-                                .map(FileCommit::getContent)
+                                .map(fileBranchService::resolveCommitContent)
                                 .orElseGet(() -> {
                                     try {
                                         return minioService.getFileContent(file.getS3Url());
@@ -347,14 +345,14 @@ public class LatexCompilationService {
         }
     }
 
-    public String downloadProjectAsZip(String baseProject, String branch, Long userId) throws Exception {
+    public String downloadProjectAsZip(Long projectId, Long userId) throws Exception {
         File workDir = null;
 
         try {
-            folderPermissionService.ensureCanReadProject(baseProject, userId);
-
-            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+            Project project = projectRepository.findByIdNonDeleted(projectId)
                     .orElseThrow(() -> new RuntimeException("Project not found"));
+            String baseProject = project.getBaseProject();
+            folderPermissionService.ensureCanReadProject(project.getId(), userId);
 
             workDir = createCompilationDirectory();
 
@@ -367,7 +365,7 @@ public class LatexCompilationService {
             }
 
             // Upload zip to S3
-            String s3Folder = baseProject + "/" + branch + "/downloads";
+            String s3Folder = baseProject + "/main/downloads";
             String zipFileName = "project.zip";
             String zipUrl = minioService.uploadFileWithName(zipFile, s3Folder, zipFileName, "application/zip");
 
@@ -382,14 +380,14 @@ public class LatexCompilationService {
         }
     }
 
-    public String downloadProjectAtCommitAsZip(String baseProject, String branch, String commitHash, Long userId) throws Exception {
+    public String downloadProjectAtCommitAsZip(Long projectId, String commitHash, Long userId) throws Exception {
         File workDir = null;
 
         try {
-            folderPermissionService.ensureCanReadProject(baseProject, userId);
-
-            Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
+            Project project = projectRepository.findByIdNonDeleted(projectId)
                     .orElseThrow(() -> new RuntimeException("Project not found"));
+            String baseProject = project.getBaseProject();
+            folderPermissionService.ensureCanReadProject(project.getId(), userId);
 
             FileCommit targetCommit = commitRepository.findByHashAndProjectId(commitHash, project.getId())
                     .orElseThrow(() -> new RuntimeException("Commit not found: " + commitHash));
@@ -407,7 +405,7 @@ public class LatexCompilationService {
                 addDirectoryToZip(workDir, workDir, zos);
             }
 
-            String s3Folder = baseProject + "/" + branch + "/downloads/commits";
+            String s3Folder = baseProject + "/main/downloads/commits";
             String zipFileName = commitHash + ".zip";
             String zipUrl = minioService.uploadFileWithName(zipFile, s3Folder, zipFileName, "application/zip");
 

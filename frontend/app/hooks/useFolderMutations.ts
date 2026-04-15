@@ -11,7 +11,7 @@ function useToken() {
     return bearerToken;
 }
 
-export function useCreateFolder(baseProject: string) {
+export function useCreateFolder(projectId: number) {
     const queryClient = useQueryClient();
     const bearerToken = useToken();
     return useMutation({
@@ -24,13 +24,13 @@ export function useCreateFolder(baseProject: string) {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ['projectFolders', baseProject]});
-            queryClient.invalidateQueries({queryKey: ['projectFiles', baseProject]});
+            queryClient.invalidateQueries({queryKey: ['projectFolders', projectId]});
+            queryClient.invalidateQueries({queryKey: ['projectFiles', projectId]});
         },
     });
 }
 
-export function useDeleteFolder(baseProject: string) {
+export function useDeleteFolder(projectId: number) {
     const queryClient = useQueryClient();
     const bearerToken = useToken();
     return useMutation({
@@ -41,13 +41,13 @@ export function useDeleteFolder(baseProject: string) {
             );
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ['projectFolders', baseProject]});
-            queryClient.invalidateQueries({queryKey: ['projectFiles', baseProject]});
+            queryClient.invalidateQueries({queryKey: ['projectFolders', projectId]});
+            queryClient.invalidateQueries({queryKey: ['projectFiles', projectId]});
         },
     });
 }
 
-export function useRenameFolder(baseProject: string) {
+export function useRenameFolder(projectId: number) {
     const queryClient = useQueryClient();
     const bearerToken = useToken();
     return useMutation({
@@ -60,8 +60,8 @@ export function useRenameFolder(baseProject: string) {
             return data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ['projectFolders', baseProject]});
-            queryClient.invalidateQueries({queryKey: ['projectFiles', baseProject]});
+            queryClient.invalidateQueries({queryKey: ['projectFolders', projectId]});
+            queryClient.invalidateQueries({queryKey: ['projectFiles', projectId]});
         },
     });
 }

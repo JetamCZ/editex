@@ -27,7 +27,7 @@ export default function DangerZoneCard({project, bearerToken}: DangerZoneCardPro
     const deleteProjectMutation = useMutation({
         mutationFn: async () => {
             await axios.delete(
-                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${project.baseProject}/${project.branch}`,
+                `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8080"}/api/projects/${project.id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${bearerToken}`,

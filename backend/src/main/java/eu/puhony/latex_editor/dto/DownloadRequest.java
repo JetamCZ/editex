@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DownloadRequest {
-    private String baseProject;
-    private String branch = "main";
+    private Long projectId;
     private String commitHash;
 }

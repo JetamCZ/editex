@@ -9,8 +9,7 @@ import { useTranslation } from 'react-i18next';
 interface CreateFileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  baseProject: string;
-  branch: string;
+  projectId: number;
 }
 
 const FILE_TEMPLATES: Record<string, string> = {
@@ -47,8 +46,7 @@ const FILE_TEMPLATES: Record<string, string> = {
 export default function CreateFileModal({
   open,
   onOpenChange,
-  baseProject,
-  branch,
+  projectId,
 }: CreateFileModalProps) {
   const { t } = useTranslation();
   const { bearerToken } = useAuth();
@@ -70,8 +68,7 @@ export default function CreateFileModal({
 
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('baseProject', baseProject);
-      formData.append('branch', branch);
+      formData.append('projectId', String(projectId));
       formData.append('folder', folder);
 
       await axios.post(
@@ -86,7 +83,7 @@ export default function CreateFileModal({
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projectFiles', baseProject, branch] });
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
       handleClose();
     },
     onError: (error) => {
@@ -178,7 +175,7 @@ export default function CreateFileModal({
           <Box>
             <Text size="2" weight="bold" mb="1">{t('createFile.folderLabel')}</Text>
             <FolderSelect
-              baseProject={baseProject}
+              projectId={projectId}
               value={folder}
               onChange={setFolder}
               allowCreate

@@ -76,7 +76,7 @@ const PermissionsPage = () => {
         setHeaderActionsContainer(document.getElementById("header-actions"));
     }, []);
 
-    const {data: summary, isLoading} = useAccessSummary(project.baseProject);
+    const {data: summary, isLoading} = useAccessSummary(project.id);
 
     const folderTree = useMemo(() => flattenFolderTree(summary?.folders ?? []), [summary]);
 
@@ -105,7 +105,7 @@ const PermissionsPage = () => {
         <Button
             size="2"
             variant="soft"
-            onClick={() => navigate(`/project/${project.baseProject}/${project.branch}/settings`)}
+            onClick={() => navigate(`/project/${project.baseProject}/settings`)}
         >
             <ArrowLeft size={14} /> {t('settings.permissions.backToSettings')}
         </Button>,
@@ -259,8 +259,7 @@ const PermissionsPage = () => {
                 open={!!accessModalFolder}
                 onOpenChange={(open) => !open && setAccessModalFolder(null)}
                 folder={accessModalFolder}
-                baseProject={project.baseProject}
-                branch={project.branch}
+                projectId={project.id}
             />
         </>
     );

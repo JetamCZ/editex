@@ -25,7 +25,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,6 +42,7 @@ class FolderPermissionServiceTest {
     @InjectMocks private FolderPermissionService service;
 
     private static final String BASE_PROJECT = "abc-123";
+    private static final Long PROJECT_ID = 100L;
 
     private User owner;
     private User alice;
@@ -58,18 +58,18 @@ class FolderPermissionServiceTest {
         alice = makeUser(2L, "alice@x.com");
         bob = makeUser(3L, "bob@x.com");
 
+        project = new Project();
+        project.setId(PROJECT_ID);
+        project.setBaseProject(BASE_PROJECT);
+        project.setOwner(owner);
+
         root = makeFolder(10L, "/", null);
         chapters = makeFolder(11L, "/chapters", root);
         intro = makeFolder(12L, "/chapters/intro", chapters);
 
-        project = new Project();
-        project.setBaseProject(BASE_PROJECT);
-        project.setBranch("main");
-        project.setOwner(owner);
-
-        when(projectRepository.findByBaseProjectAndBranchNonDeleted(eq(BASE_PROJECT), eq("main")))
+        when(projectRepository.findByIdNonDeleted(eq(PROJECT_ID)))
                 .thenReturn(Optional.of(project));
-        when(folderRepository.findRoot(BASE_PROJECT)).thenReturn(Optional.of(root));
+        when(folderRepository.findRoot(eq(PROJECT_ID))).thenReturn(Optional.of(root));
     }
 
     // --- Project owner has implicit MANAGER on every folder ---
@@ -95,7 +95,7 @@ class FolderPermissionServiceTest {
     @Test
     void storedGrantOnFolderIsReturned() {
         stubGrant(chapters, alice, FolderRole.EDITOR);
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(grant(chapters, alice, FolderRole.EDITOR)));
 
         assertEquals(FolderRole.EDITOR, service.effectiveRole(alice.getId(), chapters));
@@ -104,7 +104,7 @@ class FolderPermissionServiceTest {
     @Test
     void grantOnAncestorAppliesToDescendant() {
         stubGrant(chapters, alice, FolderRole.EDITOR);
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(grant(chapters, alice, FolderRole.EDITOR)));
 
         assertEquals(FolderRole.EDITOR, service.effectiveRole(alice.getId(), intro));
@@ -114,7 +114,7 @@ class FolderPermissionServiceTest {
     void multipleAncestorGrantsTakeMax() {
         stubGrant(chapters, alice, FolderRole.VIEWER);
         stubGrant(intro, alice, FolderRole.MANAGER);
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(
                         grant(chapters, alice, FolderRole.VIEWER),
                         grant(intro, alice, FolderRole.MANAGER)));
@@ -125,7 +125,7 @@ class FolderPermissionServiceTest {
     @Test
     void noGrantsAnywhereReturnsNull() {
         when(permissionRepository.findByFolderAndUser(anyLong(), eq(bob.getId()))).thenReturn(Optional.empty());
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, bob.getId())).thenReturn(Collections.emptyList());
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, bob.getId())).thenReturn(Collections.emptyList());
 
         assertNull(service.effectiveRole(bob.getId(), intro));
         assertFalse(service.canRead(bob.getId(), intro));
@@ -136,7 +136,7 @@ class FolderPermissionServiceTest {
     @Test
     void userWithGrantOnSubfolderGetsImplicitViewerOnRoot() {
         when(permissionRepository.findByFolderAndUser(eq(root.getId()), eq(alice.getId()))).thenReturn(Optional.empty());
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(grant(intro, alice, FolderRole.EDITOR)));
 
         assertEquals(FolderRole.VIEWER, service.effectiveRole(alice.getId(), root));
@@ -145,7 +145,7 @@ class FolderPermissionServiceTest {
     @Test
     void userWithNoGrantsGetsNoImplicitRootAccess() {
         when(permissionRepository.findByFolderAndUser(anyLong(), eq(bob.getId()))).thenReturn(Optional.empty());
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, bob.getId())).thenReturn(Collections.emptyList());
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, bob.getId())).thenReturn(Collections.emptyList());
 
         assertNull(service.effectiveRole(bob.getId(), root));
     }
@@ -155,7 +155,7 @@ class FolderPermissionServiceTest {
     @Test
     void canEditRequiresEditorOrAbove() {
         stubGrant(chapters, alice, FolderRole.VIEWER);
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(grant(chapters, alice, FolderRole.VIEWER)));
 
         assertFalse(service.canEdit(alice.getId(), chapters));
@@ -165,7 +165,7 @@ class FolderPermissionServiceTest {
     @Test
     void canManageRequiresManager() {
         stubGrant(chapters, alice, FolderRole.EDITOR);
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(grant(chapters, alice, FolderRole.EDITOR)));
 
         assertFalse(service.canManage(alice.getId(), chapters));
@@ -178,7 +178,7 @@ class FolderPermissionServiceTest {
     void grantThrowsIfActorIsNotManager() {
         when(permissionRepository.findByFolderAndUser(eq(chapters.getId()), eq(alice.getId())))
                 .thenReturn(Optional.of(grant(chapters, alice, FolderRole.EDITOR)));
-        when(permissionRepository.findByBaseProjectAndUser(BASE_PROJECT, alice.getId()))
+        when(permissionRepository.findByProjectIdAndUser(PROJECT_ID, alice.getId()))
                 .thenReturn(List.of(grant(chapters, alice, FolderRole.EDITOR)));
 
         assertThrows(SecurityException.class,
@@ -223,10 +223,10 @@ class FolderPermissionServiceTest {
         return u;
     }
 
-    private static ProjectFolder makeFolder(long id, String path, ProjectFolder parent) {
+    private ProjectFolder makeFolder(long id, String path, ProjectFolder parent) {
         ProjectFolder f = new ProjectFolder();
         f.setId(id);
-        f.setBaseProject(BASE_PROJECT);
+        f.setProject(project);
         f.setPath(path);
         f.setParent(parent);
         f.setName(parent == null ? "" : path.substring(path.lastIndexOf('/') + 1));

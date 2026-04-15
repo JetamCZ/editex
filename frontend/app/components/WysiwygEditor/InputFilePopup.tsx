@@ -9,8 +9,7 @@ interface InputFilePopupProps {
     filePath: string;
     onSave: (filePath: string) => void;
     onCancel: () => void;
-    baseProject?: string;
-    branch?: string;
+    projectId?: number;
 }
 
 // Parse existing path: "chapter1@branch" or "chapter1#hash" or just "chapter1"
@@ -22,7 +21,7 @@ function parseFilePath(filePath: string): { path: string; ref: string; refType: 
     return { path: filePath, ref: '', refType: 'none' };
 }
 
-export default function InputFilePopup({filePath, onSave, onCancel, baseProject, branch}: InputFilePopupProps) {
+export default function InputFilePopup({filePath, onSave, onCancel, projectId}: InputFilePopupProps) {
     const { t } = useTranslation();
     const parsed = useMemo(() => parseFilePath(filePath), [filePath]);
     const [path, setPath] = useState(parsed.path);
@@ -32,9 +31,8 @@ export default function InputFilePopup({filePath, onSave, onCancel, baseProject,
     const pathRef = useRef<HTMLInputElement>(null);
 
     const {data: files = []} = useProjectFiles({
-        baseProject: baseProject || '',
-        branch,
-        enabled: !!baseProject,
+        projectId: projectId || 0,
+        enabled: !!projectId,
     });
 
     const texFiles = useMemo(() => {

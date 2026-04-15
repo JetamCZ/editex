@@ -25,10 +25,10 @@ export function meta({ data }: { data: { project: Project } | undefined }) {
 
 export async function loader({request, params}: LoaderFunctionArgs) {
     const api = await getApiClient(request);
-    const {baseProject, branch = "main"} = params;
+    const {baseProject} = params;
 
     try {
-        const {data: project} = await api.get<Project>(`/projects/${baseProject}/${branch}`);
+        const {data: project} = await api.get<Project>(`/projects/uuid/${baseProject}`);
         return {project};
     } catch (error) {
         console.error("Error loading project:", error);
@@ -64,9 +64,9 @@ export default function ProjectLayout() {
     const isVersionsPage = location.pathname.endsWith('/versions');
     const handleIconClick = (itemId: string, path: string) => {
         if (path) {
-            navigate(`/project/${project.baseProject}/${project.branch}${path}`);
+            navigate(`/project/${project.baseProject}${path}`);
         } else if (itemId === 'files') {
-            navigate(`/project/${project.baseProject}/${project.branch}`);
+            navigate(`/project/${project.baseProject}`);
         }
     };
 
@@ -106,7 +106,7 @@ export default function ProjectLayout() {
                     </Link>
                     */}
                     {/* TODO: Uncomment when settings page is fully implemented
-                    <Link to={`/project/${project.baseProject}/${project.branch}/settings`} style={{textDecoration: "none"}}>
+                    <Link to={`/project/${project.id}/settings`} style={{textDecoration: "none"}}>
                         <Text
                             size="2"
                             weight={isSettingsPage ? "bold" : "regular"}

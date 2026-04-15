@@ -9,8 +9,7 @@ import { useTranslation } from 'react-i18next';
 interface FileUploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  baseProject: string;
-  branch?: string;
+  projectId: number;
   folder?: string;
 }
 
@@ -24,8 +23,7 @@ interface FilePreview {
 export default function FileUploadModal({
   open,
   onOpenChange,
-  baseProject,
-  branch = "main",
+  projectId,
   folder = "/",
 }: FileUploadModalProps) {
   const { t } = useTranslation();
@@ -46,8 +44,7 @@ export default function FileUploadModal({
       for (let i = 0; i < totalFiles; i++) {
         const formData = new FormData();
         formData.append('file', filesToUpload[i].file);
-        formData.append('baseProject', baseProject);
-        formData.append('branch', branch);
+        formData.append('projectId', String(projectId));
         formData.append('folder', selectedFolder);
 
         await axios.post(
@@ -71,7 +68,7 @@ export default function FileUploadModal({
     },
     onSuccess: () => {
       // Invalidate and refetch project files
-      queryClient.invalidateQueries({ queryKey: ['projectFiles', baseProject, branch] });
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
       setFiles([]);
       setUploadProgress(100);
 
@@ -153,7 +150,7 @@ export default function FileUploadModal({
           <Box>
             <Text size="2" weight="bold" mb="1">{t('fileUpload.folderLabel')}</Text>
             <FolderSelect
-              baseProject={baseProject}
+              projectId={projectId}
               value={selectedFolder}
               onChange={setSelectedFolder}
               allowCreate

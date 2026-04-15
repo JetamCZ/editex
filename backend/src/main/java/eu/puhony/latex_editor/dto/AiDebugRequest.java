@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AiDebugRequest {
-    private String baseProject;
-    private String branch;
+    private Long projectId;
     private String sourceFile;
     private String errorMessage;
     private String compilationLog;

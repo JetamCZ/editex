@@ -10,21 +10,21 @@ export interface ProjectVersionPdfInfo {
     pdfUrl: string | null;
 }
 
-export function useProjectVersionPdfs(baseProject: string, branch: string) {
+export function useProjectVersionPdfs(projectId: number) {
     const authData = useRouteLoaderData("auth-user") as { bearerToken: string } | undefined;
     const bearerToken = authData?.bearerToken;
 
     return useQuery({
-        queryKey: ['projectVersionPdfs', baseProject, branch],
+        queryKey: ['projectVersionPdfs', projectId],
         queryFn: async () => {
             const response = await axios.get<ProjectVersionPdfInfo[]>(
-                `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/latex/pdfs/${baseProject}/${branch}`,
+                `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'}/api/latex/pdfs/${projectId}`,
                 {
                     headers: { 'Authorization': `Bearer ${bearerToken}` }
                 }
             );
             return response.data;
         },
-        enabled: !!bearerToken && !!baseProject && !!branch,
+        enabled: !!bearerToken && !!projectId,
     });
 }

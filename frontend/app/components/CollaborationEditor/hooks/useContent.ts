@@ -16,7 +16,7 @@ const useContent = (
     setIsApplyingRemoteChanges: (value: boolean) => void,
     setIsDocumentLoaded: (value: boolean) => void,
     localSessionId: string,
-    branchId?: string | null,
+    branchId?: number | null,
     isEditorReady: boolean = true,
 ) => {
     const [content, setContent] = useState('');
@@ -71,9 +71,15 @@ const useContent = (
     }, [fileId, refetch, setIsDocumentLoaded, isEditorReady]);
 
     const handleChanges = useCallback((changes: ChangeOperation[], senderSessionId: string | null) => {
-        // Skip changes from our own session - we already applied them locally via HTTP
+        // Our own changes coming back via broadcast. The editor already has
+        // them (applied locally before POST), but `content` — the server
+        // baseline used as the starting point for future OT — doesn't. We must
+        // advance it, otherwise the next remote change is applied against a
+        // stale baseline and stomps on our already-saved edits until reload.
         if (senderSessionId === localSessionId) {
-            // Just update the lastChangeId to stay in sync
+            const lines = contentRef.current.split('\n');
+            const newServerContent = applyChanges(lines, changes);
+            setContent(newServerContent.join('\n'));
             if (changes.length > 0 && changes.at(-1)?.id) {
                 setLastChangeId(changes.at(-1)!.id!);
             }

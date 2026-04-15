@@ -10,8 +10,7 @@ interface CompilationErrorDialogProps {
     onOpenChange: (open: boolean) => void;
     errorMessage: string | null;
     compilationLog: string | null;
-    baseProject?: string;
-    branch?: string;
+    projectId?: number;
     sourceFile?: string;
 }
 
@@ -20,8 +19,7 @@ export default function CompilationErrorDialog({
     onOpenChange,
     errorMessage,
     compilationLog,
-    baseProject,
-    branch,
+    projectId,
     sourceFile,
 }: CompilationErrorDialogProps) {
     const { t, i18n } = useTranslation();
@@ -40,13 +38,12 @@ export default function CompilationErrorDialog({
     };
 
     const handleAiDebug = async () => {
-        if (!baseProject) return;
+        if (!projectId) return;
         setAiExplanation(null);
         setAiError(null);
         try {
             const result = await aiDebug.mutateAsync({
-                baseProject,
-                branch,
+                projectId,
                 sourceFile,
                 errorMessage,
                 compilationLog,
@@ -150,7 +147,7 @@ export default function CompilationErrorDialog({
                     )}
 
                     {/* AI Debug Section */}
-                    {baseProject && (
+                    {projectId && (
                         <div>
                             <Flex justify="between" align="center" mb="2">
                                 <Text size="2" weight="bold">

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FileUploadResponse {
     private String id;
-    private String projectId;
+    private Long projectId;
     private String projectFolder;
     private String fileName;
     private String originalFileName;
@@ -21,6 +21,6 @@ public class FileUploadResponse {
     private Long uploadedBy;
     private LocalDateTime createdAt;
     private Long lastChangeId;
-    private String activeBranchId;
+    private Long activeBranchId;
     private String activeBranchName;
 }

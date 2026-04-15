@@ -27,7 +27,7 @@ public class FileBranchService {
      * Content = latest commit content + pending document_changes applied on top.
      * If no commits exist (legacy), falls back to S3 base + all changes for this branch.
      */
-    public String getContent(String branchId, Long userId) {
+    public String getContent(Long branchId, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
 
@@ -39,53 +39,70 @@ public class FileBranchService {
 
     /**
      * Internal content resolution without permission check.
+     * Returns the current state: all changes applied up to the latest for this branch.
      */
     public String resolveContent(FileBranch branch) {
-        String fileId = branch.getFile().getId();
-        String branchId = branch.getId();
+        Long branchId = branch.getId();
+        Optional<DocumentChange> latestReplace =
+                changeRepository.findLatestReplaceByBranchIdAtOrBefore(branchId, Long.MAX_VALUE);
 
-        Optional<FileCommit> latestCommit = commitRepository.findLatestByBranchId(branchId);
+        if (latestReplace.isPresent()) {
+            DocumentChange replace = latestReplace.get();
+            List<DocumentChange> changes = changeRepository.findByBranchIdAndIdGreaterThan(branchId, replace.getId());
+            return changes.isEmpty() ? replace.getContent()
+                    : documentChangeService.applyChangesToContent(replace.getContent(), changes);
+        }
 
-        if (latestCommit.isPresent()) {
-            // Has commits: latest commit content + changes after that commit
-            String baseContent = latestCommit.get().getContent();
-            List<DocumentChange> changes = changeRepository.findByFileIdAndBranchIdOrderById(fileId, branchId);
-
-            // Filter only changes created after the commit
-            Long commitId = latestCommit.get().getId();
-            List<DocumentChange> pendingChanges = changes.stream()
-                    .filter(c -> c.getId() > getLastChangeIdAtCommit(commitId, branchId))
-                    .toList();
-
-            if (pendingChanges.isEmpty()) {
-                return baseContent;
-            }
-            return documentChangeService.applyChangesToContent(baseContent, pendingChanges);
-        } else {
-            // No commits yet (legacy or newly created): S3 base + all branch changes
-            try {
-                String originalContent = minioService.getFileContent(branch.getFile().getS3Url());
-                List<DocumentChange> changes = changeRepository.findByFileIdAndBranchIdOrderById(fileId, branchId);
-
-                if (changes.isEmpty()) {
-                    return originalContent;
-                }
-                return documentChangeService.applyChangesToContent(originalContent, changes);
-            } catch (Exception e) {
-                throw new RuntimeException("Error resolving content for variant " + branchId, e);
-            }
+        // No REPLACE change yet (main branch before first branch creation): S3 + all changes
+        try {
+            String originalContent = minioService.getFileContent(branch.getFile().getS3Url());
+            List<DocumentChange> changes = changeRepository.findByFileIdAndBranchIdOrderById(
+                    branch.getFile().getId(), branchId);
+            return changes.isEmpty() ? originalContent
+                    : documentChangeService.applyChangesToContent(originalContent, changes);
+        } catch (Exception e) {
+            throw new RuntimeException("Error resolving content for variant " + branchId, e);
         }
     }
 
     /**
-     * Get the last document_change id that was baked into the latest commit.
-     * We use the commit's created_at vs change's created_at to determine this.
-     * Simpler approach: all changes on the branch at the time of commit are baked in,
-     * so we just use all current changes (they are all post-commit since commit clears them).
+     * Reconstruct the exact content captured in a commit.
+     * Finds the nearest REPLACE change at or before the commit's last_change_id as the base,
+     * then replays subsequent line-level changes on top.
+     * Falls back to the S3 origin when no REPLACE exists (main branch before first branch-off).
      */
-    private Long getLastChangeIdAtCommit(Long commitId, String branchId) {
-        // Since commit() deletes all changes, any remaining changes are post-commit
-        return 0L;
+    public String resolveCommitContent(FileCommit commit) {
+        Long branchId = commit.getBranch().getId();
+        if (commit.getLastChangeId() == null) {
+            // No changes yet on this branch at commit time
+            try {
+                return minioService.getFileContent(commit.getBranch().getFile().getS3Url());
+            } catch (Exception e) {
+                throw new RuntimeException("Error reading S3 origin for commit " + commit.getId(), e);
+            }
+        }
+
+        Optional<DocumentChange> latestReplace =
+                changeRepository.findLatestReplaceByBranchIdAtOrBefore(branchId, commit.getLastChangeId());
+
+        if (latestReplace.isPresent()) {
+            DocumentChange replace = latestReplace.get();
+            List<DocumentChange> changes = changeRepository.findByBranchIdAndIdBetween(
+                    branchId, replace.getId(), commit.getLastChangeId());
+            return changes.isEmpty() ? replace.getContent()
+                    : documentChangeService.applyChangesToContent(replace.getContent(), changes);
+        }
+
+        // No REPLACE — apply all changes from S3 origin
+        try {
+            String s3Content = minioService.getFileContent(commit.getBranch().getFile().getS3Url());
+            List<DocumentChange> changes = changeRepository.findByBranchIdAndIdBetween(
+                    branchId, 0L, commit.getLastChangeId());
+            return changes.isEmpty() ? s3Content
+                    : documentChangeService.applyChangesToContent(s3Content, changes);
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading S3 origin for commit " + commit.getId(), e);
+        }
     }
 
     /**
@@ -101,12 +118,13 @@ public class FileBranchService {
     }
 
     /**
-     * Whether a branch has pending document changes that have not yet been
-     * folded into a commit. Since commit() deletes all changes on the branch,
-     * any remaining change row means the branch has uncommitted work.
+     * Whether a branch has document changes that are not yet captured in a commit.
      */
-    public boolean hasUncommittedChanges(String branchId) {
-        return changeRepository.existsByBranchId(branchId);
+    public boolean hasUncommittedChanges(Long branchId) {
+        Long lastId = commitRepository.findLatestByBranchId(branchId)
+                .map(c -> c.getLastChangeId() != null ? c.getLastChangeId() : 0L)
+                .orElse(0L);
+        return changeRepository.existsByBranchIdAndIdGreaterThan(branchId, lastId);
     }
 
     /**
@@ -146,17 +164,32 @@ public class FileBranchService {
         newBranch.setCreatedBy(user);
         newBranch = branchRepository.save(newBranch);
 
-        // Create initial commit on new branch with the source's committed base
+        // Record the fork point as a REPLACE change — this is the base for all future
+        // reconstruction on this branch without storing content in the commit itself.
+        DocumentChange forkChange = new DocumentChange();
+        forkChange.setFile(file);
+        forkChange.setUser(user);
+        forkChange.setSessionId("system");
+        forkChange.setOperation("REPLACE");
+        forkChange.setLineNumber(0);
+        forkChange.setContent(baseContent);
+        forkChange.setBranch(newBranch);
+        forkChange = changeRepository.save(forkChange);
+
+        // Initial commit points at the REPLACE change
         FileCommit initialCommit = new FileCommit();
         initialCommit.setBranch(newBranch);
-        initialCommit.setContent(baseContent);
+        initialCommit.setLastChangeId(forkChange.getId());
         initialCommit.setMessage("Created from '" + sourceRef + "'");
         initialCommit.setCommittedBy(user);
         commitRepository.save(initialCommit);
 
-        // Carry over uncommitted changes from the source branch
-        List<DocumentChange> pendingChanges =
-                changeRepository.findByFileIdAndBranchIdOrderById(fileId, sourceBranch.getId());
+        // Carry over only uncommitted (pending) changes from the source branch
+        Long sourceLastCommitted = commitRepository.findLatestByBranchId(sourceBranch.getId())
+                .map(c -> c.getLastChangeId() != null ? c.getLastChangeId() : 0L)
+                .orElse(0L);
+        List<DocumentChange> pendingChanges = changeRepository.findByBranchIdAndIdGreaterThan(
+                sourceBranch.getId(), sourceLastCommitted);
         for (DocumentChange src : pendingChanges) {
             DocumentChange copy = new DocumentChange();
             copy.setFile(file);
@@ -181,7 +214,7 @@ public class FileBranchService {
     private String resolveCommittedContent(FileBranch branch) {
         Optional<FileCommit> latestCommit = commitRepository.findLatestByBranchId(branch.getId());
         if (latestCommit.isPresent()) {
-            return latestCommit.get().getContent();
+            return resolveCommitContent(latestCommit.get());
         }
         try {
             return minioService.getFileContent(branch.getFile().getS3Url());
@@ -191,38 +224,32 @@ public class FileBranchService {
     }
 
     /**
-     * Commit current state of a branch (snapshot).
-     * Resolves content, saves as commit, deletes pending changes.
+     * Commit current state of a branch by recording a reference to the latest document change.
+     * Document changes are retained (not deleted) so history can be reconstructed.
      */
     @Transactional
-    public FileCommit commit(String branchId, String message, User user) {
+    public FileCommit commit(Long branchId, String message, User user) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
 
-        ProjectFile file = branch.getFile();
-        folderPermissionService.ensureCanEdit(user.getId(), file);
+        folderPermissionService.ensureCanEdit(user.getId(), branch.getFile());
 
-        // Resolve current content
-        String currentContent = resolveContent(branch);
+        Long lastChangeId = changeRepository.findLatestByBranchId(branchId)
+                .map(DocumentChange::getId)
+                .orElse(null);
 
-        // Create commit
         FileCommit commit = new FileCommit();
         commit.setBranch(branch);
-        commit.setContent(currentContent);
+        commit.setLastChangeId(lastChangeId);
         commit.setMessage(message);
         commit.setCommittedBy(user);
-        commit = commitRepository.save(commit);
-
-        // Delete all pending changes for this branch (they are now baked into the commit)
-        changeRepository.deleteByBranchId(branchId);
-
-        return commit;
+        return commitRepository.save(commit);
     }
 
     /**
      * Get commit history for a branch.
      */
-    public List<FileCommit> getCommitHistory(String branchId, Long userId) {
+    public List<FileCommit> getCommitHistory(Long branchId, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
 
@@ -235,7 +262,7 @@ public class FileBranchService {
      * Set the active branch for a file.
      */
     @Transactional
-    public ProjectFile setActiveBranch(String fileId, String branchId, Long userId) {
+    public ProjectFile setActiveBranch(String fileId, Long branchId, Long userId) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
@@ -265,7 +292,7 @@ public class FileBranchService {
      * The merge base is the first (oldest) commit of the source branch, which is the
      * snapshot taken from the target at branch-creation time.
      */
-    public MergePreviewResult getMergePreview(String sourceBranchId, String targetBranchId, Long userId) {
+    public MergePreviewResult getMergePreview(Long sourceBranchId, Long targetBranchId, Long userId) {
         FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
                 .orElseThrow(() -> new RuntimeException("Source variant not found"));
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
@@ -283,7 +310,7 @@ public class FileBranchService {
     private MergePreviewResult computePreview(FileBranch sourceBranch, FileBranch targetBranch) {
         // Base = content at the moment source was branched off target (its first commit)
         String base = commitRepository.findOldestByBranchId(sourceBranch.getId())
-                .map(FileCommit::getContent)
+                .map(this::resolveCommitContent)
                 .orElseGet(() -> {
                     try { return minioService.getFileContent(sourceBranch.getFile().getS3Url()); }
                     catch (Exception e) { throw new RuntimeException("Cannot resolve merge base", e); }
@@ -313,7 +340,7 @@ public class FileBranchService {
      * target first.</p>
      */
     @Transactional
-    public FileCommit merge(String sourceBranchId, String targetBranchId, String resolvedContent, User user) {
+    public FileCommit merge(Long sourceBranchId, Long targetBranchId, String resolvedContent, User user) {
         FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
                 .orElseThrow(() -> new RuntimeException("Source variant not found"));
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
@@ -338,16 +365,23 @@ public class FileBranchService {
             contentToCommit = preview.content();
         }
 
-        // Create merge commit on target
+        // Store merge result as a REPLACE change so reconstruction needs no content in the commit.
+        DocumentChange mergeChange = new DocumentChange();
+        mergeChange.setFile(targetBranch.getFile());
+        mergeChange.setUser(user);
+        mergeChange.setSessionId("system");
+        mergeChange.setOperation("REPLACE");
+        mergeChange.setLineNumber(0);
+        mergeChange.setContent(contentToCommit);
+        mergeChange.setBranch(targetBranch);
+        mergeChange = changeRepository.save(mergeChange);
+
         FileCommit mergeCommit = new FileCommit();
         mergeCommit.setBranch(targetBranch);
-        mergeCommit.setContent(contentToCommit);
+        mergeCommit.setLastChangeId(mergeChange.getId());
         mergeCommit.setMessage("Combined from '" + sourceBranch.getName() + "' into '" + targetBranch.getName() + "'");
         mergeCommit.setCommittedBy(user);
         mergeCommit = commitRepository.save(mergeCommit);
-
-        // Clear target branch pending changes
-        changeRepository.deleteByBranchId(targetBranchId);
 
         // Soft-delete source branch after merge (skip if it is the protected "main" branch)
         if (!"main".equals(sourceBranch.getName())) {
@@ -359,7 +393,6 @@ public class FileBranchService {
                 fileRepository.save(file);
             }
 
-            changeRepository.deleteByBranchId(sourceBranchId);
             sourceBranch.setDeletedAt(java.time.LocalDateTime.now());
             branchRepository.save(sourceBranch);
         }
@@ -370,7 +403,7 @@ public class FileBranchService {
     /**
      * Get diff between two branches (source and target content).
      */
-    public String[] getDiff(String sourceBranchId, String targetBranchId, Long userId) {
+    public String[] getDiff(Long sourceBranchId, Long targetBranchId, Long userId) {
         FileBranch sourceBranch = branchRepository.findByIdNonDeleted(sourceBranchId)
                 .orElseThrow(() -> new RuntimeException("Source variant not found"));
         FileBranch targetBranch = branchRepository.findByIdNonDeleted(targetBranchId)
@@ -389,7 +422,7 @@ public class FileBranchService {
      * existing branch on the same file.
      */
     @Transactional
-    public FileBranch renameBranch(String branchId, String newName, Long userId) {
+    public FileBranch renameBranch(Long branchId, String newName, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
 
@@ -421,7 +454,7 @@ public class FileBranchService {
      * Soft-delete a branch. Cannot delete active branch or "main".
      */
     @Transactional
-    public void deleteBranch(String branchId, Long userId) {
+    public void deleteBranch(Long branchId, Long userId) {
         FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
 
@@ -478,7 +511,7 @@ public class FileBranchService {
         } else {
             // #hash — resolve commit by hash
             return commitRepository.findByHashAndProjectId(ref, projectId)
-                    .map(FileCommit::getContent)
+                    .map(this::resolveCommitContent)
                     .orElse(null);
         }
     }
@@ -507,7 +540,7 @@ public class FileBranchService {
         if (branch.isEmpty()) return null;
 
         return commitRepository.findLatestByBranchIdBefore(branch.get().getId(), atTime)
-                .map(FileCommit::getContent)
+                .map(this::resolveCommitContent)
                 .orElseGet(() -> {
                     try {
                         return minioService.getFileContent(targetFile.getS3Url());

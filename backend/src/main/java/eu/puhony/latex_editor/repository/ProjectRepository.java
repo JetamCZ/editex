@@ -18,29 +18,19 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE p.id = :id AND p.deletedAt IS NULL")
     Optional<Project> findByIdNonDeleted(@Param("id") Long id);
 
-    @Query("SELECT p FROM Project p WHERE p.baseProject = :baseProject AND p.branch = :branch AND p.deletedAt IS NULL")
-    Optional<Project> findByBaseProjectAndBranchNonDeleted(@Param("baseProject") String baseProject, @Param("branch") String branch);
+    @Query("SELECT p FROM Project p WHERE p.baseProject = :baseProject AND p.deletedAt IS NULL")
+    Optional<Project> findByBaseProjectNonDeleted(@Param("baseProject") String baseProject);
 
     @Query("SELECT p FROM Project p WHERE p.owner.id = :ownerId AND p.deletedAt IS NULL")
     List<Project> findByOwnerNonDeleted(@Param("ownerId") Long ownerId);
 
-    /**
-     * All projects (main branches) the user can access: either they own the project, or
-     * they have at least one FolderPermission grant on any folder of that project.
-     */
     @Query("SELECT DISTINCT p FROM Project p " +
-           "WHERE p.branch = 'main' AND p.deletedAt IS NULL AND (" +
+           "WHERE p.deletedAt IS NULL AND (" +
            "   p.owner.id = :userId OR " +
-           "   p.baseProject IN (" +
-           "       SELECT DISTINCT fp.folder.baseProject FROM FolderPermission fp " +
+           "   p.id IN (" +
+           "       SELECT DISTINCT fp.folder.project.id FROM FolderPermission fp " +
            "       WHERE fp.user.id = :userId AND fp.deletedAt IS NULL" +
            "   )" +
            ")")
     List<Project> findProjectsAccessibleByUser(@Param("userId") Long userId);
-
-    @Query("SELECT p FROM Project p WHERE p.branch = 'main' AND p.deletedAt IS NULL")
-    List<Project> findAllMainBranchNonDeleted();
-
-    @Query("SELECT p FROM Project p WHERE p.baseProject = :baseProject AND p.deletedAt IS NULL ORDER BY p.branch")
-    List<Project> findAllByBaseProjectNonDeleted(@Param("baseProject") String baseProject);
 }

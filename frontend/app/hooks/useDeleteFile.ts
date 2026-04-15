@@ -4,13 +4,12 @@ import { useRouteLoaderData } from 'react-router';
 import type { User } from '../../types/user';
 
 interface UseDeleteFileOptions {
-  baseProject: string;
-  branch: string;
+  projectId: number;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
 }
 
-export function useDeleteFile({ baseProject, branch, onSuccess, onError }: UseDeleteFileOptions) {
+export function useDeleteFile({ projectId, onSuccess, onError }: UseDeleteFileOptions) {
   const { bearerToken } = useRouteLoaderData("auth-user") as { user: User; bearerToken: string };
   const queryClient = useQueryClient();
 
@@ -26,7 +25,7 @@ export function useDeleteFile({ baseProject, branch, onSuccess, onError }: UseDe
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projectFiles', baseProject, branch] });
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
       onSuccess?.();
     },
     onError: (error: Error) => {

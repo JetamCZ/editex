@@ -107,7 +107,6 @@ export const useChangeTracking = () => {
         }
 
         if (newOperations.length > 0) {
-            //console.log('[Change Detection] Generated operations:', newOperations);
             setChangeHistory(prev => squashOperations(prev, newOperations));
         }
 

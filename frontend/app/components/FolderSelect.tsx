@@ -4,7 +4,7 @@ import { useProjectFolders } from "~/hooks/useProjectFolders";
 import { useTranslation } from 'react-i18next';
 
 interface FolderSelectProps {
-    baseProject: string;
+    projectId: number;
     value: string;
     onChange: (path: string) => void;
     excludePath?: string;
@@ -26,7 +26,7 @@ const normalizePath = (raw: string): string => {
 const displayName = (path: string): string => (path === "/" ? "Root" : path);
 
 export default function FolderSelect({
-    baseProject,
+    projectId,
     value,
     onChange,
     excludePath,
@@ -35,7 +35,7 @@ export default function FolderSelect({
     placeholder = "Select folder",
 }: FolderSelectProps) {
     const { t } = useTranslation();
-    const { data: projectFolders = [], isLoading } = useProjectFolders(baseProject);
+    const { data: projectFolders = [], isLoading } = useProjectFolders(projectId);
 
     const options = useMemo(() => {
         const paths = new Set<string>(["/"]);

@@ -30,8 +30,7 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     folder: ProjectFolder | null;
-    baseProject: string;
-    branch: string;
+    projectId: number;
 }
 
 function roleColor(role: FolderRole) {
@@ -42,7 +41,7 @@ function roleColor(role: FolderRole) {
     }
 }
 
-export default function FolderAccessModal({open, onOpenChange, folder, baseProject, branch}: Props) {
+export default function FolderAccessModal({open, onOpenChange, folder, projectId}: Props) {
     const { t } = useTranslation();
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState<FolderRole>(FolderRole.VIEWER);
@@ -211,7 +210,7 @@ export default function FolderAccessModal({open, onOpenChange, folder, baseProje
                     {folder && (
                         <Button asChild variant="ghost" size="2">
                             <Link
-                                to={`/project/${baseProject}/${branch}/settings/permissions?folder=${folder.id}`}
+                                to={`/project/${projectId}/settings/permissions?folder=${folder.id}`}
                             >
                                 {t('folderAccess.openPermissions')}
                             </Link>

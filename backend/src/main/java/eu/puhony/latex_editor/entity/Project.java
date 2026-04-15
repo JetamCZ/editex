@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "projects", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"base_project", "branch"})
+    @UniqueConstraint(columnNames = {"base_project"})
 })
 public class Project {
 
@@ -18,9 +18,6 @@ public class Project {
 
     @Column(name = "base_project", nullable = false, length = 36)
     private String baseProject;
-
-    @Column(name = "branch", nullable = false)
-    private String branch = "main";
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -46,9 +43,6 @@ public class Project {
         if (baseProject == null) {
             baseProject = UUID.randomUUID().toString();
         }
-        if (branch == null) {
-            branch = "main";
-        }
     }
 
     @PreUpdate
@@ -71,14 +65,6 @@ public class Project {
 
     public void setBaseProject(String baseProject) {
         this.baseProject = baseProject;
-    }
-
-    public String getBranch() {
-        return branch;
-    }
-
-    public void setBranch(String branch) {
-        this.branch = branch;
     }
 
     public String getName() {

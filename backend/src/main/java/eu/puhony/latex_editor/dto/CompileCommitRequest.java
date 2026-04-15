@@ -1,23 +1,18 @@
 package eu.puhony.latex_editor.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class CompileCommitRequest {
 
-    @NotBlank
-    private String baseProject;
-
-    @NotBlank
-    private String branch;
+    @NotNull
+    private Long projectId;
 
     @NotBlank
     private String commitHash;
 
-    public String getBaseProject() { return baseProject; }
-    public void setBaseProject(String baseProject) { this.baseProject = baseProject; }
-
-    public String getBranch() { return branch; }
-    public void setBranch(String branch) { this.branch = branch; }
+    public Long getProjectId() { return projectId; }
+    public void setProjectId(Long projectId) { this.projectId = projectId; }
 
     public String getCommitHash() { return commitHash; }
     public void setCommitHash(String commitHash) { this.commitHash = commitHash; }

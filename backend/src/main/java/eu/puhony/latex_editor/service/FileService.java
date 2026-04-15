@@ -32,12 +32,12 @@ public class FileService {
     @Transactional
     public ProjectFile uploadFile(MultipartFile file, Project project, String folderPath, User uploadedBy) throws Exception {
         String normalizedFolder = ProjectFolderService.normalize(folderPath);
-        ProjectFolder targetFolder = projectFolderService.getOrCreateByPath(project.getBaseProject(), normalizedFolder);
+        ProjectFolder targetFolder = projectFolderService.getOrCreateByPath(project, normalizedFolder);
 
         // EDITOR+ required on the target folder.
         folderPermissionService.ensureCanEdit(uploadedBy.getId(), targetFolder);
 
-        String s3Path = project.getBaseProject() + "/" + project.getBranch() + SOURCES_ROOT + normalizedFolder;
+        String s3Path = project.getBaseProject() + "/main" + SOURCES_ROOT + normalizedFolder;
         String s3Url = minioService.uploadFile(file, s3Path);
 
         ProjectFile projectFile = new ProjectFile();
@@ -65,18 +65,18 @@ public class FileService {
         return projectFile;
     }
 
-    public List<ProjectFile> getProjectFiles(Long projectId, String baseProject, Long userId) {
-        folderPermissionService.ensureCanReadProject(baseProject, userId);
+    public List<ProjectFile> getProjectFiles(Long projectId, Long userId) {
+        folderPermissionService.ensureCanReadProject(projectId, userId);
         // Hide files inside folders the user cannot read.
         return fileRepository.findByProjectIdNonDeleted(projectId).stream()
                 .filter(f -> folderPermissionService.canRead(userId, f))
                 .toList();
     }
 
-    public List<ProjectFile> getProjectFilesByFolder(Long projectId, String baseProject, String folder, Long userId) {
-        folderPermissionService.ensureCanReadProject(baseProject, userId);
+    public List<ProjectFile> getProjectFilesByFolder(Long projectId, String folder, Long userId) {
+        folderPermissionService.ensureCanReadProject(projectId, userId);
         String normalized = ProjectFolderService.normalize(folder);
-        ProjectFolder target = projectFolderService.getByPath(baseProject, normalized);
+        ProjectFolder target = projectFolderService.getByPath(projectId, normalized);
         folderPermissionService.ensureCanRead(userId, target);
         return fileRepository.findByProjectIdAndFolderNonDeleted(projectId, normalized);
     }
@@ -121,8 +121,7 @@ public class FileService {
             return file;
         }
 
-        ProjectFolder destFolder = projectFolderService.getOrCreateByPath(
-                file.getProject().getBaseProject(), normalizedFolder);
+        ProjectFolder destFolder = projectFolderService.getOrCreateByPath(file.getProject(), normalizedFolder);
         folderPermissionService.ensureCanEdit(userId, destFolder);
 
         try {
@@ -132,8 +131,7 @@ public class FileService {
             }
 
             String baseProject = file.getProject().getBaseProject();
-            String branch = file.getProject().getBranch();
-            String newS3Path = baseProject + "/" + branch + SOURCES_ROOT + normalizedFolder;
+            String newS3Path = baseProject + "/main" + SOURCES_ROOT + normalizedFolder;
 
             String newS3Url = minioService.copyFile(currentObjectName, newS3Path, file.getFileName());
             minioService.deleteFile(currentObjectName);
@@ -151,10 +149,10 @@ public class FileService {
     public ProjectFile saveGeneratedPdf(File pdfFile, Project project,
                                         String sourceFileId, User user) throws Exception {
         String s3Url = minioService.uploadFile(pdfFile,
-                project.getBaseProject() + "/" + project.getBranch() + "/compiled",
+                project.getBaseProject() + "/main/compiled",
                 "application/pdf");
 
-        ProjectFolder compiledFolder = projectFolderService.getOrCreateByPath(project.getBaseProject(), "/compiled");
+        ProjectFolder compiledFolder = projectFolderService.getOrCreateByPath(project, "/compiled");
 
         ProjectFile projectFile = new ProjectFile();
         projectFile.setProject(project);

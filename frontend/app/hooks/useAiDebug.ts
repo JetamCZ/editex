@@ -4,8 +4,7 @@ import { useRouteLoaderData } from 'react-router';
 import i18n from '../i18n';
 
 interface AiDebugRequest {
-    baseProject: string;
-    branch?: string;
+    projectId: number;
     sourceFile?: string;
     errorMessage?: string | null;
     compilationLog?: string | null;

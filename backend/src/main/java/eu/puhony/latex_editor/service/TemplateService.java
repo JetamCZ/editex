@@ -115,7 +115,7 @@ public class TemplateService {
             }
 
             // S3 path: {baseProject}/{branch}/sources{folder}
-            String s3Path = project.getBaseProject() + "/" + project.getBranch() + SOURCES_ROOT + folder;
+            String s3Path = project.getBaseProject() + "/main" + SOURCES_ROOT + folder;
             String s3Url = minioService.uploadFile(tempFile, s3Path, getContentType(filename));
 
             tempFile.delete();

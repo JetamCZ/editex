@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 public class ProjectWithRoleResponse {
     private Long id;
     private String baseProject;
-    private String branch;
     private String name;
     private Long ownerId;
     private FolderRole userRole;
@@ -25,7 +24,6 @@ public class ProjectWithRoleResponse {
         ProjectWithRoleResponse response = new ProjectWithRoleResponse();
         response.setId(project.getId());
         response.setBaseProject(project.getBaseProject());
-        response.setBranch(project.getBranch());
         response.setName(project.getName());
         response.setOwnerId(project.getOwner().getId());
         response.setUserRole(userRole);

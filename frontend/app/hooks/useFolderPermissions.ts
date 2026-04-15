@@ -85,18 +85,18 @@ export function useRevokePermission(folderId: number | null) {
     });
 }
 
-export function useAccessSummary(baseProject: string | undefined) {
+export function useAccessSummary(projectId: number | undefined) {
     const bearerToken = useToken();
 
     return useQuery({
-        queryKey: ['accessSummary', baseProject],
+        queryKey: ['accessSummary', projectId],
         queryFn: async () => {
             const {data} = await axios.get<AccessSummary>(
-                `${API}/api/projects/${baseProject}/access-summary`,
+                `${API}/api/projects/${projectId}/access-summary`,
                 {headers: {Authorization: `Bearer ${bearerToken}`}}
             );
             return data;
         },
-        enabled: !!baseProject && !!bearerToken,
+        enabled: !!projectId && !!bearerToken,
     });
 }

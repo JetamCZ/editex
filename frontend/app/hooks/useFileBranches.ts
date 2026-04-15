@@ -65,7 +65,7 @@ export function useDeleteBranch() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ fileId, branchId }: { fileId: string; branchId: string }) => {
+        mutationFn: async ({ fileId, branchId }: { fileId: string; branchId: number }) => {
             await axios.delete(`/api/files/${fileId}/branches/${branchId}`, config);
         },
         onSuccess: (_, variables) => {
@@ -81,7 +81,7 @@ export function useRenameBranch() {
     return useMutation({
         mutationFn: async ({ fileId, branchId, name }: {
             fileId: string;
-            branchId: string;
+            branchId: number;
             name: string;
         }) => {
             const { data } = await axios.patch<FileBranch>(
@@ -103,7 +103,7 @@ export function useSetActiveBranch() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ fileId, branchId }: { fileId: string; branchId: string }) => {
+        mutationFn: async ({ fileId, branchId }: { fileId: string; branchId: number }) => {
             await axios.put(`/api/files/${fileId}/active-branch`, { branchId }, config);
         },
         onSuccess: (_, variables) => {
@@ -113,7 +113,7 @@ export function useSetActiveBranch() {
     });
 }
 
-export function useBranchCommits(branchId: string | null) {
+export function useBranchCommits(branchId: number | null) {
     const config = useAuthHeaders();
 
     return useQuery({
@@ -133,7 +133,7 @@ export function useCreateCommit() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ branchId, message }: { branchId: string; message?: string }) => {
+        mutationFn: async ({ branchId, message }: { branchId: number; message?: string }) => {
             const { data } = await axios.post<FileCommit>(
                 `/api/branches/${branchId}/commits`,
                 { message },
@@ -147,7 +147,7 @@ export function useCreateCommit() {
     });
 }
 
-export function useMergePreviewQuery(sourceBranchId: string | null, targetBranchId: string | null) {
+export function useMergePreviewQuery(sourceBranchId: number | null, targetBranchId: number | null) {
     const config = useAuthHeaders();
     return useQuery({
         queryKey: ['mergePreview', sourceBranchId, targetBranchId],
@@ -170,8 +170,8 @@ export function useMergeBranch() {
 
     return useMutation({
         mutationFn: async ({ sourceBranchId, targetBranchId, fileId, resolvedContent }: {
-            sourceBranchId: string;
-            targetBranchId: string;
+            sourceBranchId: number;
+            targetBranchId: number;
             fileId: string;
             resolvedContent: string;
         }) => {
@@ -190,7 +190,7 @@ export function useMergeBranch() {
     });
 }
 
-export function useBranchDiff(sourceBranchId: string | null, targetBranchId: string | null) {
+export function useBranchDiff(sourceBranchId: number | null, targetBranchId: number | null) {
     const config = useAuthHeaders();
 
     return useQuery({

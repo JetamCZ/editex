@@ -9,7 +9,7 @@ interface MoveFileDialogProps {
     onOpenChange: (open: boolean) => void;
     fileName: string;
     currentFolder: string;
-    baseProject: string;
+    projectId: number;
     onMove: (targetFolder: string) => void;
     isMoving?: boolean;
 }
@@ -21,7 +21,7 @@ export default function MoveFileDialog({
     onOpenChange,
     fileName,
     currentFolder,
-    baseProject,
+    projectId,
     onMove,
     isMoving = false,
 }: MoveFileDialogProps) {
@@ -73,7 +73,7 @@ export default function MoveFileDialog({
                             {t('moveFile.moveTo')}
                         </Text>
                         <FolderSelect
-                            baseProject={baseProject}
+                            projectId={projectId}
                             value={selectedFolder}
                             onChange={setSelectedFolder}
                             excludePath={currentFolder}

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FolderResponse {
     private Long id;
-    private String baseProject;
+    private Long projectId;
     private Long parentId;
     private String name;
     private String path;
@@ -24,7 +24,7 @@ public class FolderResponse {
     public static FolderResponse from(ProjectFolder folder, FolderRole effectiveRole, boolean hasExplicitGrants) {
         return new FolderResponse(
                 folder.getId(),
-                folder.getBaseProject(),
+                folder.getProject().getId(),
                 folder.getParent() != null ? folder.getParent().getId() : null,
                 folder.getName(),
                 folder.getPath(),

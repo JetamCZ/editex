@@ -41,15 +41,13 @@ interface WysiwygEditorProps {
     onContentChange: (latex: string) => void;
     /** Whether this panel is currently visible */
     visible: boolean;
-    /** Base project identifier for fetching uploaded files */
-    baseProject?: string;
-    /** Branch name for fetching uploaded files */
-    branch?: string;
+    /** Project ID for fetching uploaded files */
+    projectId?: number;
     /** When true, the editor is non-editable (used for view-only files) */
     readOnly?: boolean;
 }
 
-export default function WysiwygEditor({content, onContentChange, visible, baseProject, branch, readOnly}: WysiwygEditorProps) {
+export default function WysiwygEditor({content, onContentChange, visible, projectId, readOnly}: WysiwygEditorProps) {
     const [mathPopup, setMathPopup] = useState<{
         latex: string;
         pos: number;
@@ -153,9 +151,8 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
 
     // Fetch project files for image resolution
     const {data: projectFiles = []} = useProjectFiles({
-        baseProject: baseProject || '',
-        branch,
-        enabled: !!baseProject,
+        projectId: projectId || 0,
+        enabled: !!projectId,
     });
 
     const imageFiles = useMemo(() => {
@@ -403,8 +400,7 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
                     caption={imagePopup.caption}
                     onSave={handleImageSave}
                     onCancel={() => setImagePopup(null)}
-                    baseProject={baseProject}
-                    branch={branch}
+                    projectId={projectId}
                 />
             )}
             {inputFilePopup && (
@@ -412,8 +408,7 @@ export default function WysiwygEditor({content, onContentChange, visible, basePr
                     filePath={inputFilePopup.filePath}
                     onSave={handleInputSave}
                     onCancel={() => setInputFilePopup(null)}
-                    baseProject={baseProject}
-                    branch={branch}
+                    projectId={projectId}
                 />
             )}
             {hrefPopup && (

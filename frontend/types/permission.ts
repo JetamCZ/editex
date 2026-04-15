@@ -17,7 +17,7 @@ export function roleIncludes(have: FolderRole | null | undefined, need: FolderRo
 
 export interface ProjectFolder {
     id: number;
-    baseProject: string;
+    projectId: number;
     parentId: number | null;
     name: string;
     path: string;

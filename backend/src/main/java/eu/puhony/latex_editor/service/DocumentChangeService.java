@@ -32,7 +32,7 @@ public class DocumentChangeService {
     @Transactional
     public DocumentChange saveChange(String fileId, String sessionId, String operation,
                                      Integer lineNumber, String content, Long baseChangeId,
-                                     String branchId, User user) {
+                                     Long branchId, User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
@@ -75,7 +75,7 @@ public class DocumentChangeService {
     @Transactional
     public List<DocumentChange> saveChanges(String fileId, String sessionId,
                                            List<ChangeData> changes, Long baseChangeId,
-                                           String branchId, User user) {
+                                           Long branchId, User user) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
@@ -160,7 +160,7 @@ public class DocumentChangeService {
     /**
      * Resolve branch: if branchId provided use it, otherwise fall back to file's active branch.
      */
-    private FileBranch resolveBranch(ProjectFile file, String branchId) {
+    private FileBranch resolveBranch(ProjectFile file, Long branchId) {
         if (branchId != null) {
             return branchRepository.findByIdNonDeleted(branchId)
                     .orElseThrow(() -> new RuntimeException("Branch not found: " + branchId));
@@ -168,14 +168,14 @@ public class DocumentChangeService {
         return file.getActiveBranch(); // May be null for legacy files
     }
 
-    public List<DocumentChange> getFileChanges(String fileId, String branchId, Long userId) {
+    public List<DocumentChange> getFileChanges(String fileId, Long branchId, Long userId) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
         folderPermissionService.ensureCanRead(userId, file);
         return changeRepository.findByFileIdAndBranchIdOrderById(fileId, branchId);
     }
 
-    public Optional<DocumentChange> getLatestChange(String fileId, String branchId, Long userId) {
+    public Optional<DocumentChange> getLatestChange(String fileId, Long branchId, Long userId) {
         ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
                 .orElseThrow(() -> new RuntimeException("File not found"));
         folderPermissionService.ensureCanRead(userId, file);

@@ -41,7 +41,12 @@ const EditorPage = () => {
     const {project} = useOutletContext<OutletContextType>();
     const params = useParams();
     const navigate = useNavigate();
-    const [selectedFileId, setSelectedFileId] = useState<string | null>(params.fileId || null);
+    // Derive directly from the route param. Holding a separate state and syncing
+    // it from params would let setSelectedFileId+navigate fall out of sync for a
+    // render — the sync effect would then revert selectedFileId to the stale
+    // params.fileId, kicking off a stale refetch that races with the new file's
+    // refetch and could leave Monaco showing the wrong file's content.
+    const selectedFileId: string | null = params.fileId ?? null;
     const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [createFileModalOpen, setCreateFileModalOpen] = useState(false);
@@ -85,10 +90,9 @@ const EditorPage = () => {
     const editorRef = useRef<CollaborativeEditorRef>(null);
 
     const {data: uploadedFiles = [], isLoading: loadingFiles} = useProjectFiles({
-        baseProject: project.baseProject,
-        branch: project.branch
+        projectId: project.id,
     });
-    const {data: projectFolders = []} = useProjectFolders(project.baseProject);
+    const {data: projectFolders = []} = useProjectFolders(project.id);
 
     const compilationMutation = useLatexCompilation();
     const downloadMutation = useProjectDownload();
@@ -125,21 +129,16 @@ const EditorPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Update selectedFileId when URL params change or auto-select main.tex
+    // Auto-select main.tex when no file is in the URL.
     useEffect(() => {
-        if (params.fileId) {
-            setSelectedFileId(params.fileId);
-        } else if (!selectedFileId && uploadedFiles.length > 0) {
-            // Auto-select main.tex if no file is selected
-            const mainTexFile = uploadedFiles.find(f =>
-                f.originalFileName.toLowerCase() === 'main.tex'
-            );
-            if (mainTexFile) {
-                setSelectedFileId(mainTexFile.id);
-                navigate(`/project/${project.baseProject}/${project.branch}/file/${mainTexFile.id}`, {replace: true});
-            }
+        if (params.fileId || uploadedFiles.length === 0) return;
+        const mainTexFile = uploadedFiles.find(f =>
+            f.originalFileName.toLowerCase() === 'main.tex'
+        );
+        if (mainTexFile) {
+            navigate(`/project/${project.baseProject}/file/${mainTexFile.id}`, {replace: true});
         }
-    }, [params.fileId, uploadedFiles, selectedFileId, project.baseProject, project.branch, navigate]);
+    }, [params.fileId, uploadedFiles, project.id, navigate]);
 
     // Auto-select compile target when files load
     useEffect(() => {
@@ -154,9 +153,8 @@ const EditorPage = () => {
         }
     }, [texFiles, compileTarget]);
 
-    const handleFileClick = async (fileId: string) => {
-        setSelectedFileId(fileId);
-        navigate(`/project/${project.baseProject}/${project.branch}/file/${fileId}`);
+    const handleFileClick = (fileId: string) => {
+        navigate(`/project/${project.baseProject}/file/${fileId}`);
     };
 
     const selectedFile = uploadedFiles.find(f => f.id === selectedFileId);
@@ -204,7 +202,7 @@ const EditorPage = () => {
 
     const handleCompile = () => {
         compilationMutation.mutate(
-            {baseProject: project.baseProject, branch: project.branch, targetFile: compileTarget},
+            {projectId: project.id, targetFile: compileTarget},
             {
                 onSuccess: (result) => {
                     handleCompilationResult(result);
@@ -223,7 +221,7 @@ const EditorPage = () => {
 
     const handleDownload = () => {
         downloadMutation.mutate(
-            {baseProject: project.baseProject, branch: project.branch},
+            {projectId: project.id},
             {
                 onSuccess: (result) => {
                     const link = document.createElement('a');
@@ -400,14 +398,12 @@ const EditorPage = () => {
 
                 <div style={{flex: 1, overflow: "auto"}}>
                     <ProjectFiles
-                        baseProject={project.baseProject}
-                        branch={project.branch}
+                        projectId={project.id}
                         handleFileClick={handleFileClick}
                         selectedFileId={selectedFileId}
                         onFileDeleted={(fileId) => {
                             if (selectedFileId === fileId) {
-                                setSelectedFileId(null);
-                                navigate(`/project/${project.baseProject}/${project.branch}`);
+                                navigate(`/project/${project.baseProject}`);
                             }
                         }}
                     />
@@ -469,8 +465,7 @@ const EditorPage = () => {
                                 content={wysiwygContent}
                                 onContentChange={handleWysiwygContentChange}
                                 visible={effectiveMode === 'wysiwyg'}
-                                baseProject={project.baseProject}
-                                branch={project.branch}
+                                projectId={project.id}
                                 readOnly={isReadOnly}
                             />
                         </div>
@@ -677,8 +672,7 @@ const EditorPage = () => {
             <FileUploadModal
                 open={uploadModalOpen}
                 onOpenChange={setUploadModalOpen}
-                baseProject={project.baseProject}
-                branch={project.branch}
+                projectId={project.id}
                 folder="/"
             />
 
@@ -686,8 +680,7 @@ const EditorPage = () => {
             <CreateFileModal
                 open={createFileModalOpen}
                 onOpenChange={setCreateFileModalOpen}
-                baseProject={project.baseProject}
-                branch={project.branch}
+                projectId={project.id}
             />
 
             {/* Compilation Error Dialog */}
@@ -696,8 +689,7 @@ const EditorPage = () => {
                 onOpenChange={(open) => setCompilationError(prev => ({ ...prev, open }))}
                 errorMessage={compilationError.errorMessage}
                 compilationLog={compilationError.compilationLog}
-                baseProject={project.baseProject}
-                branch={project.branch}
+                projectId={project.id}
                 sourceFile={compileTarget}
             />
         </>

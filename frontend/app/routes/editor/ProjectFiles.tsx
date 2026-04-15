@@ -13,14 +13,13 @@ import FolderAccessModal from "~/components/FolderAccessModal";
 import type {ProjectFolder} from "../../../types/permission";
 
 interface Props {
-    baseProject: string
-    branch: string
+    projectId: number
     selectedFileId: string | null
     handleFileClick: (fileId: string) => void
     onFileDeleted?: (fileId: string) => void
 }
 
-const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onFileDeleted}: Props) => {
+const ProjectFiles = ({projectId, selectedFileId, handleFileClick, onFileDeleted}: Props) => {
     const { t } = useTranslation();
     const [moveDialogState, setMoveDialogState] = useState<{
         open: boolean;
@@ -39,26 +38,24 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
     });
     const [renameFolderName, setRenameFolderName] = useState("");
 
-    const {data: uploadedFiles = []} = useProjectFiles({baseProject, branch});
-    const {data: projectFolders = []} = useProjectFolders(baseProject);
+    const {data: uploadedFiles = []} = useProjectFiles({projectId});
+    const {data: projectFolders = []} = useProjectFolders(projectId);
 
     const deleteFileMutation = useDeleteFile({
-        baseProject,
-        branch,
+        projectId,
         onSuccess: () => {}
     });
 
     const moveFileMutation = useMoveFile({
-        baseProject,
-        branch,
+        projectId,
         onSuccess: () => {
             setMoveDialogState(prev => ({ ...prev, open: false }));
         }
     });
 
-    const createFolder = useCreateFolder(baseProject);
-    const deleteFolder = useDeleteFolder(baseProject);
-    const renameFolder = useRenameFolder(baseProject);
+    const createFolder = useCreateFolder(projectId);
+    const deleteFolder = useDeleteFolder(projectId);
+    const renameFolder = useRenameFolder(projectId);
 
     const fileTree = useMemo(
         () => buildFileTree(uploadedFiles, projectFolders),
@@ -138,7 +135,7 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                 onOpenChange={(open) => setMoveDialogState(prev => ({ ...prev, open }))}
                 fileName={moveDialogState.fileName}
                 currentFolder={moveDialogState.currentFolder}
-                baseProject={baseProject}
+                projectId={projectId}
                 onMove={handleConfirmMove}
                 isMoving={moveFileMutation.isPending}
             />
@@ -147,8 +144,7 @@ const ProjectFiles = ({baseProject, branch, selectedFileId, handleFileClick, onF
                 open={!!accessModalFolder}
                 onOpenChange={(open) => !open && setAccessModalFolder(null)}
                 folder={accessModalFolder}
-                baseProject={baseProject}
-                branch={branch}
+                projectId={projectId}
             />
 
             <Dialog.Root

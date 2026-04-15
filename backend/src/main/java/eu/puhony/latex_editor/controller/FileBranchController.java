@@ -57,7 +57,7 @@ public class FileBranchController {
     @DeleteMapping("/files/{fileId}/branches/{branchId}")
     public ResponseEntity<Void> deleteBranch(
             @PathVariable String fileId,
-            @PathVariable String branchId,
+            @PathVariable Long branchId,
             Authentication authentication) {
         User user = getUser(authentication);
         branchService.deleteBranch(branchId, user.getId());
@@ -67,7 +67,7 @@ public class FileBranchController {
     @PatchMapping("/files/{fileId}/branches/{branchId}")
     public ResponseEntity<BranchResponse> renameBranch(
             @PathVariable String fileId,
-            @PathVariable String branchId,
+            @PathVariable Long branchId,
             @RequestBody RenameBranchRequest request,
             Authentication authentication) {
         User user = getUser(authentication);
@@ -100,7 +100,7 @@ public class FileBranchController {
 
     @GetMapping("/branches/{branchId}/content")
     public ResponseEntity<BranchContentResponse> getBranchContent(
-            @PathVariable String branchId,
+            @PathVariable Long branchId,
             Authentication authentication) {
         User user = getUser(authentication);
         String content = branchService.getContent(branchId, user.getId());
@@ -115,7 +115,7 @@ public class FileBranchController {
 
     @PostMapping("/branches/{branchId}/commits")
     public ResponseEntity<CommitResponse> createCommit(
-            @PathVariable String branchId,
+            @PathVariable Long branchId,
             @RequestBody(required = false) CreateCommitRequest request,
             Authentication authentication) {
         User user = getUser(authentication);
@@ -128,7 +128,7 @@ public class FileBranchController {
 
     @GetMapping("/branches/{branchId}/commits")
     public ResponseEntity<List<CommitResponse>> listCommits(
-            @PathVariable String branchId,
+            @PathVariable Long branchId,
             Authentication authentication) {
         User user = getUser(authentication);
         List<FileCommit> commits = branchService.getCommitHistory(branchId, user.getId());
@@ -144,8 +144,8 @@ public class FileBranchController {
 
     @GetMapping("/branches/{sourceBranchId}/merge-preview/{targetBranchId}")
     public ResponseEntity<MergePreviewResponse> getMergePreview(
-            @PathVariable String sourceBranchId,
-            @PathVariable String targetBranchId,
+            @PathVariable Long sourceBranchId,
+            @PathVariable Long targetBranchId,
             Authentication authentication) {
         User user = getUser(authentication);
         FileBranchService.MergePreviewResult preview =
@@ -160,7 +160,7 @@ public class FileBranchController {
 
     @PostMapping("/branches/{branchId}/merge")
     public ResponseEntity<CommitResponse> mergeBranch(
-            @PathVariable String branchId,
+            @PathVariable Long branchId,
             @RequestBody MergeRequest request,
             Authentication authentication) {
         User user = getUser(authentication);
@@ -172,8 +172,8 @@ public class FileBranchController {
 
     @GetMapping("/branches/{sourceBranchId}/diff/{targetBranchId}")
     public ResponseEntity<DiffResponse> getDiff(
-            @PathVariable String sourceBranchId,
-            @PathVariable String targetBranchId,
+            @PathVariable Long sourceBranchId,
+            @PathVariable Long targetBranchId,
             Authentication authentication) {
         User user = getUser(authentication);
         String[] contents = branchService.getDiff(sourceBranchId, targetBranchId, user.getId());
@@ -220,7 +220,7 @@ public class FileBranchController {
     // === DTOs ===
 
     public static class BranchResponse {
-        private String id;
+        private Long id;
         private String fileId;
         private String name;
         private String sourceBranchName;
@@ -228,8 +228,8 @@ public class FileBranchController {
         private LocalDateTime createdAt;
         private boolean hasUncommittedChanges;
 
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
         public String getFileId() { return fileId; }
         public void setFileId(String fileId) { this.fileId = fileId; }
         public String getName() { return name; }
@@ -255,10 +255,10 @@ public class FileBranchController {
     }
 
     public static class SetActiveBranchRequest {
-        private String branchId;
+        private Long branchId;
 
-        public String getBranchId() { return branchId; }
-        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
     }
 
     public static class RenameBranchRequest {
@@ -285,7 +285,7 @@ public class FileBranchController {
     public static class CommitResponse {
         private Long id;
         private String hash;
-        private String branchId;
+        private Long branchId;
         private String message;
         private Long committedBy;
         private String committedByName;
@@ -295,8 +295,8 @@ public class FileBranchController {
         public void setId(Long id) { this.id = id; }
         public String getHash() { return hash; }
         public void setHash(String hash) { this.hash = hash; }
-        public String getBranchId() { return branchId; }
-        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
         public Long getCommittedBy() { return committedBy; }
@@ -308,12 +308,12 @@ public class FileBranchController {
     }
 
     public static class MergeRequest {
-        private String targetBranchId;
+        private Long targetBranchId;
         /** Optional. When provided the caller has already resolved conflicts in this content. */
         private String resolvedContent;
 
-        public String getTargetBranchId() { return targetBranchId; }
-        public void setTargetBranchId(String targetBranchId) { this.targetBranchId = targetBranchId; }
+        public Long getTargetBranchId() { return targetBranchId; }
+        public void setTargetBranchId(Long targetBranchId) { this.targetBranchId = targetBranchId; }
         public String getResolvedContent() { return resolvedContent; }
         public void setResolvedContent(String resolvedContent) { this.resolvedContent = resolvedContent; }
     }
@@ -343,13 +343,13 @@ public class FileBranchController {
 
     public static class BranchChangeEvent {
         private String fileId;
-        private String newActiveBranchId;
+        private Long newActiveBranchId;
         private Long changedBy;
 
         public String getFileId() { return fileId; }
         public void setFileId(String fileId) { this.fileId = fileId; }
-        public String getNewActiveBranchId() { return newActiveBranchId; }
-        public void setNewActiveBranchId(String newActiveBranchId) { this.newActiveBranchId = newActiveBranchId; }
+        public Long getNewActiveBranchId() { return newActiveBranchId; }
+        public void setNewActiveBranchId(Long newActiveBranchId) { this.newActiveBranchId = newActiveBranchId; }
         public Long getChangedBy() { return changedBy; }
         public void setChangedBy(Long changedBy) { this.changedBy = changedBy; }
     }

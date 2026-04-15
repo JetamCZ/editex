@@ -15,14 +15,14 @@ public interface ProjectFolderRepository extends JpaRepository<ProjectFolder, Lo
     @Query("SELECT f FROM ProjectFolder f WHERE f.id = :id AND f.deletedAt IS NULL")
     Optional<ProjectFolder> findByIdNonDeleted(@Param("id") Long id);
 
-    @Query("SELECT f FROM ProjectFolder f WHERE f.baseProject = :baseProject AND f.deletedAt IS NULL")
-    List<ProjectFolder> findAllByBaseProject(@Param("baseProject") String baseProject);
+    @Query("SELECT f FROM ProjectFolder f WHERE f.project.id = :projectId AND f.deletedAt IS NULL")
+    List<ProjectFolder> findAllByProjectId(@Param("projectId") Long projectId);
 
-    @Query("SELECT f FROM ProjectFolder f WHERE f.baseProject = :baseProject AND f.parent IS NULL AND f.deletedAt IS NULL")
-    Optional<ProjectFolder> findRoot(@Param("baseProject") String baseProject);
+    @Query("SELECT f FROM ProjectFolder f WHERE f.project.id = :projectId AND f.parent IS NULL AND f.deletedAt IS NULL")
+    Optional<ProjectFolder> findRoot(@Param("projectId") Long projectId);
 
-    @Query("SELECT f FROM ProjectFolder f WHERE f.baseProject = :baseProject AND f.path = :path AND f.deletedAt IS NULL")
-    Optional<ProjectFolder> findByBaseProjectAndPath(@Param("baseProject") String baseProject, @Param("path") String path);
+    @Query("SELECT f FROM ProjectFolder f WHERE f.project.id = :projectId AND f.path = :path AND f.deletedAt IS NULL")
+    Optional<ProjectFolder> findByProjectIdAndPath(@Param("projectId") Long projectId, @Param("path") String path);
 
     @Query("SELECT f FROM ProjectFolder f WHERE f.parent.id = :parentId AND f.deletedAt IS NULL")
     List<ProjectFolder> findChildren(@Param("parentId") Long parentId);

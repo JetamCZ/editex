@@ -4,8 +4,10 @@ import eu.puhony.latex_editor.dto.CreateFolderRequest;
 import eu.puhony.latex_editor.dto.FolderResponse;
 import eu.puhony.latex_editor.dto.RenameFolderRequest;
 import eu.puhony.latex_editor.entity.FolderRole;
+import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFolder;
 import eu.puhony.latex_editor.entity.User;
+import eu.puhony.latex_editor.repository.ProjectRepository;
 import eu.puhony.latex_editor.repository.UserRepository;
 import eu.puhony.latex_editor.service.FolderPermissionService;
 import eu.puhony.latex_editor.service.ProjectFolderService;
@@ -27,15 +29,18 @@ public class FolderController {
     private final ProjectFolderService projectFolderService;
     private final FolderPermissionService folderPermissionService;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
 
-    @GetMapping("/projects/{baseProject}/folders")
+    @GetMapping("/projects/{projectId}/folders")
     public ResponseEntity<List<FolderResponse>> listFolders(
-            @PathVariable String baseProject,
+            @PathVariable Long projectId,
             Authentication authentication) {
         User user = currentUser(authentication);
-        folderPermissionService.ensureCanReadProject(baseProject, user.getId());
+        Project project = projectRepository.findByIdNonDeleted(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+        folderPermissionService.ensureCanReadProject(project.getId(), user.getId());
 
-        List<ProjectFolder> folders = projectFolderService.listAll(baseProject);
+        List<ProjectFolder> folders = projectFolderService.listAll(project.getId());
         List<FolderResponse> response = folders.stream()
                 .map(f -> {
                     FolderRole role = folderPermissionService.effectiveRole(user.getId(), f);

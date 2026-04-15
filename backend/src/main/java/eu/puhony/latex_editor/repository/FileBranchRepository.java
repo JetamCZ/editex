@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface FileBranchRepository extends JpaRepository<FileBranch, String> {
+public interface FileBranchRepository extends JpaRepository<FileBranch, Long> {
 
     @Query("SELECT fb FROM FileBranch fb WHERE fb.file.id = :fileId AND fb.deletedAt IS NULL")
     List<FileBranch> findByFileIdNonDeleted(@Param("fileId") String fileId);
@@ -19,7 +19,7 @@ public interface FileBranchRepository extends JpaRepository<FileBranch, String> 
     Optional<FileBranch> findByFileIdAndNameNonDeleted(@Param("fileId") String fileId, @Param("name") String name);
 
     @Query("SELECT fb FROM FileBranch fb WHERE fb.id = :id AND fb.deletedAt IS NULL")
-    Optional<FileBranch> findByIdNonDeleted(@Param("id") String id);
+    Optional<FileBranch> findByIdNonDeleted(@Param("id") Long id);
 
     @Query("SELECT fb FROM FileBranch fb WHERE fb.file.project.id = :projectId AND fb.deletedAt IS NULL")
     List<FileBranch> findByProjectIdNonDeleted(@Param("projectId") Long projectId);

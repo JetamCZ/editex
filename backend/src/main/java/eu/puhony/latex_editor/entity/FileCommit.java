@@ -24,8 +24,8 @@ public class FileCommit {
     @Column(name = "hash", nullable = false, length = 8)
     private String hash;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "last_change_id")
+    private Long lastChangeId;
 
     @Column(name = "message", length = 500)
     private String message;
@@ -54,7 +54,6 @@ public class FileCommit {
         }
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -79,12 +78,12 @@ public class FileCommit {
         this.branch = branch;
     }
 
-    public String getContent() {
-        return content;
+    public Long getLastChangeId() {
+        return lastChangeId;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setLastChangeId(Long lastChangeId) {
+        this.lastChangeId = lastChangeId;
     }
 
     public String getMessage() {

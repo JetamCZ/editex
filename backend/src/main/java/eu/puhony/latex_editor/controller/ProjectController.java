@@ -53,7 +53,7 @@ public class ProjectController {
 
         List<ProjectWithRoleResponse> response = new ArrayList<>();
         for (Project project : projects) {
-            FolderRole role = folderPermissionService.effectiveRoleOnRoot(project.getBaseProject(), user.getId());
+            FolderRole role = folderPermissionService.effectiveRoleOnRoot(project.getId(), user.getId());
             if (role != null) {
                 response.add(ProjectWithRoleResponse.from(project, role));
             }
@@ -61,17 +61,32 @@ public class ProjectController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{baseProject}/{branch}")
-    public ResponseEntity<ProjectWithRoleResponse> getProjectByBaseProjectAndBranch(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+    @GetMapping("/{projectId}")
+    public ResponseEntity<ProjectWithRoleResponse> getProject(
+            @PathVariable Long projectId,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+        return projectService.getProjectById(projectId, user.getId())
             .map(project -> {
-                FolderRole role = folderPermissionService.effectiveRoleOnRoot(baseProject, user.getId());
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(project.getId(), user.getId());
+                return ResponseEntity.ok(ProjectWithRoleResponse.from(project, role));
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/uuid/{baseProject}")
+    public ResponseEntity<ProjectWithRoleResponse> getProjectByUuid(
+            @PathVariable String baseProject,
+            Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return projectRepository.findByBaseProjectNonDeleted(baseProject)
+            .filter(project -> folderPermissionService.effectiveRoleOnRoot(project.getId(), user.getId()) != null)
+            .map(project -> {
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(project.getId(), user.getId());
                 return ResponseEntity.ok(ProjectWithRoleResponse.from(project, role));
             })
             .orElse(ResponseEntity.notFound().build());
@@ -87,17 +102,15 @@ public class ProjectController {
         Project project = new Project();
         project.setName(request.getName());
         project.setOwner(owner);
-        project.setBranch("main");
         Project createdProject = projectService.createProjectWithTemplate(project, owner, request.getTemplateId());
 
         ProjectWithRoleResponse response = ProjectWithRoleResponse.from(createdProject, FolderRole.MANAGER);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/{baseProject}/{branch}")
+    @PutMapping("/{projectId}")
     public ResponseEntity<ProjectWithRoleResponse> updateProject(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+            @PathVariable Long projectId,
             @Valid @RequestBody UpdateProjectRequest request,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
@@ -106,38 +119,36 @@ public class ProjectController {
         Project project = new Project();
         project.setName(request.getName());
 
-        return projectService.updateProject(baseProject, branch, project, user.getId())
+        return projectService.updateProject(projectId, project, user.getId())
             .map(updatedProject -> {
-                FolderRole role = folderPermissionService.effectiveRoleOnRoot(baseProject, user.getId());
+                FolderRole role = folderPermissionService.effectiveRoleOnRoot(updatedProject.getId(), user.getId());
                 return ResponseEntity.ok(ProjectWithRoleResponse.from(updatedProject, role));
             })
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{baseProject}/{branch}")
+    @DeleteMapping("/{projectId}")
     public ResponseEntity<Void> deleteProject(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+            @PathVariable Long projectId,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        boolean deleted = projectService.deleteProject(baseProject, branch, user.getId());
+        boolean deleted = projectService.deleteProject(projectId, user.getId());
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/{baseProject}/{branch}/files")
+    @GetMapping("/{projectId}/files")
     public ResponseEntity<List<FileUploadResponse>> getProjectFiles(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+            @PathVariable Long projectId,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+        Project project = projectService.getProjectById(projectId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        List<ProjectFile> files = fileService.getProjectFiles(project.getId(), baseProject, user.getId());
+        List<ProjectFile> files = fileService.getProjectFiles(project.getId(), user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(file -> {
                     Long lastChangeId = documentChangeService.getLatestChange(file.getId(), user.getId())
@@ -146,7 +157,7 @@ public class ProjectController {
 
                     return new FileUploadResponse(
                             file.getId(),
-                            file.getProject().getBaseProject(),
+                            file.getProject().getId(),
                             file.getProjectFolder(),
                             file.getFileName(),
                             file.getOriginalFileName(),

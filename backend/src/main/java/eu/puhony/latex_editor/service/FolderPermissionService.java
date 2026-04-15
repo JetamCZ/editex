@@ -45,9 +45,9 @@ public class FolderPermissionService {
 
     public FolderRole effectiveRole(Long userId, ProjectFolder folder) {
         if (folder == null || userId == null) return null;
-        String baseProject = folder.getBaseProject();
+        Long projectId = folder.getProject().getId();
 
-        if (isProjectOwner(baseProject, userId)) {
+        if (isProjectOwner(projectId, userId)) {
             return FolderRole.MANAGER;
         }
 
@@ -63,7 +63,7 @@ public class FolderPermissionService {
 
         if (best == null && folder.isRoot()) {
             // Implicit root VIEWER for anyone with any grant in the project.
-            if (hasAnyGrantInProject(baseProject, userId)) {
+            if (hasAnyGrantInProject(projectId, userId)) {
                 return FolderRole.VIEWER;
             }
         }
@@ -76,12 +76,12 @@ public class FolderPermissionService {
             return effectiveRole(userId, file.getFolder());
         }
         // Fallback for legacy rows without folder FK: treat as root access
-        ProjectFolder root = folderRepository.findRoot(file.getProject().getBaseProject()).orElse(null);
+        ProjectFolder root = folderRepository.findRoot(file.getProject().getId()).orElse(null);
         return effectiveRole(userId, root);
     }
 
-    public FolderRole effectiveRoleOnRoot(String baseProject, Long userId) {
-        return folderRepository.findRoot(baseProject)
+    public FolderRole effectiveRoleOnRoot(Long projectId, Long userId) {
+        return folderRepository.findRoot(projectId)
                 .map(root -> effectiveRole(userId, root))
                 .orElse(null);
     }
@@ -113,20 +113,20 @@ public class FolderPermissionService {
         return r != null && r.includes(FolderRole.EDITOR);
     }
 
-    public boolean canReadProject(String baseProject, Long userId) {
-        if (isProjectOwner(baseProject, userId)) return true;
-        return hasAnyGrantInProject(baseProject, userId);
+    public boolean canReadProject(Long projectId, Long userId) {
+        if (isProjectOwner(projectId, userId)) return true;
+        return hasAnyGrantInProject(projectId, userId);
     }
 
-    public boolean canEditAnywhereInProject(String baseProject, Long userId) {
-        if (isProjectOwner(baseProject, userId)) return true;
-        return permissionRepository.findByBaseProjectAndUser(baseProject, userId).stream()
+    public boolean canEditAnywhereInProject(Long projectId, Long userId) {
+        if (isProjectOwner(projectId, userId)) return true;
+        return permissionRepository.findByProjectIdAndUser(projectId, userId).stream()
                 .anyMatch(p -> p.getRole().includes(FolderRole.EDITOR));
     }
 
-    public boolean canManageAnyFolderInProject(String baseProject, Long userId) {
-        if (isProjectOwner(baseProject, userId)) return true;
-        return permissionRepository.findByBaseProjectAndUser(baseProject, userId).stream()
+    public boolean canManageAnyFolderInProject(Long projectId, Long userId) {
+        if (isProjectOwner(projectId, userId)) return true;
+        return permissionRepository.findByProjectIdAndUser(projectId, userId).stream()
                 .anyMatch(p -> p.getRole() == FolderRole.MANAGER);
     }
 
@@ -152,8 +152,8 @@ public class FolderPermissionService {
         if (!canEdit(userId, file)) throw new SecurityException("You do not have permission to edit this file");
     }
 
-    public void ensureCanReadProject(String baseProject, Long userId) {
-        if (!canReadProject(baseProject, userId)) throw new SecurityException("You do not have permission to view this project");
+    public void ensureCanReadProject(Long projectId, Long userId) {
+        if (!canReadProject(projectId, userId)) throw new SecurityException("You do not have permission to view this project");
     }
 
     private void deny(String action, ProjectFolder folder) {
@@ -207,7 +207,7 @@ public class FolderPermissionService {
         // Owner is always present on Project, so in practice this is safe; but keep the check
         // for future ownership-transfer flows where the live owner may differ.
         long managers = permissionRepository.countManagersOnFolder(root.getId());
-        Project proj = projectRepository.findByBaseProjectAndBranchNonDeleted(root.getBaseProject(), "main").orElse(null);
+        Project proj = projectRepository.findByIdNonDeleted(root.getProject().getId()).orElse(null);
         if (managers <= 1 && proj == null) {
             throw new IllegalStateException("Cannot revoke the last MANAGER on the root folder");
         }
@@ -261,13 +261,13 @@ public class FolderPermissionService {
 
     // ---------------- Internals ----------------
 
-    private boolean isProjectOwner(String baseProject, Long userId) {
-        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, "main")
+    private boolean isProjectOwner(Long projectId, Long userId) {
+        return projectRepository.findByIdNonDeleted(projectId)
                 .map(p -> p.getOwner() != null && userId.equals(p.getOwner().getId()))
                 .orElse(false);
     }
 
-    private boolean hasAnyGrantInProject(String baseProject, Long userId) {
-        return !permissionRepository.findByBaseProjectAndUser(baseProject, userId).isEmpty();
+    private boolean hasAnyGrantInProject(Long projectId, Long userId) {
+        return !permissionRepository.findByProjectIdAndUser(projectId, userId).isEmpty();
     }
 }

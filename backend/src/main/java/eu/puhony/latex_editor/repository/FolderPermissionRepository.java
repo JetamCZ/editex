@@ -18,14 +18,14 @@ public interface FolderPermissionRepository extends JpaRepository<FolderPermissi
     @Query("SELECT p FROM FolderPermission p WHERE p.folder.id = :folderId AND p.user.id = :userId AND p.deletedAt IS NULL")
     Optional<FolderPermission> findByFolderAndUser(@Param("folderId") Long folderId, @Param("userId") Long userId);
 
-    @Query("SELECT p FROM FolderPermission p WHERE p.folder.baseProject = :baseProject AND p.user.id = :userId AND p.deletedAt IS NULL")
-    List<FolderPermission> findByBaseProjectAndUser(@Param("baseProject") String baseProject, @Param("userId") Long userId);
+    @Query("SELECT p FROM FolderPermission p WHERE p.folder.project.id = :projectId AND p.user.id = :userId AND p.deletedAt IS NULL")
+    List<FolderPermission> findByProjectIdAndUser(@Param("projectId") Long projectId, @Param("userId") Long userId);
 
-    @Query("SELECT p FROM FolderPermission p WHERE p.folder.baseProject = :baseProject AND p.deletedAt IS NULL")
-    List<FolderPermission> findByBaseProject(@Param("baseProject") String baseProject);
+    @Query("SELECT p FROM FolderPermission p WHERE p.folder.project.id = :projectId AND p.deletedAt IS NULL")
+    List<FolderPermission> findByProjectId(@Param("projectId") Long projectId);
 
-    @Query("SELECT DISTINCT p.folder.baseProject FROM FolderPermission p WHERE p.user.id = :userId AND p.deletedAt IS NULL")
-    List<String> findBaseProjectsForUser(@Param("userId") Long userId);
+    @Query("SELECT DISTINCT p.folder.project.id FROM FolderPermission p WHERE p.user.id = :userId AND p.deletedAt IS NULL")
+    List<Long> findProjectIdsForUser(@Param("userId") Long userId);
 
     @Query("SELECT COUNT(p) FROM FolderPermission p WHERE p.folder.id = :folderId AND p.role = eu.puhony.latex_editor.entity.FolderRole.MANAGER AND p.deletedAt IS NULL")
     long countManagersOnFolder(@Param("folderId") Long folderId);

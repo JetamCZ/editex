@@ -14,13 +14,13 @@ import java.util.Optional;
 public interface FileCommitRepository extends JpaRepository<FileCommit, Long> {
 
     @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId ORDER BY fc.id DESC")
-    List<FileCommit> findByBranchIdOrderByIdDesc(@Param("branchId") String branchId);
+    List<FileCommit> findByBranchIdOrderByIdDesc(@Param("branchId") Long branchId);
 
     @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId ORDER BY fc.id DESC LIMIT 1")
-    Optional<FileCommit> findLatestByBranchId(@Param("branchId") String branchId);
+    Optional<FileCommit> findLatestByBranchId(@Param("branchId") Long branchId);
 
     @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId ORDER BY fc.id ASC LIMIT 1")
-    Optional<FileCommit> findOldestByBranchId(@Param("branchId") String branchId);
+    Optional<FileCommit> findOldestByBranchId(@Param("branchId") Long branchId);
 
     @Query("SELECT fc FROM FileCommit fc WHERE fc.hash = :hash")
     Optional<FileCommit> findByHash(@Param("hash") String hash);
@@ -29,5 +29,5 @@ public interface FileCommitRepository extends JpaRepository<FileCommit, Long> {
     Optional<FileCommit> findByHashAndProjectId(@Param("hash") String hash, @Param("projectId") Long projectId);
 
     @Query("SELECT fc FROM FileCommit fc WHERE fc.branch.id = :branchId AND fc.createdAt <= :before ORDER BY fc.createdAt DESC LIMIT 1")
-    Optional<FileCommit> findLatestByBranchIdBefore(@Param("branchId") String branchId, @Param("before") LocalDateTime before);
+    Optional<FileCommit> findLatestByBranchIdBefore(@Param("branchId") Long branchId, @Param("before") LocalDateTime before);
 }

@@ -14,7 +14,7 @@ interface UseChangeSubmissionOptions {
     sessionId: string;
     autoSave?: boolean;
     refetch: () => Promise<void>;
-    branchId?: string | null;
+    branchId?: number | null;
     isDocumentLoadedRef: React.MutableRefObject<boolean>;
 }
 

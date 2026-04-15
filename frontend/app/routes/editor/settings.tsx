@@ -45,7 +45,7 @@ const ProjectSettingsPage = () => {
         <Button
             size="2"
             variant="soft"
-            onClick={() => navigate(`/project/${project.baseProject}/${project.branch}`)}
+            onClick={() => navigate(`/project/${project.baseProject}`)}
         >
             {t('editor.settings.backToEditor')}
         </Button>,

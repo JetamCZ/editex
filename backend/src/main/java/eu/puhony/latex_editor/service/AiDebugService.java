@@ -60,12 +60,10 @@ public class AiDebugService {
     private int maxTokens;
 
     public AiDebugResult debug(AiDebugRequest request, Long userId) {
-        folderPermissionService.ensureCanReadProject(request.getBaseProject(), userId);
-
-        String branch = request.getBranch() != null ? request.getBranch() : "main";
         Project project = projectRepository
-                .findByBaseProjectAndBranchNonDeleted(request.getBaseProject(), branch)
+                .findByIdNonDeleted(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+        folderPermissionService.ensureCanReadProject(project.getId(), userId);
 
         List<ProjectFile> allFiles = projectFileRepository.findByProjectIdNonDeleted(project.getId());
 

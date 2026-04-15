@@ -19,11 +19,11 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-    const [renameBranchId, setRenameBranchId] = useState<string | null>(null);
+    const [renameBranchId, setRenameBranchId] = useState<number | null>(null);
     const [renameBranchValue, setRenameBranchValue] = useState('');
     const [newBranchName, setNewBranchName] = useState('');
     const [commitMessage, setCommitMessage] = useState('');
-    const [mergeTargetBranchId, setMergeTargetBranchId] = useState<string | null>(null);
+    const [mergeTargetBranchId, setMergeTargetBranchId] = useState<number | null>(null);
     const [mergeStep, setMergeStep] = useState<'select' | 'preview'>('select');
     const [mergeEditorContent, setMergeEditorContent] = useState('');
     const [mergeConflictCount, setMergeConflictCount] = useState(0);
@@ -85,7 +85,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const renameBranch = useRenameBranch();
     const mergePreview = useMergePreviewQuery(activeBranchId ?? null, mergeTargetBranchId);
 
-    const handleSwitchBranch = useCallback((branchId: string) => {
+    const handleSwitchBranch = useCallback((branchId: number) => {
         if (branchId === activeBranchId) return;
         setActiveBranch.mutate(
             { fileId: selectedFile.id, branchId },
@@ -110,7 +110,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
         );
     }, [newBranchName, selectedFile.id, activeBranchName, createBranch, setActiveBranch, onBranchChanged]);
 
-    const handleDeleteBranch = useCallback((branchId: string, branchName: string) => {
+    const handleDeleteBranch = useCallback((branchId: number, branchName: string) => {
         if (!confirm(`Delete variant "${branchName}"?`)) return;
         deleteBranch.mutate({ fileId: selectedFile.id, branchId });
     }, [deleteBranch, selectedFile.id]);
@@ -128,7 +128,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
         );
     }, [activeBranchId, commitMessage, createCommit]);
 
-    const handleOpenRename = useCallback((branchId: string, currentName: string) => {
+    const handleOpenRename = useCallback((branchId: number, currentName: string) => {
         setRenameBranchId(branchId);
         setRenameBranchValue(currentName);
         setRenameDialogOpen(true);

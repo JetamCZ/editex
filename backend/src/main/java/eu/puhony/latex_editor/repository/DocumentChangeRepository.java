@@ -26,18 +26,33 @@ public interface DocumentChangeRepository extends JpaRepository<DocumentChange, 
 
     // Branch-aware queries
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId ORDER BY dc.id ASC")
-    List<DocumentChange> findByFileIdAndBranchIdOrderById(@Param("fileId") String fileId, @Param("branchId") String branchId);
+    List<DocumentChange> findByFileIdAndBranchIdOrderById(@Param("fileId") String fileId, @Param("branchId") Long branchId);
 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId ORDER BY dc.id DESC LIMIT 1")
-    Optional<DocumentChange> findLatestByFileIdAndBranchId(@Param("fileId") String fileId, @Param("branchId") String branchId);
+    Optional<DocumentChange> findLatestByFileIdAndBranchId(@Param("fileId") String fileId, @Param("branchId") Long branchId);
 
     @Query("SELECT dc FROM DocumentChange dc WHERE dc.file.id = :fileId AND dc.branch.id = :branchId AND dc.id > :afterChangeId ORDER BY dc.id ASC")
-    List<DocumentChange> findByFileIdAndBranchIdAfterChange(@Param("fileId") String fileId, @Param("branchId") String branchId, @Param("afterChangeId") Long afterChangeId);
+    List<DocumentChange> findByFileIdAndBranchIdAfterChange(@Param("fileId") String fileId, @Param("branchId") Long branchId, @Param("afterChangeId") Long afterChangeId);
 
     @Query("SELECT CASE WHEN COUNT(dc) > 0 THEN true ELSE false END FROM DocumentChange dc WHERE dc.branch.id = :branchId")
-    boolean existsByBranchId(@Param("branchId") String branchId);
+    boolean existsByBranchId(@Param("branchId") Long branchId);
 
     @Query("DELETE FROM DocumentChange dc WHERE dc.branch.id = :branchId")
     @org.springframework.data.jpa.repository.Modifying
-    void deleteByBranchId(@Param("branchId") String branchId);
+    void deleteByBranchId(@Param("branchId") Long branchId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.branch.id = :branchId ORDER BY dc.id DESC LIMIT 1")
+    Optional<DocumentChange> findLatestByBranchId(@Param("branchId") Long branchId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.branch.id = :branchId AND dc.id > :afterId ORDER BY dc.id ASC")
+    List<DocumentChange> findByBranchIdAndIdGreaterThan(@Param("branchId") Long branchId, @Param("afterId") Long afterId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.branch.id = :branchId AND dc.id > :fromId AND dc.id <= :toId ORDER BY dc.id ASC")
+    List<DocumentChange> findByBranchIdAndIdBetween(@Param("branchId") Long branchId, @Param("fromId") Long fromId, @Param("toId") Long toId);
+
+    @Query("SELECT CASE WHEN COUNT(dc) > 0 THEN true ELSE false END FROM DocumentChange dc WHERE dc.branch.id = :branchId AND dc.id > :afterId")
+    boolean existsByBranchIdAndIdGreaterThan(@Param("branchId") Long branchId, @Param("afterId") Long afterId);
+
+    @Query("SELECT dc FROM DocumentChange dc WHERE dc.branch.id = :branchId AND dc.operation = 'REPLACE' AND dc.id <= :maxId ORDER BY dc.id DESC LIMIT 1")
+    Optional<DocumentChange> findLatestReplaceByBranchIdAtOrBefore(@Param("branchId") Long branchId, @Param("maxId") Long maxId);
 }

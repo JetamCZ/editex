@@ -55,8 +55,7 @@ public class FileController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FileUploadResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("baseProject") String baseProject,
-            @RequestParam(value = "branch", defaultValue = "main") String branch,
+            @RequestParam("projectId") Long projectId,
             @RequestParam(value = "folder", defaultValue = "/") String folder,
             Authentication authentication) {
 
@@ -64,7 +63,7 @@ public class FileController {
             User user = userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+            Project project = projectService.getProjectById(projectId, user.getId())
                     .orElseThrow(() -> new RuntimeException("Project not found"));
 
             ProjectFile uploadedFile = fileService.uploadFile(file, project, folder, user);
@@ -76,37 +75,35 @@ public class FileController {
         }
     }
 
-    @GetMapping("/project/{baseProject}/{branch}")
+    @GetMapping("/project/{projectId}")
     public ResponseEntity<List<FileUploadResponse>> getProjectFiles(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+            @PathVariable Long projectId,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+        Project project = projectService.getProjectById(projectId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        List<ProjectFile> files = fileService.getProjectFiles(project.getId(), baseProject, user.getId());
+        List<ProjectFile> files = fileService.getProjectFiles(project.getId(), user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/project/{baseProject}/{branch}/folder")
+    @GetMapping("/project/{projectId}/folder")
     public ResponseEntity<List<FileUploadResponse>> getProjectFilesByFolder(
-            @PathVariable String baseProject,
-            @PathVariable String branch,
+            @PathVariable Long projectId,
             @RequestParam String folder,
             Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Project project = projectService.getProjectByBaseProjectAndBranch(baseProject, branch, user.getId())
+        Project project = projectService.getProjectById(projectId, user.getId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        List<ProjectFile> files = fileService.getProjectFilesByFolder(project.getId(), baseProject, folder, user.getId());
+        List<ProjectFile> files = fileService.getProjectFilesByFolder(project.getId(), folder, user.getId());
         List<FileUploadResponse> response = files.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -129,7 +126,7 @@ public class FileController {
     @GetMapping("/{fileId}/content")
     public ResponseEntity<FileContentResponse> getFileContent(
             @PathVariable String fileId,
-            @RequestParam(value = "branchId", required = false) String branchId,
+            @RequestParam(value = "branchId", required = false) Long branchId,
             Authentication authentication) {
 
         if (authentication == null || authentication.getName() == null) {
@@ -143,7 +140,7 @@ public class FileController {
                 .map(file -> {
                     try {
                         // Resolve which branch to use
-                        String resolvedBranchId = branchId;
+                        Long resolvedBranchId = branchId;
                         if (resolvedBranchId == null && file.getActiveBranch() != null) {
                             resolvedBranchId = file.getActiveBranch().getId();
                         }
@@ -256,15 +253,15 @@ public class FileController {
     public static class ChangesBatchRequest {
         private String sessionId;
         private Long baseChangeId;
-        private String branchId;
+        private Long branchId;
         private List<DocumentChangeService.ChangeData> changes;
 
         public String getSessionId() { return sessionId; }
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
         public Long getBaseChangeId() { return baseChangeId; }
         public void setBaseChangeId(Long baseChangeId) { this.baseChangeId = baseChangeId; }
-        public String getBranchId() { return branchId; }
-        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public List<DocumentChangeService.ChangeData> getChanges() { return changes; }
         public void setChanges(List<DocumentChangeService.ChangeData> changes) { this.changes = changes; }
     }
@@ -274,7 +271,7 @@ public class FileController {
         private String sessionId;
         private Long userId;
         private String userName;
-        private String branchId;
+        private Long branchId;
         private List<ChangeResponse> changes;
         private Integer chunkIndex;
         private Integer totalChunks;
@@ -287,8 +284,8 @@ public class FileController {
         public void setUserId(Long userId) { this.userId = userId; }
         public String getUserName() { return userName; }
         public void setUserName(String userName) { this.userName = userName; }
-        public String getBranchId() { return branchId; }
-        public void setBranchId(String branchId) { this.branchId = branchId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public List<ChangeResponse> getChanges() { return changes; }
         public void setChanges(List<ChangeResponse> changes) { this.changes = changes; }
         public Integer getChunkIndex() { return chunkIndex; }
@@ -319,7 +316,7 @@ public class FileController {
         private Long lastChangeId;
         private String fileType;
         private String fileName;
-        private String activeBranchId;
+        private Long activeBranchId;
         private String activeBranchName;
 
         public String getContent() { return content; }
@@ -330,8 +327,8 @@ public class FileController {
         public void setFileType(String fileType) { this.fileType = fileType; }
         public String getFileName() { return fileName; }
         public void setFileName(String fileName) { this.fileName = fileName; }
-        public String getActiveBranchId() { return activeBranchId; }
-        public void setActiveBranchId(String activeBranchId) { this.activeBranchId = activeBranchId; }
+        public Long getActiveBranchId() { return activeBranchId; }
+        public void setActiveBranchId(Long activeBranchId) { this.activeBranchId = activeBranchId; }
         public String getActiveBranchName() { return activeBranchName; }
         public void setActiveBranchName(String activeBranchName) { this.activeBranchName = activeBranchName; }
     }
@@ -371,12 +368,12 @@ public class FileController {
                     .orElse(null);
         }
 
-        String activeBranchId = file.getActiveBranch() != null ? file.getActiveBranch().getId() : null;
+        Long activeBranchId = file.getActiveBranch() != null ? file.getActiveBranch().getId() : null;
         String activeBranchName = file.getActiveBranch() != null ? file.getActiveBranch().getName() : null;
 
         return new FileUploadResponse(
                 file.getId(),
-                file.getProject().getBaseProject(),
+                file.getProject().getId(),
                 file.getProjectFolder(),
                 file.getFileName(),
                 file.getOriginalFileName(),

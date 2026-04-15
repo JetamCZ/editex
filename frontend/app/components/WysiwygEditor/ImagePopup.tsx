@@ -10,20 +10,18 @@ interface ImagePopupProps {
     caption: string;
     onSave: (imagePath: string, caption: string) => void;
     onCancel: () => void;
-    baseProject?: string;
-    branch?: string;
+    projectId?: number;
 }
 
-export default function ImagePopup({imagePath, caption, onSave, onCancel, baseProject, branch}: ImagePopupProps) {
+export default function ImagePopup({imagePath, caption, onSave, onCancel, projectId}: ImagePopupProps) {
     const { t } = useTranslation();
     const [path, setPath] = useState(imagePath);
     const [cap, setCap] = useState(caption);
     const pathRef = useRef<HTMLInputElement>(null);
 
     const {data: files = []} = useProjectFiles({
-        baseProject: baseProject || '',
-        branch,
-        enabled: !!baseProject,
+        projectId: projectId || 0,
+        enabled: !!projectId,
     });
 
     const imageFiles = useMemo(() => {

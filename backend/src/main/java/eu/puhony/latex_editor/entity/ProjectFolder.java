@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project_folders", indexes = {
-    @Index(name = "idx_project_folders_base_project", columnList = "base_project"),
+    @Index(name = "idx_project_folders_project_id", columnList = "project_id"),
     @Index(name = "idx_project_folders_parent", columnList = "parent_id")
 })
 @Getter
@@ -20,8 +20,10 @@ public class ProjectFolder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "base_project", nullable = false, length = 36)
-    private String baseProject;
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)

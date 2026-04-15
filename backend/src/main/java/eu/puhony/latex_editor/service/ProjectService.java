@@ -27,13 +27,8 @@ public class ProjectService {
 
     public Optional<Project> getProjectById(Long id, Long userId) {
         Optional<Project> project = projectRepository.findByIdNonDeleted(id);
-        project.ifPresent(p -> folderPermissionService.ensureCanReadProject(p.getBaseProject(), userId));
+        project.ifPresent(p -> folderPermissionService.ensureCanReadProject(p.getId(), userId));
         return project;
-    }
-
-    public Optional<Project> getProjectByBaseProjectAndBranch(String baseProject, String branch, Long userId) {
-        folderPermissionService.ensureCanReadProject(baseProject, userId);
-        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch);
     }
 
     public List<Project> getProjectsByOwner(Long ownerId) {
@@ -42,10 +37,8 @@ public class ProjectService {
 
     @Transactional
     public Project createProject(Project project, User owner) {
-        project.setBranch("main");
         Project savedProject = projectRepository.save(project);
-        // Seed a root folder; owner gets implicit MANAGER via Project.owner, no grant row needed.
-        projectFolderService.initializeForNewProject(savedProject.getBaseProject(), owner);
+        projectFolderService.initializeForNewProject(savedProject, owner);
         return savedProject;
     }
 
@@ -57,32 +50,28 @@ public class ProjectService {
     }
 
     @Transactional
-    public Optional<Project> updateProject(String baseProject, String branch, Project updatedProject, Long userId) {
-        ProjectFolder root = projectFolderService.getRoot(baseProject);
+    public Optional<Project> updateProject(Long projectId, Project updatedProject, Long userId) {
+        Optional<Project> existing = projectRepository.findByIdNonDeleted(projectId);
+        if (existing.isEmpty()) return Optional.empty();
+        ProjectFolder root = projectFolderService.getRoot(existing.get().getId());
         folderPermissionService.ensureCanManage(userId, root);
 
-        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
-            .map(project -> {
-                project.setName(updatedProject.getName());
-                return projectRepository.save(project);
-            });
+        return existing.map(project -> {
+            project.setName(updatedProject.getName());
+            return projectRepository.save(project);
+        });
     }
 
     @Transactional
-    public boolean deleteProject(String baseProject, String branch, Long userId) {
-        // Only the project owner may delete the project.
-        Project project = projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, "main")
+    public boolean deleteProject(Long projectId, Long userId) {
+        Project project = projectRepository.findByIdNonDeleted(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
         if (project.getOwner() == null || !project.getOwner().getId().equals(userId)) {
             throw new SecurityException("Only the project owner can delete this project");
         }
 
-        return projectRepository.findByBaseProjectAndBranchNonDeleted(baseProject, branch)
-            .map(p -> {
-                p.setDeletedAt(LocalDateTime.now());
-                projectRepository.save(p);
-                return true;
-            })
-            .orElse(false);
+        project.setDeletedAt(LocalDateTime.now());
+        projectRepository.save(project);
+        return true;
     }
 }

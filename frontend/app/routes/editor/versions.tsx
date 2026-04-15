@@ -39,7 +39,7 @@ export default function VersionsPage() {
     const [selectedPdfUrl, setSelectedPdfUrl] = useState<string | null>(null);
     const [headerActionsContainer, setHeaderActionsContainer] = useState<HTMLElement | null>(null);
 
-    const {data: versions = [], isLoading} = useProjectVersionPdfs(project.baseProject, project.branch);
+    const {data: versions = [], isLoading} = useProjectVersionPdfs(project.id);
     const compileCommit = useCompileCommit();
     const downloadZip = useProjectDownload();
     const [downloadingHash, setDownloadingHash] = useState<string | null>(null);
@@ -73,12 +73,12 @@ export default function VersionsPage() {
     const handleDownloadZip = (hash: string) => {
         setDownloadingHash(hash);
         downloadZip.mutate(
-            {baseProject: project.baseProject, branch: project.branch, commitHash: hash},
+            {projectId: project.id, commitHash: hash},
             {
                 onSuccess: (result) => {
                     const link = document.createElement('a');
                     link.href = result.zipUrl;
-                    link.download = `${project.baseProject}-${hash}.zip`;
+                    link.download = `${project.id}-${hash}.zip`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -92,8 +92,7 @@ export default function VersionsPage() {
     const handleCompile = (hash: string) => {
         setSelectedHash(hash);
         compileCommit.mutate({
-            baseProject: project.baseProject,
-            branch: project.branch,
+            projectId: project.id,
             commitHash: hash,
         });
     };
@@ -111,7 +110,7 @@ export default function VersionsPage() {
                 <Button
                     variant="ghost"
                     size="2"
-                    onClick={() => navigate(`/project/${project.baseProject}/${project.branch}`)}
+                    onClick={() => navigate(`/project/${project.baseProject}`)}
                 >
                     <ArrowLeftIcon /> {t('editor.versions.backToEditor')}
                 </Button>,
