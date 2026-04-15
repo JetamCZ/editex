@@ -392,36 +392,33 @@
       "saving": "Saving...",
       "save": "Save",
       "cancel": "Cancel",
-      "idLabel": "Project ID",
-      "branchLabel": "Branch",
-      "roleLabel": "Your Role",
-      "createdLabel": "Created",
-      "successMessage": "Project name updated successfully!",
-      "errorMessage": "Failed to update project name"
+      "projectId": "Project ID",
+      "branch": "Branch",
+      "yourRole": "Your Role",
+      "created": "Created",
+      "updateSuccess": "Project name updated successfully!"
     },
     "access": {
       "heading": "Access & Permissions",
       "description": "Permissions are managed per folder. Grant a user VIEWER, EDITOR, or MANAGER access on any folder, and that access cascades into every subfolder beneath it.",
-      "youCanGrant": "You can grant or revoke access on any folder you manage.",
+      "canManage": "You can grant or revoke access on any folder you manage.",
       "onlyManagers": "Only managers can change permissions.",
       "manageButton": "Manage permissions"
     },
     "dangerZone": {
       "heading": "Danger Zone",
-      "deleteProject": "Delete Project",
+      "deleteTitle": "Delete Project",
       "deleteDescription": "Permanently delete this project and all its files",
       "deleteButton": "Delete Project"
     },
     "deleteProject": {
       "title": "Delete Project",
-      "description": "This action cannot be undone. This will permanently delete the project",
-      "descriptionEnd": "and all its files.",
-      "pleaseType": "Please type",
-      "toConfirm": "to confirm:",
-      "failedToDelete": "Failed to delete project",
+      "description": "This action cannot be undone. This will permanently delete the project \"{{name}}\" and all its files.",
+      "confirmPrompt": "Please type \"{{name}}\" to confirm:",
+      "errorFallback": "Failed to delete project",
       "cancel": "Cancel",
       "deleting": "Deleting...",
-      "delete": "Delete Project"
+      "submit": "Delete Project"
     },
     "permissions": {
       "heading": "Permissions",
@@ -429,7 +426,8 @@
       "backToSettings": "Back to Settings",
       "foldersHeading": "Folders",
       "selectFolder": "Select a folder to inspect its permissions.",
-      "yourRole": "Your effective role:",
+      "yourEffectiveRole": "Your effective role:",
+      "hasExplicitGrants": "Has explicit permissions",
       "editAccess": "Edit access",
       "effectiveAccess": "Effective access ({{count}})",
       "noGrants": "No grants on this folder.",

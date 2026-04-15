@@ -20,6 +20,7 @@ interface UseEditorSetupOptions {
     detectChanges: (e: editor.IModelContentChangedEvent, model: editor.ITextModel) => void;
     undo: (editor: editor.IStandaloneCodeEditor) => void;
     redo: (editor: editor.IStandaloneCodeEditor) => void;
+    setIsEditorReady: (value: boolean) => void;
 }
 
 export function useEditorSetup({
@@ -31,6 +32,7 @@ export function useEditorSetup({
     detectChanges,
     undo,
     redo,
+    setIsEditorReady,
 }: UseEditorSetupOptions) {
     const handleEditorDidMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
         editorRef.current = editorInstance;
@@ -126,7 +128,13 @@ export function useEditorSetup({
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ],
             run: () => { redo(editorInstance); }
         });
-    }, [editorRef, monacoRef, previousLinesRef, contentListenersRef, sendCursorPosition, detectChanges, undo, redo]);
+
+        // Signal that the editor is ready so the initial content fetch can
+        // safely call setValue on it. Without this, refetch() might win the
+        // race against Monaco's async load and end up as a silent no-op,
+        // leaving the editor empty until the user hits reload.
+        setIsEditorReady(true);
+    }, [editorRef, monacoRef, previousLinesRef, contentListenersRef, sendCursorPosition, detectChanges, undo, redo, setIsEditorReady]);
 
     return {handleEditorDidMount};
 }

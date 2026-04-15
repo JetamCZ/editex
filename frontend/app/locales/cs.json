@@ -392,36 +392,33 @@
       "saving": "Ukládání...",
       "save": "Uložit",
       "cancel": "Zrušit",
-      "idLabel": "ID projektu",
-      "branchLabel": "Větev",
-      "roleLabel": "Vaše role",
-      "createdLabel": "Vytvořeno",
-      "successMessage": "Název projektu byl úspěšně aktualizován!",
-      "errorMessage": "Nepodařilo se aktualizovat název projektu"
+      "projectId": "ID projektu",
+      "branch": "Větev",
+      "yourRole": "Vaše role",
+      "created": "Vytvořeno",
+      "updateSuccess": "Název projektu byl úspěšně aktualizován!"
     },
     "access": {
       "heading": "Přístup a oprávnění",
       "description": "Oprávnění jsou spravována per složka. Udělte uživateli přístup ČTENÁŘ, EDITOR nebo SPRÁVCE na jakékoli složce a tento přístup se přenese do každé podsložky.",
-      "youCanGrant": "Můžete udělovat nebo odvolávat přístup na jakékoli složce, kterou spravujete.",
+      "canManage": "Můžete udělovat nebo odvolávat přístup na jakékoli složce, kterou spravujete.",
       "onlyManagers": "Pouze správci mohou měnit oprávnění.",
       "manageButton": "Spravovat oprávnění"
     },
     "dangerZone": {
       "heading": "Nebezpečná zóna",
-      "deleteProject": "Smazat projekt",
+      "deleteTitle": "Smazat projekt",
       "deleteDescription": "Trvale smazat tento projekt a všechny jeho soubory",
       "deleteButton": "Smazat projekt"
     },
     "deleteProject": {
       "title": "Smazat projekt",
-      "description": "Tuto akci nelze vrátit zpět. Trvale se odstraní projekt",
-      "descriptionEnd": "a všechny jeho soubory.",
-      "pleaseType": "Napište prosím",
-      "toConfirm": "pro potvrzení:",
-      "failedToDelete": "Nepodařilo se smazat projekt",
+      "description": "Tuto akci nelze vrátit zpět. Trvale se odstraní projekt „{{name}}“ a všechny jeho soubory.",
+      "confirmPrompt": "Pro potvrzení napište „{{name}}“:",
+      "errorFallback": "Nepodařilo se smazat projekt",
       "cancel": "Zrušit",
       "deleting": "Mazání...",
-      "delete": "Smazat projekt"
+      "submit": "Smazat projekt"
     },
     "permissions": {
       "heading": "Oprávnění",
@@ -429,7 +426,8 @@
       "backToSettings": "Zpět na nastavení",
       "foldersHeading": "Složky",
       "selectFolder": "Vyberte složku pro kontrolu jejích oprávnění.",
-      "yourRole": "Vaše efektivní role:",
+      "yourEffectiveRole": "Vaše efektivní role:",
+      "hasExplicitGrants": "Má explicitní oprávnění",
       "editAccess": "Upravit přístup",
       "effectiveAccess": "Efektivní přístupy ({{count}})",
       "noGrants": "Na této složce nejsou žádná oprávnění.",

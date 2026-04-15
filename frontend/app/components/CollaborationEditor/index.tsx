@@ -4,7 +4,7 @@ import {useWebSocket} from "~/components/CollaborationEditor/hooks/useWebSocket"
 import Editor from "@monaco-editor/react";
 import getLanguage from "~/components/CollaborationEditor/lib/getLanguage";
 import {transformCursorPosition} from "~/components/CollaborationEditor/lib/transformCursor";
-import {useRef, useCallback, forwardRef, useImperativeHandle} from "react";
+import {useRef, useCallback, useState, forwardRef, useImperativeHandle} from "react";
 import type {editor} from "monaco-editor";
 import useContent from "~/components/CollaborationEditor/hooks/useContent";
 import useAuth from "~/hooks/useAuth";
@@ -40,6 +40,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     const monacoRef = useRef<typeof Monaco | null>(null);
     const sessionIdRef = useRef<string>(uuidv4());
     const contentListenersRef = useRef<Set<(content: string) => void>>(new Set());
+    const [isEditorReady, setIsEditorReady] = useState(false);
 
     const {bearerToken} = useAuth();
     const {changeHistory, setChangeHistory, detectChanges, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, isDocumentLoadedRef, setIsDocumentLoaded, undo, redo} = useChangeTracking();
@@ -88,7 +89,8 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         setIsApplyingRemoteChanges,
         setIsDocumentLoaded,
         sessionIdRef.current,
-        props.selectedFile.activeBranchId
+        props.selectedFile.activeBranchId,
+        isEditorReady,
     )
 
     const {handleCursorUpdate, handleCursorLeave} = useRemoteCursors({editorRef, monacoRef});
@@ -137,6 +139,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         detectChanges,
         undo,
         redo,
+        setIsEditorReady,
     });
 
     // Expose methods and state to parent via ref
@@ -156,6 +159,25 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             if (!ed || !monaco) return;
             const model = ed.getModel();
             if (!model) return;
+
+            // Refuse before the initial load completes. The WYSIWYG editor
+            // starts with an empty TipTap doc, and if its onUpdate fires
+            // before Monaco has the file content (or during a file switch),
+            // it would push '' here and the resulting executeEdits would
+            // generate DELETE ops that wipe the file on the next autosave.
+            if (!isDocumentLoadedRef.current) {
+                console.warn('[CollaborativeEditor] replaceContent ignored — document not loaded');
+                return;
+            }
+
+            // Defense-in-depth: refuse to wipe a non-empty document with
+            // empty content. WYSIWYG/Monaco can drift out of sync and emit
+            // an empty serialization even after load — never let that
+            // become a destructive write.
+            if (content === '' && model.getValue() !== '') {
+                console.warn('[CollaborativeEditor] replaceContent refused — would wipe non-empty document');
+                return;
+            }
 
             const oldLines = model.getLinesContent();
             const newLines = content.split('\n');

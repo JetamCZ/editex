@@ -16,7 +16,8 @@ const useContent = (
     setIsApplyingRemoteChanges: (value: boolean) => void,
     setIsDocumentLoaded: (value: boolean) => void,
     localSessionId: string,
-    branchId?: string | null
+    branchId?: string | null,
+    isEditorReady: boolean = true,
 ) => {
     const [content, setContent] = useState('');
     const [lastChangeId, setLastChangeId] = useState("");
@@ -61,8 +62,13 @@ const useContent = (
         // that any in-flight autosave debounce or change event from the
         // previous file cannot leak into the new file.
         setIsDocumentLoaded(false);
+        // Wait until Monaco has mounted. Otherwise refetch's setEditorContent
+        // fires while editorRef is still null, silently drops the content, and
+        // handleEditorDidMount then overwrites previousLinesRef with the empty
+        // model — leaving the editor blank until reload.
+        if (!isEditorReady) return;
         refetch()
-    }, [fileId, refetch, setIsDocumentLoaded]);
+    }, [fileId, refetch, setIsDocumentLoaded, isEditorReady]);
 
     const handleChanges = useCallback((changes: ChangeOperation[], senderSessionId: string | null) => {
         // Skip changes from our own session - we already applied them locally via HTTP
