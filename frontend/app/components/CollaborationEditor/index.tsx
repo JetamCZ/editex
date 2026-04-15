@@ -42,7 +42,7 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
     const contentListenersRef = useRef<Set<(content: string) => void>>(new Set());
 
     const {bearerToken} = useAuth();
-    const {changeHistory, setChangeHistory, detectChanges, resetTracking, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, undo, redo} = useChangeTracking();
+    const {changeHistory, setChangeHistory, detectChanges, previousLinesRef, updatePreviousLines, setIsApplyingRemoteChanges, undo, redo} = useChangeTracking();
 
     const setEditorContent = useCallback((newContent: string, changes?: ChangeOperation[]) => {
         if (editorRef.current) {
@@ -112,9 +112,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
         fileId: props.selectedFile.id,
         bearerToken,
         changeHistory,
+        setChangeHistory,
         lastChangeId,
         setLastChangeId,
-        resetTracking,
         editorRef,
         sessionId: sessionIdRef.current,
         autoSave: props.autoSave,

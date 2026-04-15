@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useState, type Dispatch, type SetStateAction} from "react";
 import type {editor} from "monaco-editor";
 import type {ChangeOperation} from "./useChangeTracking";
 import axios from "axios";
@@ -7,9 +7,9 @@ interface UseChangeSubmissionOptions {
     fileId: string;
     bearerToken: string;
     changeHistory: ChangeOperation[];
+    setChangeHistory: Dispatch<SetStateAction<ChangeOperation[]>>;
     lastChangeId: string | null;
     setLastChangeId: (id: string) => void;
-    resetTracking: (lines: string[]) => void;
     editorRef: React.RefObject<editor.IStandaloneCodeEditor | null>;
     sessionId: string;
     autoSave?: boolean;
@@ -21,9 +21,9 @@ export function useChangeSubmission({
     fileId,
     bearerToken,
     changeHistory,
+    setChangeHistory,
     lastChangeId,
     setLastChangeId,
-    resetTracking,
     editorRef,
     sessionId,
     autoSave,
@@ -37,13 +37,20 @@ export function useChangeSubmission({
             return;
         }
 
+        // Capture the exact ops being sent by reference. While the POST is in
+        // flight the user may keep typing, and squashOperations may mutate or
+        // pop entries — so we can't rely on index positions. Referential
+        // identity is stable: any op still present after the POST that isn't
+        // in this set is an unsent edit we must keep.
+        const sentOps = changeHistory;
+
         setIsSending(true);
         try {
             const payload = {
                 sessionId,
                 baseChangeId: lastChangeId,
                 branchId: branchId || undefined,
-                changes: changeHistory.map(change => ({
+                changes: sentOps.map(change => ({
                     operation: change.operation,
                     line: change.line,
                     content: change.content
@@ -69,19 +76,19 @@ export function useChangeSubmission({
                 setLastChangeId(newLastChangeId);
             }
 
-            console.log(`Sent ${changeHistory.length} changes to server via HTTP`);
+            console.log(`Sent ${sentOps.length} changes to server via HTTP`);
 
-            // Clear the local changes history after successfully sending
-            const model = editorRef.current?.getModel();
-            if (model) {
-                resetTracking(model.getLinesContent());
-            }
+            // Drop only the ops that were actually sent. Anything the user
+            // typed during the POST stays in changeHistory for the next send.
+            // Do NOT touch previousLinesRef — detectChanges keeps it in sync.
+            const sentSet = new Set(sentOps);
+            setChangeHistory(prev => prev.filter(op => !sentSet.has(op)));
         } catch (error) {
             console.error('Failed to send changes:', error);
         } finally {
             setIsSending(false);
         }
-    }, [changeHistory, lastChangeId, bearerToken, fileId, resetTracking, isSending, setLastChangeId, sessionId, editorRef]);
+    }, [changeHistory, lastChangeId, bearerToken, fileId, setChangeHistory, isSending, setLastChangeId, sessionId, branchId]);
 
     // Debounced auto-save: send changes after user stops typing
     const autoSaveDebounce = Number(import.meta.env.VITE_AUTOSAVE_DEBOUNCE_MS) || 1000;

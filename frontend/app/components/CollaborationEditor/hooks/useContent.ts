@@ -79,7 +79,10 @@ const useContent = (
         // Step 4: Update state
         setContent(newServerContent.join('\n'));
         setLastChangeId(changes.at(-1)?.id!)
-        updatePreviousLines(newServerContent);
+        // previousLines must mirror what's actually in the editor (finalContent),
+        // not the server baseline — otherwise the next keystroke's diff will
+        // re-emit the pending local delta and duplicate it in changeHistory.
+        updatePreviousLines(finalContent);
         setChangeHistory(transformedHistory);
 
         // Step 5: Update editor without triggering change detection
