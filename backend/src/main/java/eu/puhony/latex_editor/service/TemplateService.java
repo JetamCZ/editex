@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.puhony.latex_editor.entity.FileBranch;
 import eu.puhony.latex_editor.entity.Project;
 import eu.puhony.latex_editor.entity.ProjectFile;
+import eu.puhony.latex_editor.entity.ProjectFolder;
 import eu.puhony.latex_editor.entity.User;
 import eu.puhony.latex_editor.repository.FileBranchRepository;
 import eu.puhony.latex_editor.repository.ProjectFileRepository;
@@ -31,6 +32,7 @@ public class TemplateService {
     private final MinioService minioService;
     private final ProjectFileRepository projectFileRepository;
     private final FileBranchRepository fileBranchRepository;
+    private final ProjectFolderService projectFolderService;
 
     private static final String TEMPLATES_CONFIG = "templates/templates.json";
     private static final String SOURCES_ROOT = "/sources";
@@ -114,15 +116,19 @@ public class TemplateService {
                 fos.write(content);
             }
 
+            String normalizedFolder = ProjectFolderService.normalize(folder);
+            ProjectFolder targetFolder = projectFolderService.getOrCreateByPath(project, normalizedFolder);
+
             // S3 path: {baseProject}/{branch}/sources{folder}
-            String s3Path = project.getBaseProject() + "/main" + SOURCES_ROOT + folder;
+            String s3Path = project.getBaseProject() + "/main" + SOURCES_ROOT + normalizedFolder;
             String s3Url = minioService.uploadFile(tempFile, s3Path, getContentType(filename));
 
             tempFile.delete();
 
             ProjectFile projectFile = new ProjectFile();
             projectFile.setProject(project);
-            projectFile.setProjectFolder(folder);
+            projectFile.setProjectFolder(normalizedFolder);
+            projectFile.setFolder(targetFolder);
             projectFile.setFileName(filename);
             projectFile.setOriginalFileName(filename);
             projectFile.setFileSize((long) content.length);

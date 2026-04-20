@@ -23,6 +23,8 @@ import {Upload} from "lucide-react";
 import EditorModeToggle, {type EditorMode} from "~/components/EditorModeToggle";
 import FileBranchSelector from "~/components/FileBranchSelector";
 import WysiwygEditor from "~/components/WysiwygEditor";
+import FolderAccessModal from "~/components/FolderAccessModal";
+import {UserPlus} from "lucide-react";
 
 export function meta({ matches }: { matches: Array<{ data?: { project?: Project } }> }) {
     const parentData = matches.find(m => m.data?.project)?.data;
@@ -67,6 +69,7 @@ const EditorPage = () => {
         characters: number;
     }>({changeHistory: [], isConnected: false, sessionId: '', words: 0, characters: 0});
     const [debugPanelOpen, setDebugPanelOpen] = useState(false);
+    const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
     const [autoSave, setAutoSave] = useState<boolean>(true);
 
@@ -93,6 +96,7 @@ const EditorPage = () => {
         projectId: project.id,
     });
     const {data: projectFolders = []} = useProjectFolders(project.id);
+    const rootFolder = projectFolders.find(f => f.parentId === null) ?? null;
 
     const compilationMutation = useLatexCompilation();
     const downloadMutation = useProjectDownload();
@@ -409,7 +413,42 @@ const EditorPage = () => {
                     />
                 </div>
 
+                <div style={{
+                    padding: "12px 14px",
+                    borderTop: "1px solid var(--gray-5)",
+                    flexShrink: 0,
+                }}>
+                    <button
+                        onClick={() => setInviteModalOpen(true)}
+                        title={t('editor.index.inviteCollaboratorsHint')}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            width: "100%",
+                            padding: "10px 14px",
+                            background: "var(--accent-3)",
+                            border: "1px solid var(--accent-6)",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            color: "var(--accent-11)",
+                            fontSize: "14px",
+                            fontWeight: 500,
+                        }}
+                    >
+                        <UserPlus width={16} height={16} style={{flexShrink: 0}} />
+                        {t('editor.index.inviteCollaborators')}
+                    </button>
+                </div>
+
             </aside>
+
+            <FolderAccessModal
+                open={inviteModalOpen}
+                onOpenChange={setInviteModalOpen}
+                folder={rootFolder}
+                projectId={project.id}
+            />
 
             {/* Editor Area + Content */}
             <div style={{flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative"}}>

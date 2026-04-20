@@ -333,7 +333,9 @@
       "compile": "Kompilovat",
       "download": "Stáhnout",
       "backToEditor": "Zpět na editor",
-      "viewOnlyBanner": "Pouze ke čtení — k tomuto souboru máte přístup pouze pro čtení."
+      "viewOnlyBanner": "Pouze ke čtení — k tomuto souboru máte přístup pouze pro čtení.",
+      "inviteCollaborators": "Pozvat spolupracovníky",
+      "inviteCollaboratorsHint": "Sdílet tento projekt s ostatními"
     },
     "settings": {
       "heading": "Nastavení projektu",

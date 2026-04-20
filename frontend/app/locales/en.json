@@ -333,7 +333,9 @@
       "compile": "Compile",
       "download": "Download",
       "backToEditor": "Back to Editor",
-      "viewOnlyBanner": "View only — you have read access to this file but cannot edit it."
+      "viewOnlyBanner": "View only — you have read access to this file but cannot edit it.",
+      "inviteCollaborators": "Invite collaborators",
+      "inviteCollaboratorsHint": "Share this project with others"
     },
     "settings": {
       "heading": "Project Settings",
