@@ -4,12 +4,13 @@ import type {Project} from "../../../types/project";
 import {useState, useEffect, useRef, useCallback} from "react";
 import {createPortal} from "react-dom";
 import {Box, Text, Select, Tooltip, IconButton} from "@radix-ui/themes";
+import BlameViewDialog from "~/components/BlameViewDialog";
 import {useProjectFiles} from "~/hooks/useProjectFiles";
 import {useProjectFolders} from "~/hooks/useProjectFolders";
 import ProjectFiles from "./ProjectFiles";
 import {ContentType, getFileContentType} from "~/const/ContentType";
 import {FolderRole, roleIncludes} from "../../../types/permission";
-import {Eye} from "lucide-react";
+import {Eye, History} from "lucide-react";
 import CollaborativeEditor, {type CollaborativeEditorRef} from "~/components/CollaborationEditor";
 import PdfViewer from "~/components/PdfViewer";
 import FileUploadModal from "~/components/FileUploadModal";
@@ -71,6 +72,7 @@ const EditorPage = () => {
     }>({changeHistory: [], isConnected: false, sessionId: '', words: 0, characters: 0});
     const [debugPanelOpen, setDebugPanelOpen] = useState(false);
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
+    const [blameDialogOpen, setBlameDialogOpen] = useState(false);
 
     const [autoSave, setAutoSave] = useState<boolean>(true);
 
@@ -641,6 +643,28 @@ const EditorPage = () => {
                             <>
                                 <span style={{color: "var(--gray-11)"}}>{t('editor.index.words', { n: editorState.words })}</span>
                                 <span style={{color: "var(--gray-11)"}}>{t('editor.index.characters', { n: editorState.characters })}</span>
+                                <Tooltip content={t('editor.index.blameTooltip')}>
+                                    <button
+                                        onClick={() => setBlameDialogOpen(true)}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "4px",
+                                            background: "none",
+                                            border: "none",
+                                            cursor: "pointer",
+                                            color: "var(--gray-9)",
+                                            fontSize: "12px",
+                                            padding: "0 4px",
+                                            borderRadius: "4px",
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.color = "var(--gray-12)"}
+                                        onMouseLeave={e => e.currentTarget.style.color = "var(--gray-9)"}
+                                    >
+                                        <History size={13} strokeWidth={2} />
+                                        {t('editor.index.blame')}
+                                    </button>
+                                </Tooltip>
                             </>
                         )}
                     </div>
@@ -743,6 +767,17 @@ const EditorPage = () => {
                 projectId={project.id}
                 sourceFile={compileTarget}
             />
+
+            {/* Blame Dialog */}
+            {selectedFile && isTextFile && (
+                <BlameViewDialog
+                    open={blameDialogOpen}
+                    onOpenChange={setBlameDialogOpen}
+                    branchId={selectedFile.activeBranchId ?? undefined}
+                    branchName={selectedFile.activeBranchName ?? 'main'}
+                    fileName={selectedFile.originalFileName}
+                />
+            )}
         </>
     );
 };

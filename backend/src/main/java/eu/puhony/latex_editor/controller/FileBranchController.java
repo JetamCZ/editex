@@ -173,6 +173,44 @@ public class FileBranchController {
         return ResponseEntity.ok(mapCommitResponse(mergeCommit));
     }
 
+    @GetMapping("/commits/{hash}/content")
+    public ResponseEntity<BranchContentResponse> getCommitContent(
+            @PathVariable String hash,
+            Authentication authentication) {
+        User user = getUser(authentication);
+        String content = branchService.getContentAtCommit(hash, user.getId());
+        BranchContentResponse response = new BranchContentResponse();
+        response.setContent(content);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/commits/{sourceHash}/diff/{targetHash}")
+    public ResponseEntity<DiffResponse> getDiffByHashes(
+            @PathVariable String sourceHash,
+            @PathVariable String targetHash,
+            Authentication authentication) {
+        User user = getUser(authentication);
+        String[] contents = branchService.getDiffByHashes(sourceHash, targetHash, user.getId());
+        DiffResponse response = new DiffResponse();
+        response.setSourceContent(contents[0]);
+        response.setTargetContent(contents[1]);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/branches/{branchId}/blame")
+    public ResponseEntity<List<BlameResponse>> getBlame(
+            @PathVariable Long branchId,
+            Authentication authentication) {
+        User user = getUser(authentication);
+        List<FileBranchService.BlameEntry> entries = branchService.getBlame(branchId, user.getId());
+
+        List<BlameResponse> response = entries.stream()
+                .map(e -> new BlameResponse(e.lineNumber(), e.userId(), e.userName(), e.timestamp()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/branches/{sourceBranchId}/diff/{targetBranchId}")
     public ResponseEntity<DiffResponse> getDiff(
             @PathVariable Long sourceBranchId,
@@ -350,6 +388,25 @@ public class FileBranchController {
         public void setSourceContent(String sourceContent) { this.sourceContent = sourceContent; }
         public String getTargetContent() { return targetContent; }
         public void setTargetContent(String targetContent) { this.targetContent = targetContent; }
+    }
+
+    public static class BlameResponse {
+        private int lineNumber;
+        private Long userId;
+        private String userName;
+        private LocalDateTime timestamp;
+
+        public BlameResponse(int lineNumber, Long userId, String userName, LocalDateTime timestamp) {
+            this.lineNumber = lineNumber;
+            this.userId = userId;
+            this.userName = userName;
+            this.timestamp = timestamp;
+        }
+
+        public int getLineNumber() { return lineNumber; }
+        public Long getUserId() { return userId; }
+        public String getUserName() { return userName; }
+        public LocalDateTime getTimestamp() { return timestamp; }
     }
 
     public static class BranchChangeEvent {

@@ -191,6 +191,43 @@ export function useMergeBranch() {
     });
 }
 
+export function useBranchContent(branchId: number | null) {
+    const config = useAuthHeaders();
+
+    return useQuery({
+        queryKey: ['branchContent', branchId],
+        queryFn: async () => {
+            const { data } = await axios.get<{ content: string }>(
+                `/api/branches/${branchId}/content`, config
+            );
+            return data.content;
+        },
+        enabled: !!branchId,
+    });
+}
+
+export interface BlameEntry {
+    lineNumber: number;
+    userId: number | null;
+    userName: string | null;
+    timestamp: string | null;
+}
+
+export function useBranchBlame(branchId: number | null) {
+    const config = useAuthHeaders();
+
+    return useQuery({
+        queryKey: ['branchBlame', branchId],
+        queryFn: async () => {
+            const { data } = await axios.get<BlameEntry[]>(
+                `/api/branches/${branchId}/blame`, config
+            );
+            return data;
+        },
+        enabled: !!branchId,
+    });
+}
+
 export function useBranchDiff(sourceBranchId: number | null, targetBranchId: number | null) {
     const config = useAuthHeaders();
 
@@ -203,5 +240,20 @@ export function useBranchDiff(sourceBranchId: number | null, targetBranchId: num
             return data;
         },
         enabled: !!sourceBranchId && !!targetBranchId,
+    });
+}
+
+export function useCommitDiff(sourceHash: string | null, targetHash: string | null) {
+    const config = useAuthHeaders();
+
+    return useQuery({
+        queryKey: ['commitDiff', sourceHash, targetHash],
+        queryFn: async () => {
+            const { data } = await axios.get<{ sourceContent: string; targetContent: string }>(
+                `/api/commits/${sourceHash}/diff/${targetHash}`, config
+            );
+            return data;
+        },
+        enabled: !!sourceHash && !!targetHash && sourceHash !== targetHash,
     });
 }

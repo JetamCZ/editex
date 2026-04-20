@@ -326,6 +326,8 @@
       "compileTip": "Klikněte na \"Kompilovat\" pro vygenerování náhledu PDF",
       "words": "{{n}} slov",
       "characters": "{{n}} znaků",
+      "blame": "Blame",
+      "blameTooltip": "Zobrazit autory řádků",
       "connected": "Připojeno",
       "disconnected": "Odpojeno",
       "session": "Relace {{id}}",
@@ -521,7 +523,31 @@
       "close": "Zavřít"
     },
     "saveVersionTooltip": "Uložit verzi",
-    "versionHistoryTooltip": "Historie verzí"
+    "versionHistoryTooltip": "Historie verzí",
+    "compare": "Porovnat varianty..."
+  },
+  "diffViewDialog": {
+    "title": "Porovnání — {{file}}",
+    "original": "Originál:",
+    "modified": "Upravená:",
+    "modeBranches": "Varianty",
+    "modeCommits": "Commity",
+    "selectVariant": "Vyberte variantu",
+    "selectCommit": "Vyberte commit",
+    "noCommits": "Žádné commity",
+    "loading": "Načítání...",
+    "selectBranches": "Vyberte dvě různé varianty nebo commity pro porovnání",
+    "sameBranch": "Vyberte dvě různé varianty",
+    "error": "Nepodařilo se načíst diff",
+    "close": "Zavřít"
+  },
+  "blameViewDialog": {
+    "title": "Blame — {{file}} ({{branch}})",
+    "description": "Zobrazuje, který autor naposledy upravil každý řádek",
+    "unknownAuthor": "Neznámý autor",
+    "empty": "Zatím nejsou zaznamenány žádné změny",
+    "error": "Nepodařilo se načíst data blame",
+    "close": "Zavřít"
   },
   "gitTree": {
     "loading": "Načítání...",

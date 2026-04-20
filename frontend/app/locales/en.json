@@ -326,6 +326,8 @@
       "compileTip": "Click \"Compile\" to generate PDF preview",
       "words": "{{n}} words",
       "characters": "{{n}} characters",
+      "blame": "Blame",
+      "blameTooltip": "Show who last modified each line",
       "connected": "Connected",
       "disconnected": "Disconnected",
       "session": "Session {{id}}",
@@ -521,7 +523,31 @@
       "close": "Close"
     },
     "saveVersionTooltip": "Save version",
-    "versionHistoryTooltip": "Version history"
+    "versionHistoryTooltip": "Version history",
+    "compare": "Compare variants..."
+  },
+  "diffViewDialog": {
+    "title": "Compare — {{file}}",
+    "original": "Original:",
+    "modified": "Modified:",
+    "modeBranches": "Variants",
+    "modeCommits": "Commits",
+    "selectVariant": "Select variant",
+    "selectCommit": "Select commit",
+    "noCommits": "No commits",
+    "loading": "Loading...",
+    "selectBranches": "Select two different variants or commits to compare",
+    "sameBranch": "Select two different variants",
+    "error": "Failed to load diff",
+    "close": "Close"
+  },
+  "blameViewDialog": {
+    "title": "Blame — {{file}} ({{branch}})",
+    "description": "Shows which author last modified each line",
+    "unknownAuthor": "Unknown author",
+    "empty": "No changes recorded yet",
+    "error": "Failed to load blame data",
+    "close": "Close"
   },
   "gitTree": {
     "loading": "Loading...",

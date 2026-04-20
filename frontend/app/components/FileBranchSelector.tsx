@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DropdownMenu, Button, Dialog, TextField, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
-import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil, AlertTriangle, CheckCircle } from 'lucide-react';
+import { GitBranch, Plus, Trash2, GitMerge, Save, ChevronDown, Pencil, AlertTriangle, CheckCircle, GitCompareArrows } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useFileBranches, useCreateBranch, useDeleteBranch, useSetActiveBranch, useCreateCommit, useMergeBranch, useRenameBranch, useMergePreviewQuery } from '~/hooks/useFileBranches';
 import type { ProjectFile } from '../../types/file';
 import GitTree from '~/components/GitTree';
+import DiffViewDialog from '~/components/DiffViewDialog';
 
 interface Props {
     selectedFile: ProjectFile;
@@ -20,6 +21,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged, initialBranch }: Pr
     const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+    const [diffDialogOpen, setDiffDialogOpen] = useState(false);
     const [renameBranchId, setRenameBranchId] = useState<number | null>(null);
     const [renameBranchValue, setRenameBranchValue] = useState('');
     const [newBranchName, setNewBranchName] = useState('');
@@ -330,6 +332,12 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged, initialBranch }: Pr
                                 <Text size="2">{t('fileBranchSelector.combine')}</Text>
                             </DropdownMenu.Item>
                         )}
+                        {branches.length > 1 && (
+                            <DropdownMenu.Item onSelect={() => setDiffDialogOpen(true)}>
+                                <GitCompareArrows size={14} strokeWidth={2} />
+                                <Text size="2">{t('fileBranchSelector.compare')}</Text>
+                            </DropdownMenu.Item>
+                        )}
                     </DropdownMenu.Content>
                 </DropdownMenu.Root>
 
@@ -362,6 +370,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged, initialBranch }: Pr
                         <GitBranch size={16} strokeWidth={2} />
                     </IconButton>
                 </Tooltip>
+
             </div>
 
             {/* Create Variant Dialog */}
@@ -595,6 +604,15 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged, initialBranch }: Pr
                     )}
                 </Dialog.Content>
             </Dialog.Root>
+
+            {/* Diff Dialog */}
+            <DiffViewDialog
+                open={diffDialogOpen}
+                onOpenChange={setDiffDialogOpen}
+                branches={branches}
+                activeBranchId={activeBranchId ?? undefined}
+                fileName={selectedFile.originalFileName}
+            />
 
             {/* Git Tree / History Dialog */}
             <Dialog.Root open={historyOpen} onOpenChange={setHistoryOpen}>

@@ -408,6 +408,115 @@ public class FileBranchService {
     }
 
     /**
+     * One entry in a blame result: which user last modified this line, and when.
+     * userId/userName/timestamp are null for lines whose authorship predates the
+     * change history tracked in the database (e.g. the original S3 upload).
+     */
+    public record BlameEntry(int lineNumber, Long userId, String userName, java.time.LocalDateTime timestamp) {}
+
+    /**
+     * Compute per-line blame for the current state of a branch by replaying all
+     * DocumentChanges in order and tracking which change last touched each line.
+     */
+    public List<BlameEntry> getBlame(Long branchId, Long userId) {
+        FileBranch branch = branchRepository.findByIdNonDeleted(branchId)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+        folderPermissionService.ensureCanRead(userId, branch.getFile());
+        return computeBlame(branch);
+    }
+
+    private List<BlameEntry> computeBlame(FileBranch branch) {
+        Long branchId = branch.getId();
+        Optional<DocumentChange> latestReplace =
+                changeRepository.findLatestReplaceByBranchIdAtOrBefore(branchId, Long.MAX_VALUE);
+
+        // blame[i] = {userId, userName, timestamp} for line i+1 (null = unknown/original)
+        record LineAuthor(Long userId, String userName, java.time.LocalDateTime timestamp) {}
+        List<LineAuthor> blame = new java.util.ArrayList<>();
+        List<DocumentChange> changes;
+
+        if (latestReplace.isPresent()) {
+            DocumentChange replace = latestReplace.get();
+            String content = replace.getContent() != null ? replace.getContent() : "";
+            String[] lines = content.split("\n", -1);
+            String displayName = getDisplayName(replace.getUser());
+            for (String ignored : lines) {
+                blame.add(new LineAuthor(replace.getUser().getId(), displayName, replace.getCreatedAt()));
+            }
+            changes = changeRepository.findByBranchIdAndIdGreaterThan(branchId, replace.getId());
+        } else {
+            try {
+                String content = minioService.getFileContent(branch.getFile().getS3Url());
+                String[] lines = content.split("\n", -1);
+                for (String ignored : lines) {
+                    blame.add(new LineAuthor(null, null, null));
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Error reading file for blame", e);
+            }
+            changes = changeRepository.findByFileIdAndBranchIdOrderById(branch.getFile().getId(), branchId);
+        }
+
+        for (DocumentChange change : changes) {
+            int idx = change.getLineNumber() - 1;
+            LineAuthor author = new LineAuthor(change.getUser().getId(),
+                    getDisplayName(change.getUser()), change.getCreatedAt());
+            switch (change.getOperation()) {
+                case "MODIFY" -> {
+                    if (idx >= 0) {
+                        while (blame.size() <= idx) blame.add(new LineAuthor(null, null, null));
+                        blame.set(idx, author);
+                    }
+                }
+                case "INSERT_AFTER" -> {
+                    int insertAt = idx + 1;
+                    if (insertAt >= 0) {
+                        while (blame.size() < insertAt) blame.add(new LineAuthor(null, null, null));
+                        blame.add(insertAt, author);
+                    }
+                }
+                case "DELETE" -> {
+                    if (idx >= 0 && idx < blame.size()) blame.remove(idx);
+                }
+            }
+        }
+
+        List<BlameEntry> result = new java.util.ArrayList<>(blame.size());
+        for (int i = 0; i < blame.size(); i++) {
+            LineAuthor a = blame.get(i);
+            result.add(new BlameEntry(i + 1, a.userId(), a.userName(), a.timestamp()));
+        }
+        return result;
+    }
+
+    private String getDisplayName(User user) {
+        return user.getName() != null && !user.getName().isBlank() ? user.getName() : user.getEmail();
+    }
+
+    /**
+     * Return the content of a file at a specific commit (identified by its short hash).
+     */
+    public String getContentAtCommit(String hash, Long userId) {
+        FileCommit commit = commitRepository.findByHash(hash)
+                .orElseThrow(() -> new RuntimeException("Commit not found: " + hash));
+        folderPermissionService.ensureCanRead(userId, commit.getBranch().getFile());
+        return resolveCommitContent(commit);
+    }
+
+    /**
+     * Get diff between two commits identified by their hashes.
+     * Returns [sourceContent, targetContent].
+     */
+    public String[] getDiffByHashes(String sourceHash, String targetHash, Long userId) {
+        FileCommit source = commitRepository.findByHash(sourceHash)
+                .orElseThrow(() -> new RuntimeException("Commit not found: " + sourceHash));
+        FileCommit target = commitRepository.findByHash(targetHash)
+                .orElseThrow(() -> new RuntimeException("Commit not found: " + targetHash));
+        folderPermissionService.ensureCanRead(userId, source.getBranch().getFile());
+        return new String[]{resolveCommitContent(source), resolveCommitContent(target)};
+    }
+
+    /**
      * Get diff between two branches (source and target content).
      */
     public String[] getDiff(Long sourceBranchId, Long targetBranchId, Long userId) {
