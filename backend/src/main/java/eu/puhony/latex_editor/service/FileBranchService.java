@@ -117,6 +117,13 @@ public class FileBranchService {
         return branchRepository.findByFileIdNonDeleted(fileId);
     }
 
+    public List<FileBranch> listBranchesForHistory(String fileId, Long userId) {
+        ProjectFile file = fileRepository.findByIdNonDeleted(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+        folderPermissionService.ensureCanRead(userId, file);
+        return branchRepository.findByFileIdIncludingDeleted(fileId);
+    }
+
     /**
      * Whether a branch has document changes that are not yet captured in a commit.
      */

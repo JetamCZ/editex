@@ -67,8 +67,8 @@ export default function FileUploadModal({
       }
     },
     onSuccess: () => {
-      // Invalidate and refetch project files
       queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectFolders', projectId] });
       setFiles([]);
       setUploadProgress(100);
 

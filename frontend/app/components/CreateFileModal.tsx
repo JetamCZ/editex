@@ -12,36 +12,6 @@ interface CreateFileModalProps {
   projectId: number;
 }
 
-const FILE_TEMPLATES: Record<string, string> = {
-  tex: `\\documentclass{article}
-\\begin{document}
-
-% Your content here
-
-\\end{document}
-`,
-  bib: `@article{example,
-  author = {Author Name},
-  title = {Article Title},
-  journal = {Journal Name},
-  year = {2024},
-}
-`,
-  sty: `% Custom style file
-\\NeedsTeXFormat{LaTeX2e}
-\\ProvidesPackage{custom}[2024/01/01 Custom Package]
-
-% Package options and commands here
-`,
-  cls: `% Custom document class
-\\NeedsTeXFormat{LaTeX2e}
-\\ProvidesClass{custom}[2024/01/01 Custom Class]
-\\LoadClass{article}
-
-% Class options and commands here
-`,
-  txt: "",
-};
 
 export default function CreateFileModal({
   open,
@@ -60,10 +30,8 @@ export default function CreateFileModal({
   const createFileMutation = useMutation({
     mutationFn: async () => {
       const fullFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
-      const template = FILE_TEMPLATES[fileExtension] || "";
 
-      // Create a blob from the template content
-      const blob = new Blob([template], { type: 'text/plain' });
+      const blob = new Blob([""], { type: 'text/plain' });
       const file = new File([blob], fullFileName, { type: 'text/plain' });
 
       const formData = new FormData();
@@ -84,6 +52,7 @@ export default function CreateFileModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectFiles', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectFolders', projectId] });
       handleClose();
     },
     onError: (error) => {

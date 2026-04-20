@@ -29,6 +29,10 @@ export function useBidirectionalSync({monacoRef, tiptapEditor, visible}: UseBidi
             const doc = tiptapEditor.getJSON() as TipTapDoc;
             const latex = serializeToLatex(doc);
 
+            // Never push an empty serialization — uninitialized TipTap doc
+            // serializes to '\n' which would wipe Monaco content.
+            if (latex.trim() === '') return;
+
             const currentMonaco = monacoRef.current.getContent?.() || '';
             if (latex !== currentMonaco) {
                 lastContentRef.current = latex;

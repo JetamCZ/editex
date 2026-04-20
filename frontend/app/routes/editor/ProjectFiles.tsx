@@ -14,12 +14,13 @@ import type {ProjectFolder} from "../../../types/permission";
 
 interface Props {
     projectId: number
+    projectSlug: string
     selectedFileId: string | null
     handleFileClick: (fileId: string) => void
     onFileDeleted?: (fileId: string) => void
 }
 
-const ProjectFiles = ({projectId, selectedFileId, handleFileClick, onFileDeleted}: Props) => {
+const ProjectFiles = ({projectId, projectSlug, selectedFileId, handleFileClick, onFileDeleted}: Props) => {
     const { t } = useTranslation();
     const [moveDialogState, setMoveDialogState] = useState<{
         open: boolean;
@@ -145,6 +146,7 @@ const ProjectFiles = ({projectId, selectedFileId, handleFileClick, onFileDeleted
                 onOpenChange={(open) => !open && setAccessModalFolder(null)}
                 folder={accessModalFolder}
                 projectId={projectId}
+                projectSlug={projectSlug}
             />
 
             <Dialog.Root

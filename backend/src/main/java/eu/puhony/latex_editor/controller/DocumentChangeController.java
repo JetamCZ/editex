@@ -76,6 +76,7 @@ public class DocumentChangeController {
         response.setSessionId(request.getSessionId());
         response.setUserId(user.getId());
         response.setUserName(user.getName() != null ? user.getName() : user.getEmail());
+        response.setBranchId(request.getBranchId());
         response.setLine(request.getLine());
         response.setColumn(request.getColumn());
         response.setSelectionStartLine(request.getSelectionStartLine());
@@ -189,6 +190,7 @@ public class DocumentChangeController {
     // Cursor DTOs
     public static class CursorUpdateRequest {
         private String sessionId;
+        private Long branchId;
         private Integer line;
         private Integer column;
         private Integer selectionStartLine;
@@ -198,6 +200,8 @@ public class DocumentChangeController {
 
         public String getSessionId() { return sessionId; }
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public Integer getLine() { return line; }
         public void setLine(Integer line) { this.line = line; }
         public Integer getColumn() { return column; }
@@ -217,6 +221,7 @@ public class DocumentChangeController {
         private String sessionId;
         private Long userId;
         private String userName;
+        private Long branchId;
         private Integer line;
         private Integer column;
         private Integer selectionStartLine;
@@ -232,6 +237,8 @@ public class DocumentChangeController {
         public void setUserId(Long userId) { this.userId = userId; }
         public String getUserName() { return userName; }
         public void setUserName(String userName) { this.userName = userName; }
+        public Long getBranchId() { return branchId; }
+        public void setBranchId(Long branchId) { this.branchId = branchId; }
         public Integer getLine() { return line; }
         public void setLine(Integer line) { this.line = line; }
         public Integer getColumn() { return column; }

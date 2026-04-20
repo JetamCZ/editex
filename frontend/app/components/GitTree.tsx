@@ -49,7 +49,7 @@ interface GitTreeProps {
 
 const GitTree = ({ fileId, activeBranchId }: GitTreeProps) => {
     const { t } = useTranslation();
-    const { data: branches = [], isLoading: branchesLoading, refetch: refetchBranches } = useFileBranches(fileId);
+    const { data: branches = [], isLoading: branchesLoading, refetch: refetchBranches } = useFileBranches(fileId, true);
 
     // Branches carry a `hasUncommittedChanges` flag; the modal is mounted on
     // demand so refetch on mount to make sure that flag reflects the current

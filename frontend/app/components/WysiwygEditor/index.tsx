@@ -131,6 +131,11 @@ export default function WysiwygEditor({content, onContentChange, visible, projec
                     const doc = editor.getJSON() as TipTapDoc;
                     const latex = serializeToLatex(doc);
 
+                    // Guard: never push an empty/whitespace-only serialization
+                    // to Monaco. An uninitialized TipTap doc serializes to '\n'
+                    // which would wipe non-empty Monaco content.
+                    if (latex.trim() === '') return;
+
                     if (latex !== lastMonacoContentRef.current) {
                         lastMonacoContentRef.current = latex;
                         onContentChange(latex);

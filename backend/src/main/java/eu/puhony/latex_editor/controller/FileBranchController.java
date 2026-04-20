@@ -30,12 +30,15 @@ public class FileBranchController {
     @GetMapping("/files/{fileId}/branches")
     public ResponseEntity<List<BranchResponse>> listBranches(
             @PathVariable String fileId,
+            @RequestParam(defaultValue = "false") boolean includeDeleted,
             Authentication authentication) {
         User user = getUser(authentication);
-        List<FileBranch> branches = branchService.listBranches(fileId, user.getId());
+        List<FileBranch> branches = includeDeleted
+                ? branchService.listBranchesForHistory(fileId, user.getId())
+                : branchService.listBranches(fileId, user.getId());
 
         List<BranchResponse> response = branches.stream()
-                .map(this::mapBranchResponse)
+                .map(b -> mapBranchResponse(b, includeDeleted))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(response);
@@ -193,6 +196,10 @@ public class FileBranchController {
     }
 
     private BranchResponse mapBranchResponse(FileBranch branch) {
+        return mapBranchResponse(branch, false);
+    }
+
+    private BranchResponse mapBranchResponse(FileBranch branch, boolean includeDeleted) {
         BranchResponse resp = new BranchResponse();
         resp.setId(branch.getId());
         resp.setFileId(branch.getFile().getId());
@@ -200,7 +207,8 @@ public class FileBranchController {
         resp.setSourceBranchName(branch.getSourceBranch() != null ? branch.getSourceBranch().getName() : null);
         resp.setCreatedBy(branch.getCreatedBy().getId());
         resp.setCreatedAt(branch.getCreatedAt());
-        resp.setHasUncommittedChanges(branchService.hasUncommittedChanges(branch.getId()));
+        resp.setDeleted(branch.getDeletedAt() != null);
+        resp.setHasUncommittedChanges(!resp.isDeleted() && branchService.hasUncommittedChanges(branch.getId()));
         return resp;
     }
 
@@ -227,6 +235,7 @@ public class FileBranchController {
         private Long createdBy;
         private LocalDateTime createdAt;
         private boolean hasUncommittedChanges;
+        private boolean deleted;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -242,6 +251,8 @@ public class FileBranchController {
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         public boolean isHasUncommittedChanges() { return hasUncommittedChanges; }
         public void setHasUncommittedChanges(boolean hasUncommittedChanges) { this.hasUncommittedChanges = hasUncommittedChanges; }
+        public boolean isDeleted() { return deleted; }
+        public void setDeleted(boolean deleted) { this.deleted = deleted; }
     }
 
     public static class CreateBranchRequest {

@@ -23,4 +23,7 @@ public interface FileBranchRepository extends JpaRepository<FileBranch, Long> {
 
     @Query("SELECT fb FROM FileBranch fb WHERE fb.file.project.id = :projectId AND fb.deletedAt IS NULL")
     List<FileBranch> findByProjectIdNonDeleted(@Param("projectId") Long projectId);
+
+    @Query("SELECT fb FROM FileBranch fb WHERE fb.file.id = :fileId ORDER BY fb.createdAt ASC")
+    List<FileBranch> findByFileIdIncludingDeleted(@Param("fileId") String fileId);
 }

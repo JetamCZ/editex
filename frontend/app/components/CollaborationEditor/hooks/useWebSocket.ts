@@ -84,8 +84,11 @@ export const useWebSocket = ({fileId, sessionId, branchId, onChangesReceived, on
                 // Subscribe to cursor updates
                 client.subscribe(`/topic/document/${fileId}/cursors`, (message: IMessage) => {
                     const response = JSON.parse(message.body);
-                    // Ignore our own cursor updates
+                    // Ignore our own cursor updates and cursors from different branches
                     if (response.sessionId !== sessionIdRef.current && onCursorUpdate) {
+                        if (response.branchId && branchId && response.branchId !== branchId) {
+                            return;
+                        }
                         onCursorUpdate({
                             sessionId: response.sessionId,
                             userId: response.userId,
@@ -155,6 +158,7 @@ export const useWebSocket = ({fileId, sessionId, branchId, onChangesReceived, on
 
         const message = {
             sessionId: sessionIdRef.current,
+            branchId: branchId,
             line: position.line,
             column: position.column,
             selectionStartLine: position.selectionStartLine,

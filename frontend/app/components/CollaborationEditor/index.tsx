@@ -173,8 +173,9 @@ const CollaborativeEditor = forwardRef<CollaborativeEditorRef, Props>((props, re
             // Defense-in-depth: refuse to wipe a non-empty document with
             // empty content. WYSIWYG/Monaco can drift out of sync and emit
             // an empty serialization even after load — never let that
-            // become a destructive write.
-            if (content === '' && model.getValue() !== '') {
+            // become a destructive write. Use trim() so '\n' (the serialized
+            // empty TipTap doc) is treated the same as ''.
+            if (content.trim() === '' && model.getValue().trim() !== '') {
                 console.warn('[CollaborativeEditor] replaceContent refused — would wipe non-empty document');
                 return;
             }

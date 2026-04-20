@@ -1,4 +1,4 @@
-import {useNavigate, useParams, useOutletContext} from "react-router";
+import {useNavigate, useParams, useOutletContext, useSearchParams} from "react-router";
 import { useTranslation } from 'react-i18next';
 import type {Project} from "../../../types/project";
 import {useState, useEffect, useRef, useCallback} from "react";
@@ -49,6 +49,7 @@ const EditorPage = () => {
     // params.fileId, kicking off a stale refetch that races with the new file's
     // refetch and could leave Monaco showing the wrong file's content.
     const selectedFileId: string | null = params.fileId ?? null;
+    const [searchParams, setSearchParams] = useSearchParams();
     const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [createFileModalOpen, setCreateFileModalOpen] = useState(false);
@@ -276,10 +277,18 @@ const EditorPage = () => {
         editorRef.current?.replaceContent?.(latex);
     }, []);
 
-    const handleBranchChanged = useCallback(() => {
-        // Reload file content when branch changes
+    const handleBranchChanged = useCallback((branchName: string) => {
         editorRef.current?.handleReloadFile();
-    }, []);
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (branchName === 'main') {
+                next.delete('branch');
+            } else {
+                next.set('branch', branchName);
+            }
+            return next;
+        }, { replace: true });
+    }, [setSearchParams]);
 
     // Header actions rendered via portal
     const headerActions = headerActionsContainer && createPortal(
@@ -288,6 +297,7 @@ const EditorPage = () => {
                 <FileBranchSelector
                     selectedFile={selectedFile}
                     onBranchChanged={handleBranchChanged}
+                    initialBranch={searchParams.get('branch') ?? undefined}
                 />
             )}
             {selectedFile && isTexFileSelected && (
@@ -403,6 +413,7 @@ const EditorPage = () => {
                 <div style={{flex: 1, overflow: "auto"}}>
                     <ProjectFiles
                         projectId={project.id}
+                        projectSlug={project.baseProject}
                         handleFileClick={handleFileClick}
                         selectedFileId={selectedFileId}
                         onFileDeleted={(fileId) => {
@@ -448,6 +459,7 @@ const EditorPage = () => {
                 onOpenChange={setInviteModalOpen}
                 folder={rootFolder}
                 projectId={project.id}
+                projectSlug={project.baseProject}
             />
 
             {/* Editor Area + Content */}

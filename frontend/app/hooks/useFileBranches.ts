@@ -22,14 +22,15 @@ function useAuthHeaders() {
     };
 }
 
-export function useFileBranches(fileId: string | null) {
+export function useFileBranches(fileId: string | null, includeDeleted = false) {
     const config = useAuthHeaders();
 
     return useQuery({
-        queryKey: ['fileBranches', fileId],
+        queryKey: ['fileBranches', fileId, includeDeleted],
         queryFn: async () => {
             const { data } = await axios.get<FileBranch[]>(
-                `/api/files/${fileId}/branches`, config
+                `/api/files/${fileId}/branches`,
+                { ...config, params: includeDeleted ? { includeDeleted: true } : undefined }
             );
             return data;
         },

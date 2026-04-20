@@ -9,10 +9,11 @@ import GitTree from '~/components/GitTree';
 
 interface Props {
     selectedFile: ProjectFile;
-    onBranchChanged?: () => void;
+    onBranchChanged?: (branchName: string) => void;
+    initialBranch?: string;
 }
 
-const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
+const FileBranchSelector = ({ selectedFile, onBranchChanged, initialBranch }: Props) => {
     const { t } = useTranslation();
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [commitDialogOpen, setCommitDialogOpen] = useState(false);
@@ -77,9 +78,26 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
     const activeBranchId = selectedFile.activeBranchId;
 
     const { data: branches = [] } = useFileBranches(selectedFile.id);
+
     const createBranch = useCreateBranch();
     const deleteBranch = useDeleteBranch();
     const setActiveBranch = useSetActiveBranch();
+
+    // Capture the branch from URL at mount time — never update this ref so the
+    // effect doesn't re-fire when the user manually switches branches (which
+    // would also update the URL and change the `initialBranch` prop).
+    const initialBranchFromUrl = useRef(initialBranch);
+    const initialBranchApplied = useRef(false);
+    useEffect(() => {
+        const target_branch = initialBranchFromUrl.current;
+        if (!target_branch || branches.length === 0 || initialBranchApplied.current) return;
+        initialBranchApplied.current = true;
+        const target = branches.find(b => b.name === target_branch);
+        if (target && target.id !== activeBranchId) {
+            setActiveBranch.mutate({ fileId: selectedFile.id, branchId: target.id });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [branches]);
     const createCommit = useCreateCommit();
     const mergeBranch = useMergeBranch();
     const renameBranch = useRenameBranch();
@@ -87,11 +105,12 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
 
     const handleSwitchBranch = useCallback((branchId: number) => {
         if (branchId === activeBranchId) return;
+        const branchName = branches.find(b => b.id === branchId)?.name ?? 'main';
         setActiveBranch.mutate(
             { fileId: selectedFile.id, branchId },
-            { onSuccess: () => onBranchChanged?.() }
+            { onSuccess: () => onBranchChanged?.(branchName) }
         );
-    }, [activeBranchId, selectedFile.id, setActiveBranch, onBranchChanged]);
+    }, [activeBranchId, branches, selectedFile.id, setActiveBranch, onBranchChanged]);
 
     const handleCreateBranch = useCallback(() => {
         if (!newBranchName.trim()) return;
@@ -103,7 +122,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                     setCreateDialogOpen(false);
                     setActiveBranch.mutate(
                         { fileId: selectedFile.id, branchId: branch.id },
-                        { onSuccess: () => onBranchChanged?.() }
+                        { onSuccess: () => onBranchChanged?.(branch.name) }
                     );
                 },
             }
@@ -145,7 +164,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                     setRenameDialogOpen(false);
                     setRenameBranchId(null);
                     setRenameBranchValue('');
-                    onBranchChanged?.();
+                    onBranchChanged?.(renameBranchValue.trim());
                 },
             }
         );
@@ -193,7 +212,7 @@ const FileBranchSelector = ({ selectedFile, onBranchChanged }: Props) => {
                 onSuccess: () => {
                     setMergeDialogOpen(false);
                     resetMergeDialog();
-                    onBranchChanged?.();
+                    onBranchChanged?.(activeBranchName);
                 },
             }
         );

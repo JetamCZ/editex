@@ -260,6 +260,7 @@ const PermissionsPage = () => {
                 onOpenChange={(open) => !open && setAccessModalFolder(null)}
                 folder={accessModalFolder}
                 projectId={project.id}
+                projectSlug={project.baseProject}
             />
         </>
     );

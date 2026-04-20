@@ -23,6 +23,7 @@ export interface FileBranch {
     createdBy: number;
     createdAt: string;
     hasUncommittedChanges?: boolean;
+    deleted?: boolean;
 }
 
 export interface FileCommit {
