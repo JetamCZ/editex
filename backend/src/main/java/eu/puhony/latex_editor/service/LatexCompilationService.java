@@ -305,8 +305,8 @@ public class LatexCompilationService {
                         projectId, normalizedFileName, branchName, commitTime);
 
                 if (resolvedContent != null) {
-                    String targetFileName = sanitizeFilename(normalizedFileName);
-                    Files.writeString(new File(workDir, targetFileName).toPath(), resolvedContent, StandardCharsets.UTF_8);
+                    File targetFile = resolvePathInWorkDir(workDir, normalizedFileName);
+                    Files.writeString(targetFile.toPath(), resolvedContent, StandardCharsets.UTF_8);
                 }
 
                 String cmd = branchMatcher.group(0).contains("\\include") ? "include" : "input";
@@ -328,8 +328,8 @@ public class LatexCompilationService {
                         projectId, normalizedFileName, hash, false);
 
                 if (resolvedContent != null) {
-                    String targetFileName = sanitizeFilename(normalizedFileName);
-                    Files.writeString(new File(workDir, targetFileName).toPath(), resolvedContent, StandardCharsets.UTF_8);
+                    File targetFile = resolvePathInWorkDir(workDir, normalizedFileName);
+                    Files.writeString(targetFile.toPath(), resolvedContent, StandardCharsets.UTF_8);
                 }
 
                 String cmd = commitMatcher.group(0).contains("\\include") ? "include" : "input";
@@ -586,12 +586,10 @@ public class LatexCompilationService {
                         branchName, true);
 
                 if (resolvedContent != null) {
-                    // Write the resolved content to the target file
-                    String targetFileName = sanitizeFilename(
-                            filePath.endsWith(".tex") ? filePath : filePath + ".tex");
-                    File targetFile = new File(workDir, targetFileName);
+                    String normalizedName = filePath.endsWith(".tex") ? filePath : filePath + ".tex";
+                    File targetFile = resolvePathInWorkDir(workDir, normalizedName);
                     Files.writeString(targetFile.toPath(), resolvedContent, StandardCharsets.UTF_8);
-                    System.out.println("  -> Wrote branch content to: " + targetFileName);
+                    System.out.println("  -> Wrote branch content to: " + normalizedName);
                 }
 
                 // Strip @branch from the \input command
@@ -617,11 +615,10 @@ public class LatexCompilationService {
                         hash, false);
 
                 if (resolvedContent != null) {
-                    String targetFileName = sanitizeFilename(
-                            filePath.endsWith(".tex") ? filePath : filePath + ".tex");
-                    File targetFile = new File(workDir, targetFileName);
+                    String normalizedName = filePath.endsWith(".tex") ? filePath : filePath + ".tex";
+                    File targetFile = resolvePathInWorkDir(workDir, normalizedName);
                     Files.writeString(targetFile.toPath(), resolvedContent, StandardCharsets.UTF_8);
-                    System.out.println("  -> Wrote commit content to: " + targetFileName);
+                    System.out.println("  -> Wrote commit content to: " + normalizedName);
                 }
 
                 commitMatcher.appendReplacement(sb,
@@ -640,10 +637,21 @@ public class LatexCompilationService {
     }
 
     private File[] findTexFilesRecursively(File dir) {
-        return dir.listFiles((d, name) -> {
-            File f = new File(d, name);
-            return f.isFile() && name.endsWith(".tex");
-        });
+        List<File> result = new ArrayList<>();
+        collectTexFiles(dir, result);
+        return result.toArray(new File[0]);
+    }
+
+    private void collectTexFiles(File dir, List<File> result) {
+        File[] entries = dir.listFiles();
+        if (entries == null) return;
+        for (File entry : entries) {
+            if (entry.isDirectory()) {
+                collectTexFiles(entry, result);
+            } else if (entry.getName().endsWith(".tex")) {
+                result.add(entry);
+            }
+        }
     }
 
     private void listFilesRecursively(File dir, String indent) {
@@ -734,8 +742,26 @@ public class LatexCompilationService {
         if (filename == null) {
             return "unknown";
         }
-        // Remove any directory traversal attempts and keep only safe characters
         return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    /**
+     * Resolve a relative path (possibly containing subdirectories like "kapitola/test.tex")
+     * to a File inside workDir, sanitizing each path segment individually and creating
+     * any missing parent directories.
+     */
+    private File resolvePathInWorkDir(File workDir, String relativePath) throws IOException {
+        String[] parts = relativePath.split("/");
+        File f = workDir;
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                f = new File(f, sanitizeFilename(part));
+            }
+        }
+        if (f.getParentFile() != null && !f.getParentFile().exists()) {
+            f.getParentFile().mkdirs();
+        }
+        return f;
     }
 
     private File resolveDestinationFile(File workDir, String projectFolder, String filename) throws IOException {

@@ -54,7 +54,7 @@ public class MinioConfig {
                     System.out.println("MinIO bucket '" + bucketName + "' created successfully.");
                 }
             } catch (Exception e) {
-                System.err.println("Error creating MinIO bucket: " + e.getMessage());
+                throw new RuntimeException("MinIO bucket setup failed (url=" + minioUrl + ", bucket=" + bucketName + "): " + e.getMessage(), e);
             }
         }
 

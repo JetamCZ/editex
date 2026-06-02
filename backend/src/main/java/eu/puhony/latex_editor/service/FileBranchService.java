@@ -604,16 +604,9 @@ public class FileBranchService {
      * @return the resolved file content, or null if not found
      */
     public String resolveInputReference(Long projectId, String fileName, String ref, boolean isBranch) {
-        // Find the file in the project by original name
         List<ProjectFile> files = fileRepository.findByProjectIdNonDeleted(projectId);
         ProjectFile targetFile = files.stream()
-                .filter(f -> {
-                    String name = f.getOriginalFileName();
-                    String nameNoExt = name.replaceAll("\\.tex$", "");
-                    String fileNameNoExt = fileName.replaceAll("\\.tex$", "");
-                    return name.equals(fileName) || nameNoExt.equals(fileNameNoExt)
-                            || name.equals(fileName + ".tex");
-                })
+                .filter(f -> fileMatchesPath(f, fileName))
                 .findFirst()
                 .orElse(null);
 
@@ -640,13 +633,7 @@ public class FileBranchService {
     public String resolveInputReferenceAtTime(Long projectId, String fileName, String branchName, LocalDateTime atTime) {
         List<ProjectFile> files = fileRepository.findByProjectIdNonDeleted(projectId);
         ProjectFile targetFile = files.stream()
-                .filter(f -> {
-                    String name = f.getOriginalFileName();
-                    String nameNoExt = name.replaceAll("\\.tex$", "");
-                    String fileNameNoExt = fileName.replaceAll("\\.tex$", "");
-                    return name.equals(fileName) || nameNoExt.equals(fileNameNoExt)
-                            || name.equals(fileName + ".tex");
-                })
+                .filter(f -> fileMatchesPath(f, fileName))
                 .findFirst()
                 .orElse(null);
 
@@ -664,6 +651,31 @@ public class FileBranchService {
                         throw new RuntimeException("Error reading base content for " + fileName, e);
                     }
                 });
+    }
+
+    /**
+     * Match a ProjectFile against a path like "kapitola/test.tex" or "test.tex".
+     * Compares both by originalFileName alone (root-level files) and by folder + name.
+     */
+    private boolean fileMatchesPath(ProjectFile f, String fileName) {
+        String name = f.getOriginalFileName();
+        String nameNoExt = name.replaceAll("\\.tex$", "");
+        String fileNameNoExt = fileName.replaceAll("\\.tex$", "");
+
+        // Direct name match (file at root)
+        if (name.equals(fileName) || nameNoExt.equals(fileNameNoExt) || name.equals(fileName + ".tex")) {
+            return true;
+        }
+
+        // Full path match: folder + "/" + name
+        String folder = f.getProjectFolder();
+        if (folder != null && !folder.isEmpty() && !folder.equals("/")) {
+            String folderNormalized = folder.replaceFirst("^/", "");
+            String fullPath = folderNormalized + "/" + name;
+            String fullPathNoExt = fullPath.replaceAll("\\.tex$", "");
+            return fullPath.equals(fileName) || fullPathNoExt.equals(fileNameNoExt);
+        }
+        return false;
     }
 
     /**
